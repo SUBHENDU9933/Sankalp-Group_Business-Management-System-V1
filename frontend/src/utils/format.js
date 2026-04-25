@@ -1,0 +1,90 @@
+export const formatINR = (n) => {
+  if (n === null || n === undefined || n === "") return "—";
+  const num = Number(n);
+  if (Number.isNaN(num)) return "—";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(num);
+};
+
+export const formatDate = (d) => {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+export const formatDateTime = (d) => {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+export const todayISO = () => new Date().toISOString().slice(0, 10);
+
+export const isOverdue = (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
+};
+
+export const isToday = (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const today = new Date();
+  return d.toDateString() === today.toDateString();
+};
+
+export const LEAD_STATUSES = [
+  { key: "new", label: "New", color: "bg-stone-100 text-stone-900 border-stone-300" },
+  { key: "contacted", label: "Contacted", color: "bg-blue-50 text-blue-900 border-blue-300" },
+  { key: "site_visit", label: "Site Visit", color: "bg-indigo-50 text-indigo-900 border-indigo-300" },
+  { key: "quotation_given", label: "Quotation Given", color: "bg-amber-50 text-amber-900 border-amber-300" },
+  { key: "negotiation", label: "Negotiation", color: "bg-orange-50 text-orange-900 border-orange-400" },
+  { key: "converted", label: "Converted", color: "bg-emerald-50 text-emerald-900 border-emerald-400" },
+  { key: "lost", label: "Lost", color: "bg-rose-50 text-rose-900 border-rose-300" },
+];
+
+export const PROJECT_TYPES = ["1BHK", "2BHK", "3BHK", "4BHK", "Villa", "Shop", "Office", "Showroom", "Other"];
+export const LEAD_SOURCES = ["Facebook", "Instagram", "Referral", "Walk-in", "Website", "Google Ads", "Other"];
+export const PAYMENT_MODES = [
+  { key: "cash", label: "Cash" },
+  { key: "bank", label: "Bank Transfer" },
+  { key: "upi", label: "UPI" },
+  { key: "cheque", label: "Cheque" },
+  { key: "other", label: "Other" },
+];
+export const EXPENSE_CATEGORIES = [
+  { key: "labour", label: "Labour" },
+  { key: "material", label: "Material" },
+  { key: "vendor", label: "Vendor" },
+  { key: "transport", label: "Transport" },
+  { key: "misc", label: "Miscellaneous" },
+];
+export const PROJECT_STATUSES = [
+  { key: "planning", label: "Planning" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "on_hold", label: "On Hold" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+];
+export const VENDOR_TYPES = ["Carpenter", "Painter", "Electrician", "Plumber", "Mason", "Polish", "POP/False Ceiling", "Other"];

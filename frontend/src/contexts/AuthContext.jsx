@@ -13,34 +13,58 @@ export const AuthProvider = ({ children }) => {
       setProfile(null);
       return;
     }
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) console.error("loadProfile error:", error);
-    setProfile(data || null);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) console.error("loadProfile error:", error);
+      setProfile(data || null);
+    } catch (e) {
+      console.error("loadProfile exception:", e);
+      setProfile(null);
+    }
   }, []);
 
+  // Effect 1: resolve initial session as fast as possible. Do NOT wait for profile.
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    // Safety timeout — never gate the app for more than 5 seconds.
+    const safety = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 5000);
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setSession(data.session ?? null);
+      })
+      .catch((e) => console.error("getSession error:", e))
+      .finally(() => {
+        if (mounted) setLoading(false);
+        clearTimeout(safety);
+      });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
-      setSession(data.session);
-      await loadProfile(data.session?.user?.id);
+      setSession(newSession ?? null);
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      await loadProfile(newSession?.user?.id);
-    });
     return () => {
       mounted = false;
+      clearTimeout(safety);
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, []);
+
+  // Effect 2: load profile whenever the user id changes.
+  useEffect(() => {
+    loadProfile(session?.user?.id);
+  }, [session?.user?.id, loadProfile]);
 
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });

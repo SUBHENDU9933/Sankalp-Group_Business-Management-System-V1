@@ -36,8 +36,16 @@ const PublicOnly = () => {
 };
 
 const AdminOnly = ({ children }) => {
-  const { isAdmin, loading } = useAuth();
+  const { profile, isAdmin, loading } = useAuth();
   if (loading) return null;
+  // Profile may load slightly after session — wait for it before deciding role.
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-100">
+        <div className="label-uppercase animate-pulse">Loading…</div>
+      </div>
+    );
+  }
   if (!isAdmin) return <Navigate to="/" replace />;
   return children;
 };

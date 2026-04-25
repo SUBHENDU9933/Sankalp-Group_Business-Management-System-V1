@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Chip } from "@/components/shared/StatusBadge";
 import {
@@ -166,6 +166,7 @@ function CustomerFormDialog({ open, onOpenChange, customer, onSaved }) {
         <DialogHeader className="px-6 py-5 border-b border-stone-200">
           <div className="label-uppercase">{isEdit ? "Edit Customer" : "New Customer"}</div>
           <DialogTitle className="font-display text-2xl tracking-tight">{isEdit ? customer.name : "Add a customer"}</DialogTitle>
+          <DialogDescription className="sr-only">Customer details: name, phone, address and project notes.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div>

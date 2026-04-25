@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -186,6 +186,7 @@ function VendorFormDialog({ open, onOpenChange, onSaved }) {
         <DialogHeader className="px-6 py-5 border-b border-stone-200">
           <div className="label-uppercase">New Vendor</div>
           <DialogTitle className="font-display text-2xl tracking-tight">Add a vendor</DialogTitle>
+          <DialogDescription className="sr-only">Vendor profile: name, trade type and phone.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div>
@@ -247,6 +248,7 @@ function VendorPaymentDialog({ open, onOpenChange, vendors, projects, defaultVen
         <DialogHeader className="px-6 py-5 border-b border-stone-200">
           <div className="label-uppercase">Record Payment</div>
           <DialogTitle className="font-display text-2xl tracking-tight">Vendor Payment</DialogTitle>
+          <DialogDescription className="sr-only">Record a payment to a vendor, optionally linked to a project.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div>

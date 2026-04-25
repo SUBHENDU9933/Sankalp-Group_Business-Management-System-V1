@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration 4 deep retest. Iter-4 fixes VERIFIED working: (a) Toaster moved to bottom-right with 2200ms — confirmed visually no longer overlaps the orange action buttons. (b) Receipt window.open opens synchronously — popup captured successfully via expect_page() for receipt #2 (Vikram, ₹50,000, Cash, SG-01002). (c) Auth-refresh fix from iter-3 still holds — page.goto on /leads renders cleanly. PASSING flows: FLOW1 (login), FLOW_A (refresh), FLOW2 (dashboard+admin sidebar+ADMIN badge), FLOW3 (cleanup of leftover ARIJIT ROY + Rajesh Kumar — DeepTest via approve-delete in /approvals), FLOW4 (Rajesh Kumar — DeepTest4 lead created with all fields incl. requirement+reminder), FLOW11 (Vikram Mehta — DeepTest4 customer created), FLOW14-partial (receipt SG-01002 created and visible in table). HOWEVER a NEW critical blocker surfaced: a CRA dev-server runtime-error overlay (red 'Uncaught runtime errors: ERROR — ResizeObserver loop completed with undelivered notifications') is appearing on the production preview URL and OPAQUE-OVERLAYS THE ENTIRE APP, blocking all subsequent clicks. It fires repeatedly when Radix Select dropdowns open/close (very common interaction in this app — used in LeadFormDialog, ReceiptDialog, ProjectDialog, etc.). This made FLOW5 (Lead B Anita Sharma create) fail immediately after FLOW4 (lead-input-name selector timeout because the dialog could not be opened — error overlay was on top). FLOW6 (status change submenu hover) also failed — Set Status submenu items never appeared. FLOWS 6,7,8,9,10,12,13,15-31 were therefore not driven end-to-end this iteration because Lead A never reached Site Visit nor Converted state. The ResizeObserver warning is benign in itself, but CRA's overlay treating it as an uncaught error and rendering a full-screen modal is a SHIPPING-BLOCKER for the preview build. Either (a) ship a production build (npm run build / yarn build) for the preview environment, OR (b) install the resize-observer-polyfill / suppress the warning, OR (c) disable react-error-overlay for ResizeObserver loops (well-known React+Radix issue).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "App-level (CRA dev overlay)",
+        "issue": "Red full-screen 'Uncaught runtime errors' overlay appears on the LIVE preview URL whenever a Radix Select dropdown opens (lead form, receipt form, etc.). Error: 'ResizeObserver loop completed with undelivered notifications'. The overlay BLOCKS ALL CLICKS until manually dismissed — making the app unusable for real users. The preview env is serving a CRA dev build instead of a production build. Reproduces every single time on /leads → New Lead → click any Select trigger.",
+        "selector": "iframe#webpack-dev-server-client-overlay, body > iframe",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "LeadsPage actions dropdown — Set Status submenu",
+        "issue": "Hovering 'Set Status' did not reveal status options (Contacted, Site Visit, etc.) — sub-menu interaction is either implemented as nested DropdownMenuSub but the trigger is not a DropdownMenuSubTrigger, or the items are rendered but with non-discoverable role. Selector [role=\"menuitem\"]:has-text(\"Contacted\") timed out for 30s after hovering 'Set Status'. Needs: confirm DropdownMenuSubTrigger usage and add data-testid like lead-status-{status} to each status menuitem.",
+        "selector": "[data-testid=\"lead-actions-{id}\"] dropdown — Set Status submenu",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Receipt #2 in receipts table — receipt #1 ('SG-01001 / cd / Cash / ₹2,000')",
+        "issue": "After cleanup there is a stale receipt row (SG-01001, mode='cd', amount ₹2,000, customer not visible) left over from a previous iteration. Total chip therefore reads ₹52,000 instead of the expected ₹50,000 for this iteration's data. Cleanup of old receipts is not part of FLOW3; consider adding receipt-delete capability or a SQL cleanup script.",
+        "selector": "[data-testid=\"receipts-table\"] row SG-01001",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Lead status change (FLOW6)",
+        "issue": "Set Status sub-menu under the lead actions dropdown does not surface its status items reliably for automated interaction. Even with hover + 500ms wait the [role=\"menuitem\"] for 'Contacted' was never visible.",
+        "affected_selectors": ["[role=\"menuitem\"]:has-text(\"Contacted\")", "[role=\"menuitem\"]:has-text(\"Site Visit\")"]
+      }
+    ],
+    "design_issues": [
+      {"screen": "Toaster (post-fix)", "issues": ["Bottom-right placement + 2200ms duration verified — no longer blocks header buttons. PASS."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "CRITICAL: Eliminate the CRA dev-server runtime-error overlay on the preview URL. Either serve a production build, OR add a ResizeObserver-loop suppressor in src/index.js: window.addEventListener('error', (e) => { if (e.message.includes('ResizeObserver loop')) e.stopImmediatePropagation(); }); — and similarly for unhandledrejection. This is a SHIPPING blocker.",
+    "HIGH: In LeadsPage actions dropdown, ensure 'Set Status' submenu uses Radix DropdownMenuSub + DropdownMenuSubTrigger correctly and add data-testid=\"lead-status-option-{slug}\" to each status menuitem so it's automatable.",
+    "Add a cleanup utility / SQL to remove stale receipts (SG-01001 with bogus mode 'cd' / ₹2,000 still in DB).",
+    "Once dev-overlay is fixed, re-run FLOWS 5–10, 12–31 end-to-end. Selectors below already verified correct: lead-input-name, lead-input-phone, lead-input-location, lead-select-project-type, lead-select-source, lead-input-budget, lead-input-requirement, lead-input-reminder, lead-form-submit, customer-input-name, customer-input-phone, customer-input-address, customer-input-project, customer-form-submit, receipt-select-customer, receipt-input-amount, receipt-select-mode, receipt-input-note, receipt-form-submit. (Note: previous iter reports used wrong names like 'lead-name-input' — actual is 'lead-input-name'.)"
+  ],
+  "critical_code_review_comments": [
+    "Iter-4 toaster fix verified working — bottom-right + 2200ms no longer overlaps header CTAs.",
+    "Iter-4 receipt synchronous window.open verified working — popup captured via page.context.expect_page() and shows SANKALP GROUP, customer name, ₹50,000, mode (Cash) for SG-01002.",
+    "ResizeObserver loop in Radix Select is a known upstream issue (radix-ui/primitives) — must add a global suppressor in production OR ship a production build. Currently the dev overlay makes the app effectively unusable for real users on any Select interaction.",
+    "data-testid naming inconsistent across the codebase: Lead form uses 'lead-input-name' / 'lead-form-submit', LeadsPage table uses 'leads-search-input' / 'lead-add-button'. Pick a convention (kebab + verb-last) and document it.",
+    "Approval-action buttons should have data-testids ('approval-approve-{id}', 'approval-reject-{id}') — currently only matched by visible text 'Delete'/'Reject'."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only app)", "frontend": "Verified PASS: FLOW1, FLOW_A, FLOW2, FLOW3, FLOW4, FLOW11, FLOW14-partial. Verified iter-4 fixes (toaster, receipt popup) working. Blocked by dev-overlay on FLOWS 5,6,7,8,9,10,12,13,15-31."},
+  "test_credentials": "info.subhendu@gmail.com / Subhendu8958@ (admin, working)",
+  "seed_data_creation": "Created lead 'Rajesh Kumar — DeepTest4' (NEW, 9811223344, Sector 18 Noida, 3BHK, Referral, ₹8,50,000, Quote sharing). Created customer 'Vikram Mehta — DeepTest4' (9988776655, 42/B Park Street Kolkata, Showroom 1200sqft retail). Created receipt SG-01002 (Vikram Mehta, ₹50,000, Cash). Cleaned up leftover ARIJIT ROY and Rajesh Kumar — DeepTest leads via approve-delete. Stale SG-01001 receipt remains (₹2,000, mode 'cd').",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "PRIMARY BLOCKER for full end-to-end coverage is the CRA red runtime-error overlay caused by ResizeObserver loop on Radix Select interactions. Once that is suppressed, all selectors are correct and the suite should drive cleanly. Note: actual lead-form testids are 'lead-input-name' / 'lead-input-phone' / 'lead-input-location' / 'lead-select-project-type' / 'lead-select-source' / 'lead-input-budget' / 'lead-input-requirement' / 'lead-input-reminder' / 'lead-form-submit' (NOT 'lead-name-input' as in earlier iterations). Receipt popup capture: use `async with page.context.expect_page(timeout=15000) as pop:` AROUND the click on receipt-form-submit — confirmed working. Lead status submenu interaction needs a closer look — hover on 'Set Status' did not reveal items.",
+  "rca of the issue": "Two issues:\n  1. ResizeObserver overlay: Radix UI Select fires ResizeObserver internally; under React+CRA dev mode, react-error-overlay treats the benign 'ResizeObserver loop completed with undelivered notifications' warning as an uncaught error and renders an iframe-based full-page modal. Mitigation: serve a production build, OR add to src/index.js: `const e = window.console.error; window.addEventListener('error', (ev) => { if (ev.message?.includes('ResizeObserver loop')) ev.stopImmediatePropagation(); }, true);` and similarly for 'unhandledrejection'.\n  2. Set Status submenu: nested DropdownMenuSub items not exposed as [role=menuitem] from the start — likely needs explicit DropdownMenuSubTrigger / DropdownMenuSubContent wiring + data-testids on each status item."
+}

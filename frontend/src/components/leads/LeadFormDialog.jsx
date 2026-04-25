@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +71,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onSaved }) {
         <DialogHeader className="px-6 py-5 border-b border-stone-200">
           <div className="label-uppercase">{isEdit ? "Edit Lead" : "New Lead"}</div>
           <DialogTitle className="font-display text-2xl tracking-tight">{isEdit ? lead.name : "Add a new business enquiry"}</DialogTitle>
+          <DialogDescription className="sr-only">Lead intake form. Capture name, phone, project type, requirement and follow-up.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="grid md:grid-cols-2 gap-0 grid-divider-x">

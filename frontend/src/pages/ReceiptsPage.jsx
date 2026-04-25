@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -148,6 +148,8 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
   const onSubmit = async (values) => {
     if (!values.customer_id) { toast.error("Select a customer"); return; }
     setSubmitting(true);
+    // Open a placeholder tab synchronously so popup blockers don't block it.
+    const printWindow = window.open("", "_blank");
     try {
       const r = await createReceipt({
         customer_id: values.customer_id,
@@ -158,8 +160,11 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
       toast.success(`Receipt ${r.receipt_no} created`);
       onSaved?.();
       onOpenChange(false);
-      window.open(`/receipts/${r.id}/print`, "_blank");
-    } catch (e) { toast.error(e.message); }
+      if (printWindow) printWindow.location.href = `/receipts/${r.id}/print`;
+    } catch (e) {
+      if (printWindow) printWindow.close();
+      toast.error(e.message);
+    }
     finally { setSubmitting(false); }
   };
 
@@ -169,6 +174,7 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
         <DialogHeader className="px-6 py-5 border-b border-stone-200">
           <div className="label-uppercase">New Receipt</div>
           <DialogTitle className="font-display text-2xl tracking-tight">Generate Payment Receipt</DialogTitle>
+          <DialogDescription className="sr-only">Record a customer payment. The receipt number is generated automatically.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div>

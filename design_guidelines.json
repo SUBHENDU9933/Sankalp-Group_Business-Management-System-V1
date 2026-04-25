@@ -1,0 +1,78 @@
+{
+  "theme": "Light",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "emotional_tone": "Objective, Functional, Trustworthy, Architectural, Rigid",
+  "domain": "Interior & Infrastructure Solutions Company",
+  "colors": {
+    "background": "#F5F5F4",
+    "surface": "#FFFFFF",
+    "text_primary": "#1C1917",
+    "text_secondary": "#57534E",
+    "primary": "#292524",
+    "primary_foreground": "#FFFFFF",
+    "accent": "#F97316",
+    "accent_foreground": "#FFFFFF",
+    "danger": "#EF4444",
+    "success": "#22C55E",
+    "border": "#E7E5E4",
+    "hover_state": "#44403C"
+  },
+  "typography": {
+    "font_family": {
+      "heading": "'Cabinet Grotesk', sans-serif",
+      "body": "'IBM Plex Sans', sans-serif"
+    },
+    "hierarchy": {
+      "h1": "text-4xl tracking-tight font-bold",
+      "h2": "text-2xl tracking-tight font-semibold",
+      "h3": "text-xl tracking-tight font-medium",
+      "h4": "text-lg tracking-tight font-medium",
+      "body": "text-base leading-relaxed text-stone-900",
+      "body_small": "text-sm text-stone-600",
+      "label": "text-xs tracking-[0.2em] uppercase font-semibold text-stone-500"
+    }
+  },
+  "layout_and_spacing": {
+    "container_padding": "p-6 md:p-8 lg:p-12",
+    "grid_strategy": "Control Room grid. Tight gaps (gap-4 or gap-6). High density. Strict column alignment for widgets.",
+    "border_radius": "rounded-none",
+    "surface_strategy": "Grid Borders: Expose the skeleton. Containers with border-collapse style layout, border-r and border-b. No heavy drop shadows. Crisp edges."
+  },
+  "components": {
+    "cards": "Flat background (bg-white), 1px subtle border (border-stone-200), no shadow. On hover, border color darkens slightly, no lift to maintain Swiss grid rigidity.",
+    "buttons": "Square edges (rounded-none), high contrast. Primary: bg-stone-900 text-white hover:bg-stone-800. Accent: bg-orange-500 text-white hover:bg-orange-600. ALWAYS set hover text color explicitly.",
+    "inputs": "Shadcn UI base. Square corners (rounded-none), 1px solid border. focus:ring-2 focus:ring-stone-900 focus:ring-offset-1.",
+    "tables": "Strict cell borders (border-stone-200). Sticky headers with uppercase labels. Right-aligned numerical data.",
+    "kanban": "Strict columns with light stone background (bg-stone-50). Cards have a solid 1px border. Use left-border color accents to denote status (e.g., orange for negotiation, green for converted).",
+    "receipt": "High-contrast, printable layout. Focus on monochrome clarity, utilizing grid borders heavily."
+  },
+  "motion": {
+    "strategy": "Minimalist. Snappy transitions (duration-150 ease-in-out). Micro-interactions for button presses and row hovers. No bouncy animations."
+  },
+  "images_and_media": {
+    "logo": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/75735176-21c2-4420-8b5c-06ce89a16ca3/images/4c9e41b997bb598ea14e72e9f06247c3ef3238ebdb22c46ed34cc891ea77a268.png",
+      "description": "Sankalp Group Logo - Minimalist architectural vector"
+    },
+    "login_background": {
+      "url": "https://images.pexels.com/photos/30783645/pexels-photo-30783645.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Minimalist architectural concrete texture for login page background"
+    },
+    "avatars": [
+      "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzEwODc2MHww&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1762522926157-bcc04bf0b10a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzEwODc2MHww&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1769636929388-99eff95d3bf1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzEwODc2MHww&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NzEwODc2MHww&ixlib=rb-4.1.0&q=85"
+    ]
+  },
+  "icons": "lucide-react",
+  "instructions_to_main_agent": [
+    "Strictly adhere to the Light Theme and Swiss & High-Contrast archetype. Remove generic rounding (like rounded-lg, rounded-md) from Shadcn UI primitives, setting them to rounded-none to reflect an architectural aesthetic.",
+    "Ensure all interactive and key informational elements MUST include a role-based data-testid attribute.",
+    "Import Cabinet Grotesk (from Fontshare or local assets) and IBM Plex Sans (from Google Fonts) in the main HTML/CSS layer.",
+    "For the dashboard layout, use the 'Control Room' grid layout: tight gaps (gap-4 or gap-6), rigid alignment, utilizing 100% of available space. Grid items must align exactly to edges.",
+    "The login page must use the provided login_background image covering the full screen. Place the login form within a stark white solid panel (bg-white p-12) to create maximal contrast with the background texture.",
+    "Kanban board columns should feel structural and organized, utilizing rigid grid borders rather than floating stylized cards.",
+    "Maintain color contrast standards. The accent color (orange) is specifically for critical infrastructure-like alerts or key actions, not for general decoration."
+  ]
+}

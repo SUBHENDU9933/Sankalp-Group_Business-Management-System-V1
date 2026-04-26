@@ -34,7 +34,21 @@ export const updateLead = async (id, payload) => {
   return data;
 };
 
-export const updateLeadStatus = async (id, status) => updateLead(id, { status });
+export const updateLeadStatus = async (id, status, userId) => {
+  const lead = await updateLead(id, { status });
+  // Log status change to timeline (best-effort)
+  if (userId) {
+    try {
+      await supabase.from("lead_activities").insert([{
+        lead_id: id,
+        type: "status_change",
+        content: `Status changed to ${status.replace(/_/g, " ")}`,
+        created_by: userId,
+      }]);
+    } catch (_) { /* ignore */ }
+  }
+  return lead;
+};
 
 export const requestDelete = async (id, _userId) => {
   const { error } = await supabase.rpc("request_delete_lead", { p_id: id });

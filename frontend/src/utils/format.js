@@ -55,17 +55,24 @@ export const isToday = (dateStr) => {
 };
 
 export const LEAD_STATUSES = [
-  { key: "new", label: "New", color: "bg-stone-100 text-stone-900 border-stone-300" },
-  { key: "contacted", label: "Contacted", color: "bg-blue-50 text-blue-900 border-blue-300" },
-  { key: "site_visit", label: "Site Visit", color: "bg-indigo-50 text-indigo-900 border-indigo-300" },
-  { key: "quotation_given", label: "Quotation Given", color: "bg-amber-50 text-amber-900 border-amber-300" },
-  { key: "negotiation", label: "Negotiation", color: "bg-orange-50 text-orange-900 border-orange-400" },
-  { key: "converted", label: "Converted", color: "bg-emerald-50 text-emerald-900 border-emerald-400" },
-  { key: "lost", label: "Lost", color: "bg-rose-50 text-rose-900 border-rose-300" },
+  { key: "new", label: "New", color: "bg-stone-100 text-stone-900 border-stone-300", dot: "bg-stone-500" },
+  { key: "contacted", label: "Contacted", color: "bg-blue-50 text-blue-900 border-blue-300", dot: "bg-blue-500" },
+  { key: "site_visit", label: "Site Visit", color: "bg-indigo-50 text-indigo-900 border-indigo-300", dot: "bg-indigo-500" },
+  { key: "quotation_given", label: "Estimate Given", color: "bg-amber-50 text-amber-900 border-amber-300", dot: "bg-amber-500" },
+  { key: "negotiation", label: "Negotiation", color: "bg-orange-50 text-orange-900 border-orange-400", dot: "bg-orange-500" },
+  { key: "converted", label: "Converted", color: "bg-emerald-50 text-emerald-900 border-emerald-400", dot: "bg-emerald-500" },
+  { key: "lost", label: "Lost", color: "bg-rose-50 text-rose-900 border-rose-300", dot: "bg-rose-500" },
+];
+
+export const LEAD_PRIORITIES = [
+  { key: "hot", label: "Hot", color: "bg-rose-100 text-rose-800 border-rose-300", dot: "bg-rose-500" },
+  { key: "warm", label: "Warm", color: "bg-amber-100 text-amber-800 border-amber-300", dot: "bg-amber-500" },
+  { key: "cold", label: "Cold", color: "bg-sky-100 text-sky-800 border-sky-300", dot: "bg-sky-500" },
 ];
 
 export const PROJECT_TYPES = ["1BHK", "2BHK", "3BHK", "4BHK", "Villa", "Shop", "Office", "Showroom", "Other"];
-export const LEAD_SOURCES = ["Facebook", "Instagram", "Referral", "Walk-in", "Website", "Google Ads", "Other"];
+export const PROPERTY_TYPES = ["Apartment", "Villa", "Independent House", "Builder Floor", "Commercial", "Other"];
+export const LEAD_SOURCES = ["Facebook", "WhatsApp", "Instagram", "Referral", "Walk-in", "Website", "Google Ads", "Other"];
 export const PAYMENT_MODES = [
   { key: "cash", label: "Cash" },
   { key: "bank", label: "Bank Transfer" },

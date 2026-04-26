@@ -98,3 +98,21 @@ See `/app/memory/test_credentials.md`
 - Removed "Made with Emergent" badge + emergent-main.js script + posthog tracking + emergent.sh meta description from `/app/frontend/public/index.html`
 - Verified: badge no longer rendered on login page
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
+
+
+## Iteration 8 (Feb 2026) — Lead Management v2 Upgrade
+**Schema migration** `/app/supabase_schema_v4.sql` (must be applied in Supabase before features work):
+- New `leads` columns: phone_secondary, area, pincode, property_type, area_sqft, priority, last_contact_date
+- Tightened RLS — RM only sees leads they created or are assigned to (admin sees all)
+- Customers/Projects RLS tightened to RM-scoped visibility
+- New `lead_activities` table with own RLS for timeline notes/calls
+
+**Frontend** (sidebar/route preserved, components decomposed):
+- `LeadKpiStrip` — 8 KPI cards (Total / Contacted / Site Visits / Estimate Given / Converted / Lost / Conversion% / Expected Revenue)
+- `LeadFilters` — search (name/phone/location/area/pincode), status, assigned RM (admin only), source, from/to date, view toggle
+- `LeadTableView` — Phone primary+secondary, Area+Pincode, Project+Property type, Priority badge, quick action icons (Call/WhatsApp/Edit)
+- `LeadPipelineView` — HTML5 native drag & drop between 7 stages, count + total ₹ per column
+- `LeadFormDialog` — full 2-col layout per spec, auto-assigns creator (RM locked, admin can reassign)
+- `LeadDetailsSheet` — right drawer with tabs (Overview/Timeline/Follow-ups/Files), header quick actions, note + call-log creation writes to lead_activities
+- `leadActivityService.js` — timeline service
+- Renamed "Quotation Given" label → "Estimate Given"; added LEAD_PRIORITIES and PROPERTY_TYPES constants

@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 5 deep retest of Sankalp Group BMS after major redesign + 2 bug fixes via schema v2. Drove 17 flows end-to-end.\n\nPASSED: FLOW1 (login + new design — V1 + Bengali tagline + login form), FLOW_A (hard refresh on /leads), FLOW2 (Welcome-back greeting + notification bell + KPI cards), FLOW3 (notification popover opens, mark-all read works), FLOW4 (approvals cleanup), FLOW5 (Lead 'Anjali Verma — DT5' created with all fields), FLOW7 (Project 'Anjali Residence DT5' created), FLOW8 (Receipt SG-01005 created, popup opened synchronously), FLOW9 (NEW receipt design verified — SANKALP header, PAYMENT RECEIPT banner, AUTHENTICATE THIS RECEIPT section, QR code present (svg/canvas count=11), SECURE & VERIFIED block, UPI checked, ADVANCE purpose checked), FLOW10 (✅ /verify/<id> page works perfectly — 'Receipt Verified' green check + Receipt No SG-01005 + SI No 2026CR/04/004/A0E9E + Customer Anjali Verma — DT5 + Project + ₹3,00,000 + UPI + Advance + 26 Apr 2026 + 'Secure & Verified' info box), FLOW13 (Test Delete DT5 lead created, 'Delete pending' tag appears), FLOW15 (lead visible in /approvals + admin Delete button works + lead permanently deleted), FLOW17 (greeting + Administrator label + admin sidebar all correct).\n\nFAILED: FLOW6 (Convert to Customer — customer 'Anjali Verma — DT5' did NOT appear in /customers page after Convert action; dashboard 'Total Customers' stayed at 3, not 4. Post-flow dashboard shows 2 converted leads not 3 — conversion silently failed or row mismatch). FLOW11/12 (BUG FIX 1 — vendor payment → project expense — could not be END-TO-END verified because after vendor 'Mohan Sharma — DT5' was added, the 'Record Payment' dialog did not open / payment-select-vendor selector timed out). FLOW14 (BUG FIX 2 — RM Delete Request → Admin Notification — ❌ FAILED: after creating delete request for 'Test Delete DT5', the notification bell popover shows 'No notifications yet' / 'All caught up'. The DB trigger `trg_notify_admin_lead_delete_request` is either not installed, not firing, or the notificationService is not fetching the row. THIS IS THE CRITICAL BUG-2 FIX REGRESSION.).\n\nKNOWN ISSUE STILL PRESENT: A red 'Uncaught runtime errors: ResizeObserver loop completed with undelivered notifications' dev-overlay still flashes on the /receipts page (visible in first screenshot). The src/lib/suppress-resize-observer module is loaded but isn't fully suppressing the CRA react-error-overlay iframe — error fires from bundle.js:82618:58 / 82637:7. Less frequent than iter-4 but still appears.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "NotificationBell / notificationService — BUG FIX 2 REGRESSION",
+        "issue": "After creating a lead delete request via the rpc('request_delete_lead') flow (FLOW13), the admin notification bell popover shows 'No notifications yet' / 'All caught up'. The new notification 'Lead delete request: Test Delete DT5' that the DB trigger `trg_notify_admin_lead_delete_request` is supposed to insert into the `notifications` table is NOT showing up. Bell badge count stayed at 1 (old) and zero new items appeared. THE BUG-2 FIX (RM delete → admin notification) IS NOT WORKING END-TO-END. Need to verify: (a) supabase_schema_v2.sql trigger was actually applied — check pg_trigger; (b) RPC `request_delete_lead` writes to notifications for admin role; (c) notificationService.fetchRecent() RLS policy allows admin to read its own notifications; (d) realtime channel subscription is wired.",
+        "selector": "[data-testid=\"notification-popover\"]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "LeadsPage Convert-to-Customer action",
+        "issue": "Clicking lead-actions → lead-convert on 'Anjali Verma — DT5' did NOT create a customer row. /customers does not contain 'Anjali Verma — DT5' after the action. Dashboard 'Total Customers' stayed at 3 (was 4 in a prior screenshot). Could be: (a) confirm dialog auto-accepted but RPC errored silently (check console); (b) lead status was already changed to 'converted' in a previous iteration and convert is now a no-op; (c) the customer with that exact name already exists. Add toast feedback for success/failure.",
+        "selector": "[data-testid^=\"lead-convert-\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "VendorsPage — Record Payment dialog (BUG FIX 1 verification blocked)",
+        "issue": "After successfully creating a vendor via vendor-add-button → vendor-form-submit, immediately clicking [data-testid=\"vendor-payment-button\"] did NOT open the payment dialog (payment-select-vendor selector timed out at 8s). The previous vendor-form-dialog may not have unmounted in time, OR the button was overlay-blocked. As a result, the project-expense mirror trigger from BUG FIX 1 could not be verified end-to-end this run. Recommend adding await for dialog close + better dialog state cleanup.",
+        "selector": "[data-testid=\"vendor-payment-button\"] → [data-testid=\"payment-select-vendor\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "App-level — CRA dev-overlay (ResizeObserver)",
+        "issue": "Despite src/lib/suppress-resize-observer being loaded, a red 'Uncaught runtime errors: ResizeObserver loop completed with undelivered notifications' overlay still appears intermittently — captured in first screenshot of iter-5 on /receipts. Stack: handleError @ bundle.js:82618:58. Suppressor must run BEFORE react-error-overlay registers its handlers AND must call ev.stopImmediatePropagation() in the capture phase for both 'error' and 'unhandledrejection'. Better long-term fix: ship a production build for the preview env.",
+        "selector": "iframe#webpack-dev-server-client-overlay",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Lead delete request → admin notification (BUG FIX 2)",
+        "issue": "End-to-end broken — see ui_bug above. Most likely root cause is the DB trigger inserting into notifications is not firing OR notificationService query has wrong RLS / wrong recipient_id semantics. Need to query Supabase directly: SELECT * FROM notifications ORDER BY created_at DESC LIMIT 5; right after a request_delete_lead call.",
+        "affected_selectors": ["[data-testid=\"notification-popover\"]", "[data-testid^=\"notification-item-\"]", "[data-testid=\"notification-badge\"]"]
+      },
+      {
+        "flow": "Vendor payment → project expense (BUG FIX 1)",
+        "issue": "Could not be verified because the Record Payment dialog did not open after creating a vendor (UI flake / dialog stacking). BUG FIX 1 itself (DB trigger trg_mirror_vp) could not be tested end-to-end this run.",
+        "affected_selectors": ["[data-testid=\"vendor-payment-button\"]", "[data-testid=\"payment-select-vendor\"]", "[data-testid=\"payment-select-project\"]"]
+      }
+    ],
+    "design_issues": [
+      {"screen": "LoginPage", "issues": ["NEW design verified — V1 heading with orange accent, Bengali tagline, 6 feature icons grid, blue Login button. PASS."]},
+      {"screen": "ReceiptPrintPage", "issues": ["NEW design verified — SANKALP header band, blue+orange corners, PAYMENT RECEIPT banner, AUTHENTICATE THIS RECEIPT QR section, SECURE & VERIFIED box, UPI checked, ADVANCE purpose checked. PASS."]},
+      {"screen": "VerifyReceiptPage (/verify/<id>)", "issues": ["NEW page works perfectly — green-check 'Receipt Verified' header, all fields populated, blue 'Secure & Verified' info box. PASS."]},
+      {"screen": "DashboardPage", "issues": ["Topbar greeting 'Welcome back, Subhendu 👋', notification bell top-right with badge, sidebar uses blue active link, profile box bottom shows blue 'S' circle + 'Administrator' role. PASS."]}
+    ]
+  },
+  "test_report_links": [".screenshots/02_dashboard.png", ".screenshots/10_verify.png", ".screenshots/17_dashboard.png"],
+  "action_items": [
+    "CRITICAL: Debug BUG FIX 2 — RM delete request notification not reaching admin. Verify in Supabase: (a) `select * from pg_trigger where tgname like '%notify%'` shows trg_notify_admin_lead_delete_request; (b) after `select request_delete_lead('<lead_uuid>')` row appears in notifications table with recipient_id matching admin user id; (c) RLS policy on notifications allows current user to select their own rows; (d) notificationService.js queries with correct recipient filter.",
+    "HIGH: Fix Convert-to-Customer flow — verify the convert RPC (or service call) actually inserts into customers and shows toast. Currently silently no-ops for some leads.",
+    "HIGH: Fix VendorsPage dialog state — Record Payment dialog must reliably open after vendor-form-dialog closes. Add proper unmount/wait or fully unmount the previous dialog.",
+    "HIGH: Strengthen ResizeObserver suppressor — ensure it stops propagation BEFORE react-error-overlay registers, OR ship a production build for the preview env."
+  ],
+  "critical_code_review_comments": [
+    "Receipt redesign + verify page are excellent — pixel-match of reference, QR included, public verify works without auth.",
+    "Notification bell UI is clean (popover + 360px width + mark-all-read + per-item testids), but the data-pipeline (trigger → notifications → polling/realtime) appears broken for the lead-delete-request use case.",
+    "data-testid coverage is now solid — every interactive element has a stable id (lead-input-name, lead-form-submit, receipt-select-purpose, etc.).",
+    "Sidebar redesign with blue active state + Administrator role label looks great; topbar bell + greeting clean.",
+    "VendorsPage uses two stacked DialogContent components — recommend adding key/state cleanup to prevent the second dialog from being intercepted by the first."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only / Supabase)", "frontend": "12/17 flows PASS. PASS: 1, A, 2, 3, 4, 5, 7, 8, 9, 10, 13, 15, 17. FAIL/BLOCKED: 6 (convert), 11+12 (vendor-payment dialog), 14 (notification regression — BUG-2 FIX broken)."},
+  "test_credentials": "info.subhendu@gmail.com / Subhendu8958@ (admin, working)",
+  "seed_data_creation": "Created lead 'Anjali Verma — DT5' (9811000111, Sector 22 Noida, 3BHK, Referral, ₹9,50,000). Created project 'Anjali Residence DT5' (Noida, ₹9,50,000). Created receipt SG-01005 (Anjali Verma — DT5, ₹3,00,000, UPI, Advance, UPI/TX/12345). Created vendor 'Mohan Sharma — DT5' (Carpenter, 9988001122) — payment NOT recorded due to dialog issue. Created+deleted 'Test Delete DT5' lead. Cleanup of leftover ARIJIT/DeepTest leads attempted (1 ARIJIT ROY lead remains visible — source row may not have a delete request to approve).",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "BUG FIX 2 (RM delete → admin notification) is REGRESSED — bell shows 'No notifications yet' even after delete request created. BUG FIX 1 could not be verified end-to-end because vendor-payment dialog did not open after vendor was added. Receipt design + Verify page + new login design + dashboard greeting + notification UI shell are all VERIFIED working. Receipt SG-01005 receipt UUID = 8d045134-4000-4c70-ba94-266cf8e59f3c — verify page accessible at /verify/8d045134-4000-4c70-ba94-266cf8e59f3c and renders perfectly. ResizeObserver dev overlay still occasionally appears despite suppressor.",
+  "rca of the issue": "Notification bug RCA hypotheses: (1) The `request_delete_lead` RPC in supabase_schema_v2.sql may not actually insert into notifications table — could be only flipping `delete_request=true` on leads. (2) The DB trigger `trg_notify_admin_lead_delete_request` may be on the wrong table or not yet applied (verify with: SELECT tgname,tgrelid::regclass FROM pg_trigger WHERE tgname ILIKE '%notif%';). (3) RLS on notifications table may block SELECT for admin role. (4) notificationService.fetchRecent might filter by `recipient_id = auth.uid()` but trigger inserts a different recipient (e.g., NULL for 'broadcast to all admins') — mismatch. Reproduction: login as admin → /leads → New Lead → submit → row's lead-actions → Request Delete → confirm → bell icon → popover. Expected: 'Lead delete request: <name>' appears within ≤30s. Actual: 'No notifications yet'. Fix: verify v2.sql is applied AND that trigger inserts a row with recipient_id = (every admin user_id) OR notificationService queries without recipient filter for admin. Recommended next step for main agent: open Supabase SQL editor and run `select * from notifications order by created_at desc limit 10;` directly after a delete request to confirm whether the trigger fired."
+}

@@ -12,21 +12,11 @@ export default function VerifyReceiptPage() {
 
   useEffect(() => {
     (async () => {
-      // Try receipt_uid first, then id
-      let { data } = await supabase
-        .from("receipts")
-        .select("*, customer:customers(name,phone,address), project:projects(project_name)")
-        .eq("receipt_uid", uid)
-        .maybeSingle();
-      if (!data) {
-        const r = await supabase
-          .from("receipts")
-          .select("*, customer:customers(name,phone,address), project:projects(project_name)")
-          .eq("id", uid)
-          .maybeSingle();
-        data = r.data;
-      }
-      setReceipt(data);
+      // Use public RPC so anon (non-logged-in QR scanners) can also verify.
+      const { data, error } = await supabase.rpc("verify_receipt", { p_key: uid });
+      if (error) console.warn("verify_receipt rpc error", error);
+      const row = Array.isArray(data) ? data[0] : data;
+      setReceipt(row || null);
       setLoading(false);
     })();
   }, [uid]);
@@ -55,8 +45,8 @@ export default function VerifyReceiptPage() {
             <div className="mt-5 space-y-3 text-sm">
               <Row label="Receipt No." value={receipt.receipt_no} />
               <Row label="SI No." value={receipt.si_no || "—"} />
-              <Row label="Customer" value={receipt.customer?.name || "—"} />
-              <Row label="Project" value={receipt.project?.project_name || receipt.customer?.address || "—"} />
+              <Row label="Customer" value={receipt.customer_name || "—"} />
+              <Row label="Project" value={receipt.project_name || receipt.customer_address || "—"} />
               <Row label="Amount" value={<span className="font-bold text-orange-600">{formatINR(receipt.amount)}</span>} />
               <Row label="Mode" value={<span className="capitalize">{receipt.payment_mode}</span>} />
               <Row label="Purpose" value={<span className="capitalize">{receipt.payment_purpose || "—"}</span>} />

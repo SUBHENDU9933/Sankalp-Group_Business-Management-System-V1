@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { pushToAllAdmins } from "@/services/notificationService";
 
 export const fetchLeads = async (filters = {}) => {
   let q = supabase
@@ -38,6 +39,14 @@ export const updateLeadStatus = async (id, status) => updateLead(id, { status })
 export const requestDelete = async (id, _userId) => {
   const { error } = await supabase.rpc("request_delete_lead", { p_id: id });
   if (error) throw error;
+  // Look up lead name for a friendlier notification title
+  const { data: lead } = await supabase.from("leads").select("name").eq("id", id).maybeSingle();
+  await pushToAllAdmins({
+    type: "delete_request",
+    title: `Lead delete request: ${lead?.name || ""}`,
+    body: "Awaiting your approval in /approvals",
+    link: "/approvals",
+  });
 };
 
 export const cancelDeleteRequest = async (id) => {

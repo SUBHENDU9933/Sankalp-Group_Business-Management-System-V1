@@ -28,3 +28,19 @@ export const markAllRead = async () => {
   const { error } = await supabase.from("notifications").update({ read: true }).eq("read", false);
   if (error) throw error;
 };
+
+// Push a notification to every admin (defense-in-depth client-side fallback
+// in case the Postgres notify trigger isn't installed / firing).
+export const pushToAllAdmins = async ({ title, body, link, type = "info" }) => {
+  try {
+    const { data: admins, error: aErr } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin");
+    if (aErr || !admins?.length) return;
+    const rows = admins.map((a) => ({ user_id: a.id, type, title, body, link }));
+    await supabase.from("notifications").insert(rows);
+  } catch (e) {
+    console.warn("pushToAllAdmins failed:", e);
+  }
+};

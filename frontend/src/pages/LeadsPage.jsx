@@ -73,14 +73,17 @@ export default function LeadsPage() {
   };
 
   const handleConvert = async (lead) => {
-    if (lead.is_locked || lead.status === "converted") return;
+    if (lead.is_locked || lead.status === "converted") {
+      toast.info("This lead is already converted");
+      return;
+    }
     if (!window.confirm(`Convert "${lead.name}" to a customer? This will lock the lead.`)) return;
     try {
-      const c = await convertLeadToCustomer(lead, user.id);
+      await convertLeadToCustomer(lead, user.id);
       toast.success("Converted to customer");
       load();
       nav("/customers");
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(e.message || "Convert failed"); }
   };
 
   const handleRequestDelete = async (lead) => {

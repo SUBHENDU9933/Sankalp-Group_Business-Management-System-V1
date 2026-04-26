@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { pushToAllAdmins } from "@/services/notificationService";
 
 export const fetchCustomers = async () => {
   const { data, error } = await supabase
@@ -33,6 +34,13 @@ export const updateCustomer = async (id, payload) => {
 export const requestDeleteCustomer = async (id, _userId) => {
   const { error } = await supabase.rpc("request_delete_customer", { p_id: id });
   if (error) throw error;
+  const { data: cust } = await supabase.from("customers").select("name").eq("id", id).maybeSingle();
+  await pushToAllAdmins({
+    type: "delete_request",
+    title: `Customer delete request: ${cust?.name || ""}`,
+    body: "Awaiting your approval in /approvals",
+    link: "/approvals",
+  });
 };
 
 export const cancelDeleteCustomer = async (id) => {

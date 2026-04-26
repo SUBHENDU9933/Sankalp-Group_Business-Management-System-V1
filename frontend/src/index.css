@@ -74,3 +74,12 @@
   .print-page { box-shadow: none !important; }
   @page { size: A4; margin: 8mm; }
 }
+
+/* Hide CRA webpack-dev-server overlay (false-positive ResizeObserver loop) */
+#webpack-dev-server-client-overlay,
+#webpack-dev-server-client-overlay-div,
+iframe[id^="webpack-dev-server-client-overlay"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

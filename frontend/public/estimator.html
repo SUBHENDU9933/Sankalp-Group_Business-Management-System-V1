@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="sankalp-favcon.png">
+    <title>Sankalp Interior Estimate System | www.sankalpdesign.com </title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Noto+Sans+Bengali:wght@500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #1e3a8a; --primary-dark: #172554; --accent: #ea580c; --accent-light: #fff7ed;
+            --bg-body: #f1f5f9; --paper: #ffffff; --text-main: #0f172a; --text-light: #475569; --border: #cbd5e1;
+        }
+
+        /* REMOVE SPINNERS */
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 30px; -webkit-print-color-adjust: exact; }
+        i { vertical-align: middle; }
+        
+        /* CONTROLS */
+        .app-controls { 
+            max-width: 1200px; margin: 0 auto 25px; background: var(--paper); 
+            padding: 15px 20px; border-radius: 12px; 
+            box-shadow: 0 4px 20px -5px rgba(0,0,0,0.1); 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-left: 6px solid var(--accent); flex-wrap: wrap; gap: 15px; 
+        }
+        .left-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .right-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .toggle-wrapper { display: flex; align-items: center; gap: 5px; font-weight: 700; color: var(--primary); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;}
+        .toggle-btn { cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--text-main); font-weight: 500; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; transition: 0.2s; }
+        .toggle-btn:hover { background: #e2e8f0; }
+        .offer-toggle { background: #eff6ff; color: var(--primary); border-color: #bfdbfe; font-weight: 600; width: 100%; justify-content: flex-start; }
+        .offer-toggle input:checked + i { color: var(--accent); }
+        .mobile-toggle { border: 1px solid var(--primary); color: var(--primary); background: white; }
+        .mobile-toggle:hover { background: #eff6ff; }
+        .vr-line { width: 1px; height: 25px; background: #e2e8f0; margin: 0 5px; }
+        
+        .btn { padding: 9px 14px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-print { background: linear-gradient(135deg, var(--accent) 0%, #c2410c 100%); color: white; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
+        .btn-settings { background: var(--primary); color: white; }
+        .btn-action { background: white; border: 1px solid var(--border); color: var(--text-light); }
+        .btn-action:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-reset { background: white; border: 1px solid #ef4444; color: #ef4444; }
+
+        /* SHEET */
+        .sheet { background: var(--paper); width: 100%; max-width: 1200px; min-height: 29.7cm; margin: 0 auto; box-shadow: 0 15px 40px -10px rgba(30, 58, 138, 0.15); position: relative; border-radius: 2px; }
+        .sheet-inner { padding: 50px; border-top: 10px solid var(--primary); }
+
+        /* HEADER */
+        header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 25px; margin-bottom: 35px; border-bottom: 2px solid var(--border); }
+        .brand-identity { display: flex; flex-direction: column; align-items: center; width: 250px; }
+        .logo-area { width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+        .logo-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .upload-hint-logo { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; color: var(--primary); font-size: 16px; }
+        .logo-area:hover .upload-hint-logo { opacity: 1; }
+        .brand-tagline { font-family: 'Noto Sans Bengali', sans-serif; color: var(--accent); font-weight: 700; font-size: 15px; margin-top: 10px; text-align: center; letter-spacing: 0.5px; }
+        .company-details { text-align: right; padding-top: 10px; }
+        .company-details h1 { font-family: 'Playfair Display', serif; font-size: 36px; color: var(--primary); margin: 0; line-height: 1.1; letter-spacing: 0.5px; }
+        .company-details p { margin: 5px 0; font-size: 13px; color: var(--text-light); display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+
+        /* META GRID */
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-bottom: 40px; }
+        .meta-box { background: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border); position: relative; }
+        .meta-box::before { content: ''; position: absolute; left: 0; top: 20px; bottom: 20px; width: 5px; border-radius: 0 4px 4px 0; }
+        .meta-box.est::before { background: var(--accent); } .meta-box.client::before { background: var(--primary); }
+        .meta-title { font-size: 13px; font-weight: 800; color: var(--text-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; display: block; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: baseline; }
+        .meta-row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 12px; }
+        .inp-label { font-size: 13px; font-weight: 600; color: var(--primary); min-width: 110px; }
+        .inp-field { flex: 1; width: 100%; background: transparent; border: none; border-bottom: 1px dashed #cbd5e1; font-size: 14px; color: #334155; padding-bottom: 4px; font-family: 'Inter'; font-weight: 500; }
+        .inp-field:focus { outline: none; border-bottom: 1px solid var(--accent); }
+
+        /* TABLE - NEW BORDER STYLES */
+        .table-wrap { width: 100%; margin-bottom: 0; border: 1px solid var(--border); border-radius: 8px 8px 0 0; overflow: visible; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; border: 1px solid var(--border); }
+        
+        /* Headers */
+        thead tr.thead-main th { background-color: var(--primary); color: white; padding: 14px 5px; font-weight: 500; border: 1px solid rgba(255,255,255,0.2); }
+        thead tr.thead-sub th { background-color: #f8fafc; color: var(--primary); font-size: 12px; padding: 10px; font-weight: 700; text-transform: uppercase; border: 1px solid var(--border); }
+        
+        /* Cells - Explicit Borders */
+        tbody td { border: 1px solid var(--border); padding: 8px 5px; vertical-align: middle; color: var(--text-main); position: relative; }
+        tbody tr:nth-child(even) { background-color: #f8fafc; }
+        
+        /* ALIGNMENT & COLUMNS */
+        .col-sl { text-align: center; font-weight: bold; color: var(--accent); }
+        .col-area { background-color: var(--accent-light); font-weight: 700; text-align: center; color: var(--accent); } 
+        .col-money { text-align: center !important; } 
+        .col-total { font-weight: 700; color: var(--primary); text-align: center !important; background: rgba(30, 58, 138, 0.03); } 
+        
+        /* General Input Styles */
+        td select, td input { width: 100%; border: 1px solid transparent; background: transparent; font-family: 'Inter'; font-size: 13px; padding: 4px; border-radius: 4px; }
+        td select:hover, td input:hover { background: white; border-color: #cbd5e1; }
+        td input:focus { outline: none; border-color: var(--accent); background: white; }
+        
+        /* STRICT ALIGNMENT RULES */
+        tbody td:nth-child(2), tbody td:nth-child(3) { text-align: left !important; }
+        tbody td:nth-child(2) select, tbody td:nth-child(3) select, tbody td:nth-child(3) input { text-align: left !important; }
+        
+        /* CENTER ALIGN NUMBERS */
+        tbody td:nth-child(4), tbody td:nth-child(5), 
+        tbody td:nth-child(6), tbody td:nth-child(7),
+        tbody td:nth-child(8), tbody td:nth-child(9),
+        tbody td:nth-child(10), tbody td:nth-child(11) { text-align: center !important; }
+        td input[type="number"] { text-align: center !important; }
+
+        /* MEASUREMENT CELLS - REDUCED WIDTH */
+        .dim-inputs { display: flex; gap: 2px; justify-content: center; align-items: center; }
+        /* Reduced input width to fit tight column */
+        .dim-inputs input { width: 42px !important; text-align: center; border-bottom: 1px solid #cbd5e1; border-radius: 0; padding: 2px; font-size: 13px; }
+        .single-input { width: 90% !important; margin: 0 auto; display: block; text-align: center; border-bottom: 1px solid #cbd5e1; }
+        
+        /* Unit Switcher */
+        .unit-badge-select { 
+            position: absolute; top: 1px; right: 1px; 
+            font-size: 8px; color: var(--primary); font-weight: 700; 
+            background: rgba(255,255,255,0.7); border: none; padding: 0 1px; 
+            text-transform: uppercase; cursor: pointer; outline: none; width: auto; 
+        }
+
+        .del-btn { color: #ef4444; cursor: pointer; text-align: center; font-size: 18px; font-weight: bold; }
+        .btn-add-row { width: 100%; background: white; border: 2px dashed #cbd5e1; color: var(--primary); padding: 14px; font-weight: 600; cursor: pointer; border-radius: 0 0 8px 8px; margin-bottom: 30px; font-size: 14px; }
+        .btn-add-row:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+        /* CATEGORY TOTALS */
+        .cat-bar { display: flex; background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .cat-block { flex: 1; text-align: center; position: relative; }
+        .cat-block:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: rgba(255,255,255,0.2); }
+        .cat-lbl { font-size: 12px; text-transform: uppercase; opacity: 0.9; letter-spacing: 1px; margin-bottom: 5px; }
+        .cat-val { font-size: 20px; font-weight: 700; color: #fb923c; }
+
+        /* LAYOUTS */
+        .layout-split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; margin-bottom: 30px; align-items: start; }
+        .layout-full { width: 100%; margin-bottom: 30px; }
+        .layout-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+
+        .notes-panel { font-size: 12px; color: var(--text-light); border: 1px solid var(--border); padding: 25px; border-radius: 8px; background: #f8fafc; height: 100%; }
+        .note-header { margin: 0 0 10px 0; color: var(--primary); font-size: 13px; text-transform: uppercase; font-weight: 700; display:flex; align-items:center; gap: 8px; }
+        .notes-panel ul { padding-left: 20px; margin: 0; line-height: 1.8; }
+        .special-note-box { border-top: 1px dashed #cbd5e1; padding-top: 15px; margin-top: 10px; }
+        .special-input { width: 100%; border: none; background: transparent; font-family: 'Inter'; font-size: 13px; color: #334155; resize: none; min-height: 50px; }
+        .special-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        
+        /* Calc Panel */
+        .calc-panel { background: white; padding: 30px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05); height: 100%; }
+        .c-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; align-items: center; }
+        .c-row.grand { border-top: 2px solid var(--primary); margin-top: 20px; padding-top: 15px; font-weight: 800; font-size: 20px; color: var(--primary); }
+        .word-amt { font-size: 12px; font-style: italic; color: var(--accent); text-align: right; margin-top: 5px; }
+        .disc-tools { display: flex; gap: 5px; align-items: center; }
+        .disc-sel { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 12px; background: #f8fafc; }
+        .disc-inp { width: 60px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; text-align: center; font-size: 12px; }
+
+        /* OFFER BOX */
+        .offer-wrapper {
+            border: 2px solid var(--primary); border-radius: 10px; background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%); color: white; overflow: hidden; box-shadow: 0 10px 20px rgba(30, 58, 138, 0.15); 
+            display: flex; flex-direction: row; width: 100%; height: 250px; break-inside: avoid;
+        }
+        .offer-img-col { width: 40%; height: 100%; background: #fff; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+        .offer-img-col img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .offer-img-col:hover img { opacity: 0.8; }
+        .upload-hint { position: absolute; font-size: 12px; color: var(--primary); font-weight: bold; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; pointer-events: none; }
+        .offer-text-col { width: 60%; padding: 30px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+        .offer-header { color: #fb923c; font-size: 14px; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
+        .offer-main-text { font-family: 'Playfair Display', serif; font-size: 28px; line-height: 1.2; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+        .offer-terms { font-size: 11px; opacity: 0.8; font-style: italic; }
+
+        /* FOOTER */
+        .footer-wrap { margin-top: 60px; border-top: 2px solid var(--border); padding-top: 40px; }
+        .signature-section { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+        .sign-box { width: 220px; text-align: center; cursor: pointer; position: relative; }
+        .sign-img-wrap { width: 100%; height: 80px; display: flex; align-items: flex-end; justify-content: center; position: relative; margin-bottom: 5px; }
+        .sign-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .upload-hint-sig { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.03); color: var(--primary); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; font-size: 12px; font-weight: bold; border: 1px dashed var(--border); border-radius: 4px; }
+        .sign-box:hover .upload-hint-sig { opacity: 1; }
+        .sign-line { border-top: 1px solid var(--primary); margin-top: 5px; padding-top: 8px; font-weight: 700; color: var(--primary); font-size: 14px; text-transform: uppercase; }
+        .employee-badge { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px 25px; border-radius: 6px; text-align: left; min-width: 250px; border-left: 4px solid var(--accent); }
+        .emp-row { margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 12px; color: var(--text-light); align-items:center; }
+        .emp-input { border: none; background: transparent; border-bottom: 1px dotted #cbd5e1; font-weight: 600; color: var(--primary); text-align: right; width: 140px; font-family: 'Inter'; font-size: 13px; }
+        .emp-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .brand-footer { background: var(--primary); color: white; text-align: center; padding: 12px; font-size: 12px; border-radius: 4px; letter-spacing: 1px; margin-top: 20px; -webkit-print-color-adjust: exact; }
+
+        /* MODAL */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px); }
+        .modal-content { background: white; width: 90%; max-width: 900px; max-height: 90vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 30px; overflow-y: auto; border-top: 8px solid var(--accent); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: 800; color: var(--primary); }
+        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .section-title { font-weight: 700; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; font-size: 13px; }
+        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .list-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .room-item { display: flex; gap: 5px; }
+        .items-table-head { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr 30px; gap: 5px; font-weight: 700; font-size: 12px; color: var(--text-light); margin-bottom: 5px;}
+        .item-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr 30px; gap: 5px; margin-bottom: 8px; }
+        .mod-inp { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; }
+        .mod-inp:focus { outline: 2px solid var(--accent); border-color: transparent; }
+        .mod-btn-add { background: var(--primary); color: white; padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 10px;}
+        .mod-btn-del { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; width: 100%; cursor: pointer; border-radius: 4px; display: flex; justify-content: center; align-items: center;}
+        .modal-actions { text-align: right; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 10px; }
+
+        /* BOTTOM ACTIONS */
+        .bottom-actions { max-width: 1200px; margin: 30px auto; text-align: center; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; justify-content: center; gap: 20px; border: 1px solid #e2e8f0; }
+        .btn-large { padding: 12px 30px; font-size: 15px; border-radius: 8px; }
+        .hidden { display: none !important; }
+
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .app-controls, .btn-add-row, .del-btn, .modal, .upload-hint, .upload-hint-sig, .bottom-actions, .upload-hint-logo, .unit-badge-select { display: none !important; }
+            .sheet { box-shadow: none; width: 100%; max-width: 100%; margin: 0; }
+            .sheet-inner { padding: 8mm; border: none; border-top: 5px solid #1e3a8a !important; }
+            thead tr.thead-main th { background-color: #1e3a8a !important; color: white !important; -webkit-print-color-adjust: exact; }
+            .cat-bar, .brand-footer { background: #1e3a8a !important; color: white !important; -webkit-print-color-adjust: exact; }
+            .employee-badge, .col-total { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
+            .col-area { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            
+            .notes-panel, .offer-wrapper, .layout-split, .layout-equal, .layout-full { break-inside: avoid; page-break-inside: avoid; }
+            .offer-wrapper { height: 180px; }
+            
+            /* Inputs Clean up */
+            input, select, textarea { border: none !important; appearance: none; padding: 0; }
+            .dim-inputs input, .single-input { border-bottom: none !important; }
+            ::placeholder { color: transparent; }
+            
+            /* Expand Single Inputs in print */
+            .single-input { text-align: center; width: 100% !important; }
+
+            /* FORCE ALIGNMENT IN PRINT */
+            tbody td:nth-child(2), tbody td:nth-child(3) { text-align: left !important; }
+            tbody td:nth-child(4), tbody td:nth-child(5), 
+            tbody td:nth-child(6), tbody td:nth-child(7),
+            tbody td:nth-child(8), tbody td:nth-child(9),
+            tbody td:nth-child(10), tbody td:nth-child(11) { text-align: center !important; }
+            td input[type="number"] { text-align: center !important; }
+            
+            /* FORCE BORDERS IN PRINT */
+            table, th, td { border: 1px solid #cbd5e1 !important; }
+        }
+
+        /* MOBILE VIEW */
+        @media screen {
+            body.mobile-view { padding: 10px; background: #e2e8f0; }
+            body.mobile-view .sheet { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+            body.mobile-view .sheet-inner { padding: 15px; }
+            body.mobile-view header, body.mobile-view .cat-bar, body.mobile-view .footer-wrap, body.mobile-view .offer-wrapper { display: none !important; }
+            body.mobile-view .meta-grid { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+            body.mobile-view .meta-box { padding: 15px; }
+            body.mobile-view .meta-row, body.mobile-view .meta-row-split { flex-direction: column; gap: 5px; margin-bottom: 10px; }
+            body.mobile-view .meta-row-split { display: flex; }
+            body.mobile-view .inp-label { font-size: 11px; opacity: 0.7; }
+            body.mobile-view .inp-field { border-bottom: 1px solid #94a3b8; background: #f8fafc; padding: 8px; border-radius: 4px; }
+            
+            body.mobile-view .table-wrap { border: none; }
+            body.mobile-view table, body.mobile-view thead, body.mobile-view tbody, body.mobile-view th, body.mobile-view td, body.mobile-view tr { display: block; }
+            body.mobile-view thead tr { position: absolute; top: -9999px; left: -9999px; }
+            body.mobile-view tbody tr { background: white; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; }
+            
+            body.mobile-view td.col-sl { position: absolute; top: 0; left: 0; background: var(--primary); color: white; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; border-radius: 8px 0 8px 0; font-size: 12px; padding: 0; border: none; }
+            body.mobile-view td.del-btn { position: absolute; top: 0; right: 0; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 20px; border: none; }
+            body.mobile-view td { border: none; padding: 5px 0; position: relative; margin-bottom: 5px; }
+            body.mobile-view td select, body.mobile-view td input { padding: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 14px; }
+            
+            body.mobile-view td:nth-of-type(2)::before { content: "Room:"; display: block; font-size: 11px; color: var(--text-light); font-weight: 700; margin-bottom: 2px;}
+            body.mobile-view td:nth-of-type(3)::before { content: "Item:"; display: block; font-size: 11px; color: var(--text-light); font-weight: 700; margin-bottom: 2px;}
+            body.mobile-view input[id^="desc_"] { margin-top: 5px; }
+            
+            /* Mobile Measurements */
+            body.mobile-view .dim-inputs { justify-content: flex-start; gap: 10px; margin-top: 5px; }
+            body.mobile-view .dim-inputs input { width: 80px !important; text-align: center; }
+            body.mobile-view .single-input { width: 100% !important; text-align: left; }
+            body.mobile-view td:nth-of-type(4)::before { content: "Measurement / Qty:"; display: block; font-size: 11px; color: var(--text-light); font-weight: 700;}
+            
+            body.mobile-view .col-total { text-align: left; font-weight: 800; padding: 10px; background: #eff6ff; border-radius: 4px; margin-bottom: 10px; }
+            body.mobile-view .col-total::before { content: "Total: ₹ "; font-weight: normal; color: #64748b; }
+            body.mobile-view .col-money { text-align: left; padding-left: 30px; }
+            
+            body.mobile-view td.col-std { border-left: 4px solid #fbbf24; padding-left: 10px; background: #fffbeb; }
+            body.mobile-view td.col-prem { border-left: 4px solid #94a3b8; padding-left: 10px; background: #f8fafc; }
+            body.mobile-view td.col-ultra { border-left: 4px solid #60a5fa; padding-left: 10px; background: #eff6ff; }
+            
+            body.mobile-view .layout-split, body.mobile-view .layout-equal { display: flex; flex-direction: column; gap: 20px; }
+            body.mobile-view .bottom-actions { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; margin: 0; z-index: 99; border-top: 2px solid var(--primary); }
+            body.mobile-view .bottom-actions .btn-large { width: 100%; padding: 15px; }
+            body.mobile-view .btn-print { display: none; } 
+            body.mobile-view .app-controls { position: sticky; top: 0; z-index: 100; overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; }
+            
+            body.mobile-view .unit-badge-select { position: relative; display: inline-block; top: 0; right: 0; width: 100%; padding: 5px; font-size: 11px; margin-bottom: 5px; background: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-sliders-h"></i> System Presets Configuration</div>
+                <button onclick="closeSettings()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div class="section-box">
+                    <div class="section-title">Manage Rooms</div>
+                    <div id="roomSettingsList" class="rooms-grid"></div>
+                    <button class="mod-btn-add" onclick="addRoomInput()">+ Add Room</button>
+                </div>
+                <div class="section-box">
+                    <div class="section-title">Manage Standard Terms</div>
+                    <div id="noteSettingsList" class="list-grid"></div>
+                    <button class="mod-btn-add" onclick="addNoteInput()">+ Add Term</button>
+                </div>
+            </div>
+            
+            <div class="section-box">
+                <div class="section-title">Manage Special / Project Notes (Presets)</div>
+                <div id="projNoteSettingsList" class="list-grid"></div>
+                <button class="mod-btn-add" onclick="addProjNoteInput()">+ Add Project Note</button>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Manage Material/Category Guide</div>
+                <div id="guideSettingsList" class="list-grid"></div>
+                <button class="mod-btn-add" onclick="addGuideInput()">+ Add Material Guide Line</button>
+            </div>
+            <div class="section-box">
+                <div class="section-title">Manage Items & Rates</div>
+                <div class="items-table-head">
+                    <div>Item Name</div><div>Description</div><div>Unit Type</div><div>Std Rate</div><div>Prem Rate</div><div>Ultra Rate</div><div></div>
+                </div>
+                <div id="itemSettingsList"></div>
+                <button class="mod-btn-add" onclick="addItemInput()">+ Add Item</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-reset" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-print" onclick="savePresets()">Save & Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-controls">
+        <div class="left-controls">
+            <label class="toggle-btn offer-toggle">
+                <input type="checkbox" id="chkOffer" onchange="toggleSpecialOffer()"> &nbsp; <i class="fas fa-gift"></i> &nbsp; Add Special Offer
+            </label>
+
+            <div class="toggle-wrapper">
+                <span>COMPARE:</span>
+                <label class="toggle-btn" style="padding: 4px 8px; font-size: 11px;"><input type="checkbox" id="chkStd" checked onchange="toggleColumns()"> Std</label>
+                <label class="toggle-btn" style="padding: 4px 8px; font-size: 11px;"><input type="checkbox" id="chkPrem" checked onchange="toggleColumns()"> Prem</label>
+                <label class="toggle-btn" style="padding: 4px 8px; font-size: 11px;"><input type="checkbox" id="chkUltra" checked onchange="toggleColumns()"> Ultra</label>
+            </div>
+        </div>
+
+        <div class="right-controls">
+            <label class="toggle-btn mobile-toggle">
+                <input type="checkbox" id="chkMobile" onchange="toggleMobileView()"> 
+                <i class="fas fa-mobile-alt"></i> Mobile View
+            </label>
+            
+            <div class="vr-line"></div>
+
+            <input type="file" id="loadInput" style="display:none" onchange="loadRecord(this)" accept=".json">
+            <button class="btn btn-action" onclick="window.location.href='/estimates'" title="Back to Estimate Dashboard"><i class="fas fa-arrow-left"></i> Dashboard</button>
+            <button class="btn btn-action" onclick="document.getElementById('loadInput').click()" title="Import JSON backup"><i class="fas fa-folder-open"></i> Open</button>
+            <button class="btn btn-action" onclick="saveRecord()"><i class="fas fa-save"></i> Save</button>
+            <button class="btn btn-reset" onclick="location.reload()"><i class="fas fa-redo"></i> Reset</button>
+            
+            <div class="vr-line"></div>
+            
+            <button class="btn btn-settings" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
+            <button class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet">
+        <div class="sheet-inner">
+            
+            <header>
+                <div class="brand-identity">
+                    <div class="logo-area" onclick="document.getElementById('logoInput').click()">
+                        <img src="sankalp logo.png" id="logoImg"
+                             onerror="this.src='https://via.placeholder.com/200x100/ffffff/ea580c?text=CLICK+TO+UPLOAD+LOGO'" 
+                             alt="SANKALP LOGO">
+                        <div class="upload-hint-logo"><i class="fas fa-camera"></i></div>
+                        <input type="file" id="logoInput" style="display:none" accept="image/*" onchange="loadLogo(event)">
+                    </div>
+                    
+                    <div class="brand-tagline">“ঘর নয়, স্বপ্ন সাজাই আমরা!”</div>
+                </div>
+                <div class="company-details">
+                    <h1>Sankalp Interior Solution</h1>
+                    <p contenteditable="true"><i class="fas fa-map-marker-alt icon-primary"></i> Office: GB, Oishi Tower-II, Rabindra Pally, Jyangra</p>
+                    <p contenteditable="true">Baguiati, VIP Rd, Kolkata – 700059</p>
+                    <p contenteditable="true"><span><i class="fas fa-phone-alt icon-accent"></i> +91 9748297025</span><span style="margin:0 10px;">|</span><span><i class="fas fa-envelope icon-accent"></i> info.sankalpgrp@gmail.com</span></p>
+                    <p contenteditable="true"><i class="fas fa-globe icon-primary"></i> www.sankalpdesign.com</p>
+                </div>
+            </header>
+
+            <div class="meta-grid">
+                <div class="meta-box est">
+                    <span class="meta-title"><i class="fas fa-file-invoice icon-accent"></i> Estimate Details</span>
+                    <div class="meta-row"><span class="inp-label">Estimate No:</span><input type="text" class="inp-field" id="estNo"></div>
+                    <div class="meta-row"><span class="inp-label">Date & Time:</span><input type="text" class="inp-field" id="estDate"></div>
+                    <div class="meta-row"><span class="inp-label">Validity:</span><select class="inp-field"><option>30 Days</option><option>60 Days</option><option>90 Days</option><option>120 Days</option></select></div>
+                    <div class="meta-row"><span class="inp-label">Field Visit:</span><select class="inp-field" id="visitStatus" onchange="toggleVisitDate()"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+                    <div class="meta-row hidden" id="visitDateRow"><span class="inp-label" style="color:var(--accent);">Visit Date:</span><input type="date" class="inp-field" style="color:var(--accent); font-weight:600;"></div>
+                </div>
+                <div class="meta-box client">
+                    <span class="meta-title" style="color: var(--primary);"><i class="fas fa-user-circle icon-primary"></i> Presented To</span>
+                    <div class="meta-row"><span class="inp-label">Name:</span><input type="text" class="inp-field" id="cliName" placeholder="Customer Name"></div>
+                    <div class="meta-row-split">
+                        <div style="display:flex;"><span class="inp-label" style="min-width:50px;">Ph:</span><input type="text" class="inp-field" id="cliPhone" placeholder="Phone Number"></div>
+                        <div style="display:flex;"><span class="inp-label" style="min-width:50px;">Email:</span><input type="text" class="inp-field" id="cliEmail" placeholder="Email ID"></div>
+                    </div>
+                    <div class="meta-row-split">
+                        <div style="display:flex;"><span class="inp-label" style="min-width:50px;">Wrk:</span><input type="text" class="inp-field" id="cliWork" placeholder="Work Details"></div>
+                        <div style="display:flex;"><span class="inp-label" style="min-width:50px;">Budg:</span><input type="text" class="inp-field" id="cliBudg" placeholder="Budget (Optional)"></div>
+                    </div>
+                    <div class="meta-row"><span class="inp-label">Addr:</span><input type="text" class="inp-field" id="cliAddr" placeholder="Project / Customer Address"></div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="estTable">
+                    <thead>
+                        <tr class="thead-main">
+                            <th rowspan="2" class="col-sl" style="width:3%">SL</th>
+                            <th rowspan="2" style="width:11%">Room</th>
+                            <th rowspan="2" style="width:20%">Item Description</th>
+                            <th rowspan="2" style="width:10%">Measurement / Qty<br><span style="font-size:9px; font-weight:normal; opacity:0.8;">(Sq.Ft / Units / Rft)</span></th>
+                            <th rowspan="2" style="width:5%">Qty/Area</th>
+                            <th colspan="2" class="col-std" style="width:17%"><i class="fas fa-star" style="color:#fbbf24"></i> Standard</th>
+                            <th colspan="2" class="col-prem" style="width:17%"><i class="fas fa-crown" style="color:#e2e8f0"></i> Premium</th>
+                            <th colspan="2" class="col-ultra" style="width:17%"><i class="fas fa-gem" style="color:#60a5fa"></i> Ultra</th>
+                            <th rowspan="2" class="del-btn" style="width:30px; background:white; border:none;"></th>
+                        </tr>
+                        <tr class="thead-sub">
+                            <th class="col-std">Rate</th><th class="col-std">Total</th><th class="col-prem">Rate</th><th class="col-prem">Total</th><th class="col-ultra">Rate</th><th class="col-ultra">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <button class="btn-add-row" onclick="addRow()"><i class="fas fa-plus-circle"></i> Add New Item Row</button>
+
+            <div class="cat-bar">
+                <div class="cat-block col-std"><div class="cat-lbl"><i class="fas fa-star" style="color:rgba(255,255,255,0.5)"></i> Standard Total</div><div class="cat-val">₹ <span id="grandStd">0</span></div></div>
+                <div class="cat-block col-prem"><div class="cat-lbl"><i class="fas fa-crown" style="color:rgba(255,255,255,0.5)"></i> Premium Total</div><div class="cat-val">₹ <span id="grandPrem">0</span></div></div>
+                <div class="cat-block col-ultra"><div class="cat-lbl"><i class="fas fa-gem" style="color:rgba(255,255,255,0.5)"></i> Ultra Total</div><div class="cat-val">₹ <span id="grandUltra">0</span></div></div>
+            </div>
+
+            <div class="layout-split">
+                <div class="notes-panel">
+                    <div class="note-header"><i class="fas fa-layer-group icon-accent"></i> Category / Material Guide</div>
+                    <ul id="materialGuideList"></ul>
+                </div>
+                
+                <div class="calc-panel">
+                    <div style="font-size:11px; color:#94a3b8; text-align:right; margin-bottom:15px; text-transform:uppercase; letter-spacing:0.5px; font-weight:700;"><i class="fas fa-calculator"></i> LOWEST COSTING ESTIMATE</div>
+                    <div class="c-row"><span>Subtotal:</span><span>₹ <span id="finalSub">0</span></span></div>
+                    <div class="c-row">
+                        <div class="disc-tools"><span><i class="fas fa-tag icon-accent"></i> Discount (if any):</span><select id="discType" class="disc-sel" onchange="calcFinal()"><option value="percent">%</option><option value="fixed">₹</option></select><input type="number" id="discInput" class="disc-inp" value="0" oninput="calcFinal()"></div>
+                        <span style="color:#ef4444;">- ₹ <span id="finalDisc">0</span></span>
+                    </div>
+                    <div class="c-row"><span>GST (18%) <input type="checkbox" id="gstCheck" onchange="calcFinal()">:</span><span>+ ₹ <span id="finalGst">0</span></span></div>
+                    <div class="c-row grand"><span>Grand Total:</span><span style="color:var(--accent);">₹ <span id="finalGrand">0</span></span></div>
+                    <div class="word-amt" id="amountWords">Zero Only</div>
+                </div>
+            </div>
+
+            <div id="offerSection" class="offer-wrapper layout-full hidden">
+                <div class="offer-img-col" onclick="document.getElementById('offerImgInput').click()">
+                    <img src="https://via.placeholder.com/400x300/1e3a8a/fb923c?text=CLICK+TO+ADD+OFFER+IMAGE" id="offerImgDisplay" alt="Offer Image">
+                    <input type="file" id="offerImgInput" accept="image/*" style="display:none;" onchange="loadOfferImage(event)">
+                    <div class="upload-hint"><i class="fas fa-camera"></i> Change Image</div>
+                </div>
+                <div class="offer-text-col">
+                    <div class="offer-header" contenteditable="true" id="offHead"><i class="fas fa-star"></i> LIMITED TIME SPECIAL OFFER</div>
+                    <div class="offer-main-text" contenteditable="true" id="offMain">BOOK BEFORE 25TH JAN, GET KITCHEN CHIMNEY FREE</div>
+                    <div class="offer-terms" contenteditable="true" id="offTerm">* Terms apply.</div>
+                </div>
+            </div>
+
+            <div class="layout-equal">
+                <div class="notes-panel">
+                    <div class="note-header"><i class="fas fa-file-contract icon-primary"></i> Standard Terms & Conditions</div>
+                    <ul id="notesList"></ul>
+                </div>
+                
+                <div class="notes-panel">
+                    <div class="note-header"><i class="fas fa-clipboard-list icon-accent"></i> Special / Project Notes</div>
+                    <ul id="projectNotesList"></ul>
+                    <div class="special-note-box">
+                        <div class="note-header"><i class="fas fa-pen-fancy icon-accent"></i> Additional Notes (Optional)</div>
+                        <textarea class="special-input" id="specialNotes" placeholder="Click here to type specific ad-hoc notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-wrap">
+                <div class="signature-section">
+                    <div class="sign-box" onclick="document.getElementById('sigInput').click()">
+                        <div class="sign-img-wrap">
+                            <img src="sankalp sign.png" id="sigImage" alt="Signature" onerror="this.style.display='none'">
+                            <div class="upload-hint-sig"><i class="fas fa-upload"></i> Upload Sign</div>
+                        </div>
+                        <input type="file" id="sigInput" style="display:none" accept="image/*" onchange="loadSignature(event)">
+                        <div class="sign-line"><i class="fas fa-pen-nib"></i> Authorized Signatory</div>
+                    </div>
+
+                    <div class="employee-badge">
+                        <div class="emp-row"><span><i class="fas fa-user-tie icon-primary"></i> CREATED BY:</span><input type="text" class="emp-input" value="Rahul Das"></div>
+                        <div class="emp-row"><span><i class="fas fa-id-badge icon-primary"></i> DESIGNATION:</span><input type="text" class="emp-input" value="Site Executive"></div>
+                        <div class="emp-row" style="margin-top:10px; padding-top:5px; border-top:1px dashed #e2e8f0; justify-content:center; color:var(--primary); font-weight:700;">OFFICIAL ESTIMATE</div>
+                    </div>
+                </div>
+                <div class="brand-footer">SANKALP INTERIOR SOLUTION | www.sankalpdesign.com | info.sankalpgrp@gmail.com</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="btn btn-print btn-large" onclick="saveRecord()"><i class="fas fa-save"></i> Save Estimate</button>
+        <button class="btn btn-print btn-large" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
+    </div>
+
+    <!-- ============== SANKALP DB INTEGRATION (added) ============== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const url = params.get('u') || '';
+            const key = params.get('k') || '';
+            const leadId = params.get('lead_id') || '';
+            const estimateId = params.get('id') || '';
+            window.SANKALP = { url, key, leadId, estimateId, supabase: null, currentEstimateId: null, currentEstimateNo: null };
+            if (url && key && window.supabase && window.supabase.createClient) {
+                window.SANKALP.supabase = window.supabase.createClient(url, key, {
+                    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+                });
+            }
+        })();
+
+        async function generateEstimateNo() {
+            const sb = window.SANKALP.supabase;
+            const d = new Date();
+            const yr = d.getFullYear();
+            const mo = (d.getMonth()+1).toString().padStart(2,'0');
+            if (!sb) return `${yr}-INT-EST-${mo}-SL${Math.floor(1000 + Math.random() * 9000)}`;
+            try {
+                const { data, error } = await sb.rpc('next_estimate_no');
+                if (error) throw error;
+                return data || `${yr}-INT-EST-${mo}-SL${Math.floor(1000 + Math.random() * 9000)}`;
+            } catch (_) {
+                return `${yr}-INT-EST-${mo}-SL${Math.floor(1000 + Math.random() * 9000)}`;
+            }
+        }
+
+        function collectEstimateRecord() {
+            const tableRows = [];
+            document.querySelectorAll('#tableBody tr').forEach(row => {
+                const id = row.id.split('-')[1];
+                const wrapper = document.getElementById(`input_wrapper_${id}`);
+                const mode = (wrapper && wrapper.getAttribute('data-mode')) || 'sqft_dim';
+                let l=0, h=0, single=0;
+                if (mode === 'sqft_dim') {
+                    l = (document.getElementById(`L_${id}`) || {}).value || '';
+                    h = (document.getElementById(`H_${id}`) || {}).value || '';
+                } else {
+                    single = (document.getElementById(`SINGLE_${id}`) || {}).value || '';
+                }
+                tableRows.push({
+                    room: row.querySelector('.room-select').value,
+                    item: row.querySelector('.item-select').value,
+                    desc: document.getElementById(`desc_${id}`).value,
+                    mode, l, h, single,
+                    rate_std: document.getElementById(`r_std_${id}`).value,
+                    rate_prem: document.getElementById(`r_prem_${id}`).value,
+                    rate_ultra: document.getElementById(`r_ultra_${id}`).value
+                });
+            });
+            return {
+                meta: {
+                    estNo: document.getElementById('estNo').value,
+                    date: document.getElementById('estDate').value,
+                    cliName: document.getElementById('cliName').value,
+                    cliPhone: document.getElementById('cliPhone').value,
+                    cliEmail: document.getElementById('cliEmail').value,
+                    cliWork: document.getElementById('cliWork').value,
+                    cliBudg: document.getElementById('cliBudg').value,
+                    cliAddr: document.getElementById('cliAddr').value,
+                    visit: document.getElementById('visitStatus').value,
+                    specialNotes: document.getElementById('specialNotes').value
+                },
+                financials: {
+                    discType: document.getElementById('discType').value,
+                    discVal: document.getElementById('discInput').value,
+                    gst: document.getElementById('gstCheck').checked
+                },
+                offer: {
+                    active: document.getElementById('chkOffer').checked,
+                    head: document.getElementById('offHead').innerText,
+                    main: document.getElementById('offMain').innerText,
+                    term: document.getElementById('offTerm').innerText
+                },
+                rows: tableRows
+            };
+        }
+
+        function applyEstimateRecord(record) {
+            if (!record || !record.meta) return;
+            document.getElementById('estNo').value = record.meta.estNo || '';
+            document.getElementById('estDate').value = record.meta.date || '';
+            document.getElementById('cliName').value = record.meta.cliName || '';
+            document.getElementById('cliPhone').value = record.meta.cliPhone || '';
+            document.getElementById('cliEmail').value = record.meta.cliEmail || '';
+            document.getElementById('cliWork').value = record.meta.cliWork || '';
+            document.getElementById('cliBudg').value = record.meta.cliBudg || '';
+            document.getElementById('cliAddr').value = record.meta.cliAddr || '';
+            document.getElementById('visitStatus').value = record.meta.visit || 'No';
+            document.getElementById('specialNotes').value = record.meta.specialNotes || '';
+            toggleVisitDate();
+            document.getElementById('discType').value = (record.financials || {}).discType || 'percent';
+            document.getElementById('discInput').value = (record.financials || {}).discVal || 0;
+            document.getElementById('gstCheck').checked = !!(record.financials || {}).gst;
+            document.getElementById('chkOffer').checked = !!(record.offer || {}).active;
+            document.getElementById('offHead').innerText = (record.offer || {}).head || '';
+            document.getElementById('offMain').innerText = (record.offer || {}).main || '';
+            document.getElementById('offTerm').innerText = (record.offer || {}).term || '';
+            toggleSpecialOffer();
+            document.getElementById('tableBody').innerHTML = '';
+            rowCount = 0;
+            (record.rows || []).forEach(r => {
+                addRow();
+                const id = rowCount;
+                const row = document.getElementById(`row-${id}`);
+                row.querySelector('.room-select').value = r.room || '';
+                row.querySelector('.item-select').value = r.item || '';
+                document.getElementById(`desc_${id}`).value = r.desc || '';
+                const mode = r.mode || 'sqft_dim';
+                document.querySelector(`#meas_cont_${id} .unit-badge-select`).value = mode;
+                changeUnitType(id, mode);
+                if (mode === 'sqft_dim') {
+                    document.getElementById(`L_${id}`).value = r.l || '';
+                    document.getElementById(`H_${id}`).value = r.h || '';
+                } else {
+                    const inp = document.getElementById(`SINGLE_${id}`);
+                    if (inp) inp.value = r.single || '';
+                }
+                document.getElementById(`r_std_${id}`).value = r.rate_std || '';
+                document.getElementById(`r_prem_${id}`).value = r.rate_prem || '';
+                document.getElementById(`r_ultra_${id}`).value = r.rate_ultra || '';
+                calcRow(id);
+            });
+        }
+
+        async function saveEstimateToDB() {
+            const sb = window.SANKALP.supabase;
+            if (!sb) { alert('Database not connected. Please open this page from the Estimates dashboard.'); return; }
+            try {
+                if (!document.getElementById('estNo').value) {
+                    document.getElementById('estNo').value = await generateEstimateNo();
+                }
+                const record = collectEstimateRecord();
+                const grandText = (document.getElementById('finalGrand') || {}).innerText || '0';
+                const finalAmount = Number(String(grandText).replace(/[^\d.]/g,'')) || 0;
+                const payload = {
+                    estimate_no: record.meta.estNo,
+                    customer_name: record.meta.cliName || null,
+                    phone: record.meta.cliPhone || null,
+                    final_amount: finalAmount,
+                    data: record,
+                    lead_id: window.SANKALP.leadId || null
+                };
+                let result, err;
+                if (window.SANKALP.currentEstimateId) {
+                    ({ data: result, error: err } = await sb.from('estimates')
+                        .update(payload).eq('id', window.SANKALP.currentEstimateId)
+                        .select('*').single());
+                } else {
+                    const { data: { user } } = await sb.auth.getUser();
+                    payload.created_by = user?.id || null;
+                    ({ data: result, error: err } = await sb.from('estimates')
+                        .insert([payload]).select('*').single());
+                }
+                if (err) throw err;
+                window.SANKALP.currentEstimateId = result.id;
+                window.SANKALP.currentEstimateNo = result.estimate_no;
+                const url = new URL(window.location.href);
+                url.searchParams.set('id', result.id);
+                window.history.replaceState({}, '', url.toString());
+                alert(`Estimate ${result.estimate_no} saved (₹${finalAmount.toLocaleString('en-IN')})`);
+            } catch (e) {
+                console.error(e);
+                alert('Save failed: ' + (e.message || e));
+            }
+        }
+
+        async function loadEstimateFromDB(id) {
+            const sb = window.SANKALP.supabase;
+            if (!sb || !id) return;
+            try {
+                const { data, error } = await sb.from('estimates').select('*').eq('id', id).maybeSingle();
+                if (error) throw error;
+                if (!data) { alert('Estimate not found.'); return; }
+                window.SANKALP.currentEstimateId = data.id;
+                window.SANKALP.currentEstimateNo = data.estimate_no;
+                applyEstimateRecord(data.data || {});
+                if (data.estimate_no && document.getElementById('estNo')) {
+                    document.getElementById('estNo').value = data.estimate_no;
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Load failed: ' + (e.message || e));
+            }
+        }
+
+        async function prefillFromLead(leadId) {
+            const sb = window.SANKALP.supabase;
+            if (!sb || !leadId) return;
+            try {
+                const { data, error } = await sb.from('leads').select('id,name,phone,location,requirement,project_type').eq('id', leadId).maybeSingle();
+                if (error) throw error;
+                if (!data) return;
+                document.getElementById('cliName').value = data.name || '';
+                document.getElementById('cliPhone').value = data.phone || '';
+                document.getElementById('cliAddr').value = data.location || '';
+                document.getElementById('cliWork').value = [data.project_type, data.requirement].filter(Boolean).join(' — ');
+            } catch (e) { console.error('prefillFromLead', e); }
+        }
+    </script>
+
+    <script>
+        // --- DATA MANAGEMENT ---
+        const defaultRooms = ["Living Room", "Master Bedroom", "Bedroom 1", "Bedroom 2", "Dining Area", "Kitchen", "Balcony", "Study Room", "Pooja Room", "Lobby / Passage", "Reception Area", "Conference Room", "Pantry", "Director Cabin"];
+        
+        // --- UPDATED ITEM DATA FROM IMAGE (Polymorphic Units) ---
+        const defaultItems = [
+            { name: "TV Unit", desc: "Plywood laminate finish", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Floating TV Unit", desc: "Wall hung TV unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Wall Paneling", desc: "Decorative wall panel", unitType: "sqft_dim", rates: { std: 650, prem: 800, ultra: 950 } },
+            { name: "CNC Panel", desc: "CNC MDF design panel", unitType: "sqft_dim", rates: { std: 650, prem: 800, ultra: 950 } },
+            { name: "Sofa Back Panel", desc: "Decorative panel work", unitType: "sqft_dim", rates: { std: 650, prem: 800, ultra: 950 } },
+            { name: "Crockery Unit", desc: "Storage with shutters", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Display Unit", desc: "Open display shelves", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Partition Unit", desc: "Wooden CNC partition", unitType: "sqft_dim", rates: { std: 650, prem: 800, ultra: 950 } },
+            { name: "Wardrobe", desc: "Modular hinged wardrobe", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Sliding Wardrobe", desc: "Sliding shutter unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Loft Storage", desc: "Overhead loft cabinet", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Bed with Storage", desc: "Hydraulic storage bed", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Headboard Panel", desc: "Decorative bed panel", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Dressing Table", desc: "Mirror & drawer unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Side Table", desc: "Bedside storage", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Study Table", desc: "Study/work desk", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Shoe Rack", desc: "Modular shoe cabinet", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Pooja Unit", desc: "Wooden pooja unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Bathroom Vanity", desc: "Basin cabinet unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Utility Cabinet", desc: "Washing/utility unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Modular Kitchen", desc: "Base & wall cabinets", unitType: "sqft_dim", rates: { std: 1450, prem: 1650, ultra: 1850 } },
+            { name: "Tall Unit", desc: "Pantry cabinet", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Overhead Cabinet", desc: "Wall kitchen cabinet", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Drawer System", desc: "Tandem drawer unit", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Bottle Pull-Out", desc: "Bottle basket", unitType: "sqft_dim", rates: { std: 1450, prem: 1650, ultra: 1850 } },
+            { name: "Corner Unit", desc: "Magic corner", unitType: "sqft_dim", rates: { std: 1450, prem: 1650, ultra: 1850 } },
+            { name: "Chimney Cabinet", desc: "Chimney housing", unitType: "sqft_dim", rates: { std: 1350, prem: 1550, ultra: 1750 } },
+            { name: "Kitchen Platform", desc: "Granite/Quartz slab", unitType: "sqft_dim", rates: { std: 650, prem: 850, ultra: 1050 } },
+            { name: "Sink Cutting", desc: "Platform cutting", unitType: "nos", rates: { std: 450, prem: 650, ultra: 850 } },
+            { name: "Floor Tiles", desc: "Vitrified flooring", unitType: "sqft_total", rates: { std: 120, prem: 180, ultra: 230 } },
+            { name: "Wooden Flooring", desc: "Laminate/SPC", unitType: "sqft_total", rates: { std: 220, prem: 380, ultra: 650 } },
+            { name: "Wall Tiles", desc: "Kitchen/Bath tiles", unitType: "sqft_total", rates: { std: 140, prem: 220, ultra: 350 } },
+            { name: "Tile Dismantling", desc: "Old tile removal", unitType: "sqft_total", rates: { std: 35, prem: 45, ultra: 60 } },
+            { name: "Marble Polishing", desc: "Diamond polish", unitType: "sqft_total", rates: { std: 20, prem: 30, ultra: 45 } },
+            { name: "Waterproofing", desc: "Bath/Balcony", unitType: "sqft_total", rates: { std: 65, prem: 90, ultra: 140 } },
+            { name: "Brick Partition", desc: "Brick wall work", unitType: "sqft_total", rates: { std: 110, prem: 150, ultra: 220 } },
+            { name: "Plaster Repair", desc: "Wall plaster", unitType: "sqft_total", rates: { std: 45, prem: 65, ultra: 90 } },
+            { name: "False Ceiling", desc: "Gypsum/POP ceiling", unitType: "sqft_dim", rates: { std: 100, prem: 130, ultra: 170 } },
+            { name: "Designer Ceiling", desc: "Multi-level POP", unitType: "sqft_dim", rates: { std: 180, prem: 220, ultra: 260 } },
+            { name: "Ceiling Lighting", desc: "Standard Ceiling Light", unitType: "sqft_dim", rates: { std: 150, prem: 230, ultra: 350 } },
+            { name: "Switchboard Point", desc: "Modular switch point", unitType: "nos", rates: { std: 550, prem: 850, ultra: 1200 } },
+            { name: "Light Point", desc: "Ceiling/wall light", unitType: "nos", rates: { std: 450, prem: 650, ultra: 950 } },
+            { name: "Fan Point", desc: "Ceiling fan wiring", unitType: "nos", rates: { std: 650, prem: 950, ultra: 1300 } },
+            { name: "AC Point", desc: "Dedicated AC line", unitType: "nos", rates: { std: 2000, prem: 2800, ultra: 3800 } },
+            { name: "Geyser Point", desc: "Heater wiring", unitType: "nos", rates: { std: 1200, prem: 1800, ultra: 2500 } },
+            { name: "Concealed Wiring", desc: "FR concealed wiring", unitType: "rft", rates: { std: 85, prem: 120, ultra: 180 } },
+            { name: "LED Panel Light", desc: "12-18W panel", unitType: "rft", rates: { std: 450, prem: 850, ultra: 1600 } }, // Note: Image said RFT for Panel light, which is odd, but following image.
+            { name: "COB Light", desc: "Decorative spot", unitType: "nos", rates: { std: 650, prem: 1200, ultra: 2200 } },
+            { name: "Profile Light", desc: "LED strip light", unitType: "rft", rates: { std: 250, prem: 450, ultra: 750 } },
+            { name: "Under Cabinet Light", desc: "Kitchen LED strip", unitType: "lumsum", rates: { std: 180, prem: 320, ultra: 550 } },
+            { name: "Wallpaper", desc: "Designer wallpaper", unitType: "sqft_dim", rates: { std: 120, prem: 220, ultra: 380 } },
+            { name: "Wall Molding", desc: "POP wall molding", unitType: "sqft_dim", rates: { std: 180, prem: 280, ultra: 420 } },
+            { name: "Mirror Panel", desc: "Decorative mirror", unitType: "sqft_dim", rates: { std: 450, prem: 750, ultra: 1200 } },
+            { name: "Curtains", desc: "Fabric + stitching", unitType: "sqft_total", rates: { std: 350, prem: 650, ultra: 1200 } },
+            { name: "Blinds", desc: "Roller/Zebra blinds", unitType: "sqft_total", rates: { std: 220, prem: 380, ultra: 650 } },
+            { name: "Mosquito Net", desc: "Sliding/fixed net", unitType: "sqft_total", rates: { std: 180, prem: 280, ultra: 420 } },
+            { name: "Glass Partition", desc: "Toughened glass", unitType: "sqft_total", rates: { std: 650, prem: 1100, ultra: 1850 } },
+            { name: "Reception Counter", desc: "Reception desk", unitType: "sqft_dim", rates: { std: 1450, prem: 1650, ultra: 1850 } },
+            { name: "Workstation", desc: "Office workstation", unitType: "sqft_dim", rates: { std: 1250, prem: 1450, ultra: 1650 } },
+            { name: "Conference Table", desc: "Conference table", unitType: "sqft_dim", rates: { std: 1250, prem: 1450, ultra: 1650 } },
+            { name: "Storage Cabinet", desc: "Office storage", unitType: "sqft_dim", rates: { std: 1250, prem: 1450, ultra: 1650 } },
+            { name: "Filing Cabinet", desc: "File storage", unitType: "sqft_dim", rates: { std: 1250, prem: 1450, ultra: 1650 } },
+            { name: "Director Table", desc: "Executive table", unitType: "sqft_dim", rates: { std: 1450, prem: 1650, ultra: 1850 } },
+            { name: "Office Partition", desc: "Gypsum/Wood panel", unitType: "sqft_dim", rates: { std: 280, prem: 380, ultra: 480 } }
+        ];
+
+        const defaultStandardTerms = [
+            "<strong>Advance Payment:</strong> 20–30% advance required to confirm booking.",
+            "<strong>Payment Schedule:</strong> Balance payment to be cleared as per agreed work progress.",
+            "<strong>Scope:</strong> Electrical, civil, plumbing & POP work are excluded unless specifically mentioned.",
+            "<strong>Changes:</strong> Any design or material change after final approval will be chargeable.",
+            "<strong>Timeline:</strong> Estimated timeline starts after final design approval and advance payment.",
+            "<strong>Warranty:</strong> Warranty covers workmanship only; material warranty as per manufacturer."
+        ];
+        const defaultProjectNotes = [
+            "<strong>Final Billing:</strong> Final amount will be based on actual site measurements and executed work.",
+            "<strong>Customisation:</strong> All items are custom-made; category upgrade or downgrade is possible.",
+            "<strong>Appliances:</strong> Appliance and accessory costs are not included unless specified.",
+            "<strong>Site Readiness:</strong> Site must be clear and ready before work commencement."
+        ];
+        const defaultGuide = [
+            "<strong>Standard:</strong> ISI Standard Ply / BWR/BWP Grade Ply, 0.8mm laminate finish, Standard hardware & hinges,",
+            "<strong>Premium:</strong> BWP / RedCore equivalent ply, Premium laminate, Branded hardware (Hettich / Ebco), Soft-close hinges, Improved finishing.",
+            "<strong>Ultra:</strong> Century Sainik 710 ply, Premium Merino laminate, Premium branded hardware, Soft-close drawers & shutters, Superior craftsmanship."
+        ];
+
+        let appData = { rooms: [], items: [], notes: [], projectNotes: [], guide: [] };
+        let rowCount = 0;
+
+        // --- INIT & PRESETS ---
+        function loadPresets() {
+            const saved = localStorage.getItem('sankalpEstimatorData_v14_MultiUnit'); // NEW KEY
+            if (saved) {
+                appData = JSON.parse(saved);
+                if(!appData.notes) appData.notes = [...defaultStandardTerms];
+                if(!appData.projectNotes) appData.projectNotes = [...defaultProjectNotes];
+                if(!appData.guide) appData.guide = [...defaultGuide];
+            } else {
+                appData.rooms = [...defaultRooms]; appData.items = JSON.parse(JSON.stringify(defaultItems)); 
+                appData.notes = [...defaultStandardTerms]; 
+                appData.projectNotes = [...defaultProjectNotes];
+                appData.guide = [...defaultGuide];
+            }
+            refreshUI();
+        }
+
+        function savePresets() {
+            appData.rooms = Array.from(document.querySelectorAll('.mod-room-inp')).map(i => i.value.trim()).filter(v => v);
+            appData.notes = Array.from(document.querySelectorAll('.mod-note-inp')).map(i => i.value.trim()).filter(v => v);
+            appData.projectNotes = Array.from(document.querySelectorAll('.mod-pnote-inp')).map(i => i.value.trim()).filter(v => v);
+            appData.guide = Array.from(document.querySelectorAll('.mod-guide-inp')).map(i => i.value.trim()).filter(v => v);
+            
+            appData.items = Array.from(document.querySelectorAll('.item-setting-row')).map(row => {
+                const inputs = row.querySelectorAll('input, select');
+                return { 
+                    name: inputs[0].value.trim(), 
+                    desc: inputs[1].value.trim(), 
+                    unitType: inputs[2].value,
+                    rates: { std: parseFloat(inputs[3].value)||0, prem: parseFloat(inputs[4].value)||0, ultra: parseFloat(inputs[5].value)||0 } 
+                };
+            }).filter(i => i.name);
+
+            localStorage.setItem('sankalpEstimatorData_v14_MultiUnit', JSON.stringify(appData));
+            refreshUI(); closeSettings(); alert("Settings Saved Successfully!");
+        }
+
+        function refreshUI() {
+            document.querySelectorAll('.room-select').forEach(sel => {
+                const val = sel.value; sel.innerHTML = `<option value="">-Room-</option>`; appData.rooms.forEach(r => sel.innerHTML += `<option value="${r}">${r}</option>`); sel.value = val;
+            });
+            document.querySelectorAll('.item-select').forEach(sel => {
+                const val = sel.value; sel.innerHTML = `<option value="">Select Item</option>`; appData.items.forEach(i => sel.innerHTML += `<option value="${i.name}">${i.name}</option>`); sel.value = val;
+            });
+            const guideList = document.getElementById('materialGuideList'); guideList.innerHTML = ''; appData.guide.forEach(g => { const li = document.createElement('li'); li.innerHTML = g; guideList.appendChild(li); });
+            const notesList = document.getElementById('notesList'); notesList.innerHTML = ''; appData.notes.forEach(n => { const li = document.createElement('li'); li.innerHTML = n; notesList.appendChild(li); });
+            const pNotesList = document.getElementById('projectNotesList'); pNotesList.innerHTML = ''; appData.projectNotes.forEach(n => { const li = document.createElement('li'); li.innerHTML = n; pNotesList.appendChild(li); });
+        }
+
+        // --- CORE FUNCTIONS ---
+        function addRow() {
+            rowCount++;
+            const tr = document.createElement('tr'); tr.id = `row-${rowCount}`;
+            let rOpts = `<option value="">-Room-</option>`; appData.rooms.forEach(r => rOpts += `<option value="${r}">${r}</option>`);
+            let iOpts = `<option value="">Select Item</option>`; appData.items.forEach(i => iOpts += `<option value="${i.name}">${i.name}</option>`);
+            
+            // Default Measurement Cell (Empty until item selected)
+            const measCellHTML = `
+                <div class="meas-container" id="meas_cont_${rowCount}">
+                    <select class="unit-badge-select" onchange="changeUnitType(${rowCount}, this.value)">
+                        <option value="sqft_dim">Sq.Ft (Dim)</option>
+                        <option value="sqft_total">Sq.Ft (Total)</option>
+                        <option value="nos">Nos/Unit</option>
+                        <option value="rft">Rft</option>
+                        <option value="lumsum">Lumpsum</option>
+                    </select>
+                    <div id="input_wrapper_${rowCount}" class="dim-inputs">
+                        <input type="number" id="L_${rowCount}" placeholder="L" oninput="calcRow(${rowCount})">
+                        <span>x</span>
+                        <input type="number" id="H_${rowCount}" placeholder="H" oninput="calcRow(${rowCount})">
+                    </div>
+                </div>
+            `;
+
+            tr.innerHTML = `
+                <td class="col-sl">${rowCount}</td>
+                <td><select class="room-select">${rOpts}</select></td>
+                <td>
+                    <select class="item-select" onchange="fillItemData(this, ${rowCount})" style="font-weight:600; margin-bottom:4px; color:var(--primary);">${iOpts}</select>
+                    <input type="text" id="desc_${rowCount}" placeholder="Description..." style="color:var(--text-light);">
+                </td>
+                <td style="position:relative;">${measCellHTML}</td>
+                <td id="area_${rowCount}" class="col-area">0</td>
+                <td class="col-std"><input type="number" id="r_std_${rowCount}" class="col-money" placeholder="0" oninput="calcRow(${rowCount})"></td>
+                <td class="col-std col-total" id="t_std_${rowCount}">0</td>
+                <td class="col-prem"><input type="number" id="r_prem_${rowCount}" class="col-money" placeholder="0" oninput="calcRow(${rowCount})"></td>
+                <td class="col-prem col-total" id="t_prem_${rowCount}">0</td>
+                <td class="col-ultra"><input type="number" id="r_ultra_${rowCount}" class="col-money" placeholder="0" oninput="calcRow(${rowCount})"></td>
+                <td class="col-ultra col-total" id="t_ultra_${rowCount}">0</td>
+                <td class="del-btn" onclick="removeRow(${rowCount})">×</td>
+            `;
+            document.getElementById('tableBody').appendChild(tr); 
+            toggleColumns();
+            // Default logic runs to setup dims
+        }
+
+        function removeRow(id) { document.getElementById(`row-${id}`).remove(); calcTotals(); }
+
+        function fillItemData(sel, id) {
+            const item = appData.items.find(i => i.name === sel.value);
+            if(item) {
+                document.getElementById(`r_std_${id}`).value = item.rates.std; 
+                document.getElementById(`r_prem_${id}`).value = item.rates.prem; 
+                document.getElementById(`r_ultra_${id}`).value = item.rates.ultra;
+                if(document.getElementById(`desc_${id}`).value === "") document.getElementById(`desc_${id}`).value = item.desc;
+                
+                // Set Unit Type based on Item
+                const unitSel = document.querySelector(`#meas_cont_${id} .unit-badge-select`);
+                if(unitSel) {
+                    unitSel.value = item.unitType;
+                    changeUnitType(id, item.unitType); // Trigger UI update
+                }
+            }
+        }
+
+        function changeUnitType(id, type) {
+            const wrapper = document.getElementById(`input_wrapper_${id}`);
+            if(!wrapper) return;
+
+            let html = '';
+            if(type === 'sqft_dim') {
+                html = `<input type="number" id="L_${id}" placeholder="L" oninput="calcRow(${id})"><span>x</span><input type="number" id="H_${id}" placeholder="H" oninput="calcRow(${id})">`;
+            } else if (type === 'lumsum') {
+                html = `<input type="number" id="SINGLE_${id}" class="single-input" value="1" oninput="calcRow(${id})">`; // Lumpsum defaults to 1
+            } else {
+                // sqft_total, nos, rft
+                const ph = type === 'nos' ? 'Qty' : (type === 'rft' ? 'Len' : 'Area');
+                html = `<input type="number" id="SINGLE_${id}" class="single-input" placeholder="${ph}" oninput="calcRow(${id})">`;
+            }
+            wrapper.innerHTML = html;
+            
+            // Set Hidden Attribute for Math Logic
+            wrapper.setAttribute('data-mode', type);
+            calcRow(id);
+        }
+
+        function calcRow(id) {
+            const wrapper = document.getElementById(`input_wrapper_${id}`);
+            const mode = wrapper.getAttribute('data-mode') || 'sqft_dim';
+            let qty = 0;
+
+            if (mode === 'sqft_dim') {
+                const l = parseFloat(document.getElementById(`L_${id}`)?.value) || 0;
+                const h = parseFloat(document.getElementById(`H_${id}`)?.value) || 0;
+                qty = (l * h);
+            } else {
+                // Single Input Modes
+                qty = parseFloat(document.getElementById(`SINGLE_${id}`)?.value) || 0;
+            }
+
+            // Update Qty Display
+            // If decimal needed?
+            document.getElementById(`area_${id}`).innerText = Number.isInteger(qty) ? qty : qty.toFixed(2);
+
+            ['std','prem','ultra'].forEach(c => {
+                const r = parseFloat(document.getElementById(`r_${c}_${id}`).value)||0; 
+                document.getElementById(`t_${c}_${id}`).innerText = Math.round(qty * r);
+            });
+            calcTotals();
+        }
+
+        function calcTotals() {
+            let sStd=0,sPrem=0,sUltra=0;
+            document.querySelectorAll('#tableBody tr').forEach(r => {
+                const id = r.id.split('-')[1]; 
+                sStd+=parseFloat(document.getElementById(`t_std_${id}`).innerText)||0; 
+                sPrem+=parseFloat(document.getElementById(`t_prem_${id}`).innerText)||0; 
+                sUltra+=parseFloat(document.getElementById(`t_ultra_${id}`).innerText)||0;
+            });
+            document.getElementById('grandStd').innerText = sStd.toLocaleString('en-IN'); 
+            document.getElementById('grandPrem').innerText = sPrem.toLocaleString('en-IN'); 
+            document.getElementById('grandUltra').innerText = sUltra.toLocaleString('en-IN');
+            calcFinal();
+        }
+
+        function calcFinal() {
+            let vals = [];
+            if(document.getElementById('chkStd').checked) vals.push(parseFloat(document.getElementById('grandStd').innerText.replace(/,/g,'')));
+            if(document.getElementById('chkPrem').checked) vals.push(parseFloat(document.getElementById('grandPrem').innerText.replace(/,/g,'')));
+            if(document.getElementById('chkUltra').checked) vals.push(parseFloat(document.getElementById('grandUltra').innerText.replace(/,/g,'')));
+            let base = vals.length ? Math.min(...vals) : 0;
+            
+            document.getElementById('finalSub').innerText = base.toLocaleString('en-IN');
+            
+            const dType = document.getElementById('discType').value; 
+            const dVal = parseFloat(document.getElementById('discInput').value)||0;
+            let dAmt = dType==='percent' ? Math.round(base*(dVal/100)) : Math.round(dVal);
+            document.getElementById('finalDisc').innerText = dAmt.toLocaleString('en-IN');
+            
+            let tax = base - dAmt;
+            let gst = document.getElementById('gstCheck').checked ? Math.round(tax*0.18) : 0;
+            document.getElementById('finalGst').innerText = gst.toLocaleString('en-IN');
+            
+            let grand = tax+gst;
+            document.getElementById('finalGrand').innerText = grand.toLocaleString('en-IN');
+            document.getElementById('amountWords').innerText = convertToIndianCurrency(grand);
+        }
+
+        // --- SETTINGS MODAL ---
+        function openSettings() {
+            const rList = document.getElementById('roomSettingsList'); rList.innerHTML=''; appData.rooms.forEach(r => addRoomInput(r));
+            const nList = document.getElementById('noteSettingsList'); nList.innerHTML=''; appData.notes.forEach(n => addNoteInput(n));
+            const pnList = document.getElementById('projNoteSettingsList'); pnList.innerHTML=''; appData.projectNotes.forEach(n => addProjNoteInput(n));
+            const gList = document.getElementById('guideSettingsList'); gList.innerHTML=''; appData.guide.forEach(g => addGuideInput(g));
+            const iList = document.getElementById('itemSettingsList'); iList.innerHTML=''; appData.items.forEach(i => addItemInput(i));
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function addRoomInput(v="") { document.getElementById('roomSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-room-inp" value="${v}" placeholder="Room Name"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
+        function addNoteInput(v="") { document.getElementById('noteSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-note-inp" value='${v}' placeholder="Standard Term"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
+        function addProjNoteInput(v="") { document.getElementById('projNoteSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-pnote-inp" value='${v}' placeholder="Project Note"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
+        function addGuideInput(v="") { document.getElementById('guideSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-guide-inp" value='${v}' placeholder="Guide"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
+        function addItemInput(i={name:"",desc:"",unitType:"sqft_dim",rates:{std:0,prem:0,ultra:0}}) {
+            const opts = `
+                <option value="sqft_dim" ${i.unitType=='sqft_dim'?'selected':''}>Sq.Ft (Dim)</option>
+                <option value="sqft_total" ${i.unitType=='sqft_total'?'selected':''}>Sq.Ft (Total)</option>
+                <option value="nos" ${i.unitType=='nos'?'selected':''}>Nos/Unit</option>
+                <option value="rft" ${i.unitType=='rft'?'selected':''}>Rft</option>
+                <option value="lumsum" ${i.unitType=='lumsum'?'selected':''}>Lumpsum</option>
+            `;
+            document.getElementById('itemSettingsList').insertAdjacentHTML('beforeend', `<div class="item-row item-setting-row"><input type="text" class="mod-inp" value="${i.name}"><input type="text" class="mod-inp" value="${i.desc}"><select class="mod-inp">${opts}</select><input type="number" class="mod-inp" value="${i.rates.std}"><input type="number" class="mod-inp" value="${i.rates.prem}"><input type="number" class="mod-inp" value="${i.rates.ultra}"><button class="mod-btn-del" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button></div>`);
+        }
+
+        // --- SAVE/LOAD FILE (now DB-backed; JSON download kept only when DB unavailable) ---
+        function saveRecord() {
+            // If DB connected, save to DB. Else fall back to original JSON download.
+            if (window.SANKALP && window.SANKALP.supabase) {
+                return saveEstimateToDB();
+            }
+            const tableRows = [];
+            document.querySelectorAll('#tableBody tr').forEach(row => {
+                const id = row.id.split('-')[1];
+                const wrapper = document.getElementById(`input_wrapper_${id}`);
+                const mode = wrapper.getAttribute('data-mode') || 'sqft_dim';
+                
+                // Get data based on mode
+                let l=0, h=0, single=0;
+                if(mode==='sqft_dim') {
+                    l = document.getElementById(`L_${id}`).value;
+                    h = document.getElementById(`H_${id}`).value;
+                } else {
+                    single = document.getElementById(`SINGLE_${id}`).value;
+                }
+
+                tableRows.push({
+                    room: row.querySelector('.room-select').value,
+                    item: row.querySelector('.item-select').value,
+                    desc: document.getElementById(`desc_${id}`).value,
+                    mode: mode,
+                    l: l, h: h, single: single,
+                    rate_std: document.getElementById(`r_std_${id}`).value,
+                    rate_prem: document.getElementById(`r_prem_${id}`).value,
+                    rate_ultra: document.getElementById(`r_ultra_${id}`).value
+                });
+            });
+
+            const record = {
+                meta: {
+                    estNo: document.getElementById('estNo').value,
+                    date: document.getElementById('estDate').value,
+                    cliName: document.getElementById('cliName').value,
+                    cliPhone: document.getElementById('cliPhone').value,
+                    cliEmail: document.getElementById('cliEmail').value,
+                    cliWork: document.getElementById('cliWork').value,
+                    cliBudg: document.getElementById('cliBudg').value,
+                    cliAddr: document.getElementById('cliAddr').value,
+                    visit: document.getElementById('visitStatus').value,
+                    specialNotes: document.getElementById('specialNotes').value
+                },
+                financials: {
+                    discType: document.getElementById('discType').value,
+                    discVal: document.getElementById('discInput').value,
+                    gst: document.getElementById('gstCheck').checked
+                },
+                offer: {
+                    active: document.getElementById('chkOffer').checked,
+                    head: document.getElementById('offHead').innerText,
+                    main: document.getElementById('offMain').innerText,
+                    term: document.getElementById('offTerm').innerText
+                },
+                rows: tableRows
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(record));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `Estimate_${record.meta.cliName || 'New'}.json`);
+            dlAnchorElem.click();
+        }
+
+        function loadRecord(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const record = JSON.parse(e.target.result);
+                // Restore Meta
+                document.getElementById('estNo').value = record.meta.estNo;
+                document.getElementById('estDate').value = record.meta.date;
+                document.getElementById('cliName').value = record.meta.cliName;
+                document.getElementById('cliPhone').value = record.meta.cliPhone;
+                document.getElementById('cliEmail').value = record.meta.cliEmail;
+                document.getElementById('cliWork').value = record.meta.cliWork;
+                document.getElementById('cliBudg').value = record.meta.cliBudg;
+                document.getElementById('cliAddr').value = record.meta.cliAddr;
+                document.getElementById('visitStatus').value = record.meta.visit;
+                document.getElementById('specialNotes').value = record.meta.specialNotes || "";
+                toggleVisitDate();
+                // Restore Financials
+                document.getElementById('discType').value = record.financials.discType;
+                document.getElementById('discInput').value = record.financials.discVal;
+                document.getElementById('gstCheck').checked = record.financials.gst;
+                // Restore Offer
+                document.getElementById('chkOffer').checked = record.offer.active;
+                document.getElementById('offHead').innerText = record.offer.head;
+                document.getElementById('offMain').innerText = record.offer.main;
+                document.getElementById('offTerm').innerText = record.offer.term;
+                toggleSpecialOffer();
+
+                // Restore Table
+                document.getElementById('tableBody').innerHTML = '';
+                rowCount = 0;
+                record.rows.forEach(r => {
+                    addRow(); 
+                    const id = rowCount;
+                    const row = document.getElementById(`row-${id}`);
+                    row.querySelector('.room-select').value = r.room;
+                    row.querySelector('.item-select').value = r.item;
+                    document.getElementById(`desc_${id}`).value = r.desc;
+                    
+                    // Force Mode and Fill Data
+                    const mode = r.mode || 'sqft_dim'; // fallback
+                    document.querySelector(`#meas_cont_${id} .unit-badge-select`).value = mode;
+                    changeUnitType(id, mode);
+
+                    if(mode === 'sqft_dim') {
+                        document.getElementById(`L_${id}`).value = r.l;
+                        document.getElementById(`H_${id}`).value = r.h;
+                    } else {
+                        document.getElementById(`SINGLE_${id}`).value = r.single;
+                    }
+
+                    document.getElementById(`r_std_${id}`).value = r.rate_std;
+                    document.getElementById(`r_prem_${id}`).value = r.rate_prem;
+                    document.getElementById(`r_ultra_${id}`).value = r.rate_ultra;
+                    calcRow(id);
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        // --- UTILS ---
+        function toggleVisitDate() { document.getElementById('visitDateRow').classList.toggle('hidden', document.getElementById('visitStatus').value !== "Yes"); }
+        function toggleSpecialOffer() { document.getElementById('offerSection').classList.toggle('hidden', !document.getElementById('chkOffer').checked); }
+        function loadOfferImage(e) { document.getElementById('offerImgDisplay').src = URL.createObjectURL(e.target.files[0]); }
+        function loadSignature(e) { const out = document.getElementById('sigImage'); out.src = URL.createObjectURL(e.target.files[0]); out.style.display = 'block'; }
+        function loadLogo(e) { const out = document.getElementById('logoImg'); out.src = URL.createObjectURL(e.target.files[0]); }
+        function toggleMobileView() {
+            const isMobile = document.getElementById('chkMobile').checked;
+            if (isMobile) { document.body.classList.add('mobile-view'); } else { document.body.classList.remove('mobile-view'); }
+        }
+        function toggleColumns() {
+            ['std','prem','ultra'].forEach(c => {
+                const vis = document.getElementById(`chk${c.charAt(0).toUpperCase()+c.slice(1)}`).checked;
+                document.querySelectorAll(`.col-${c}`).forEach(el => el.style.display = vis ? '' : 'none');
+            });
+            calcFinal();
+        }
+        function convertToIndianCurrency(n) {
+            if (n === 0) return "Zero Only";
+            const units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+            const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+            function convert(num) {
+                if (num < 20) return units[num];
+                if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + units[num % 10] : "");
+                if (num < 1000) return units[Math.floor(num / 100)] + " Hundred" + (num % 100 !== 0 ? " " + convert(num % 100) : "");
+                if (num < 100000) return convert(Math.floor(num / 1000)) + " Thousand" + (num % 1000 !== 0 ? " " + convert(num % 1000) : "");
+                if (num < 10000000) return convert(Math.floor(num / 100000)) + " Lakh" + (num % 100000 !== 0 ? " " + convert(num % 100000) : "");
+                return convert(Math.floor(num / 10000000)) + " Crore" + (num % 10000000 !== 0 ? " " + convert(num % 10000000) : "");
+            }
+            return convert(n) + " Only";
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadPresets();
+            const d = new Date();
+            document.getElementById('estDate').value = `${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} - ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+            // Always set a client-side estimate number IMMEDIATELY so UI never appears blank
+            document.getElementById('estNo').value = `${d.getFullYear()}-INT-EST-${(d.getMonth()+1).toString().padStart(2,'0')}-SL${Math.floor(1000 + Math.random() * 9000)}`;
+            addRow();
+            if (window.innerWidth < 768) { document.getElementById('chkMobile').checked = true; toggleMobileView(); }
+            // SANKALP DB bootstrap (async; non-blocking)
+            const S = window.SANKALP || {};
+            if (S.estimateId && S.supabase) {
+                loadEstimateFromDB(S.estimateId);
+            } else if (S.leadId && S.supabase) {
+                prefillFromLead(S.leadId);
+                generateEstimateNo().then(n => { if (n) document.getElementById('estNo').value = n; });
+            } else if (S.supabase) {
+                generateEstimateNo().then(n => { if (n) document.getElementById('estNo').value = n; });
+            }
+        });
+    </script>
+</body>
+</html>

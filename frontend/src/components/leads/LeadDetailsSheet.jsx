@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Phone, MessageCircle, Mail, Pencil, ArrowRightCircle, MapPin, IndianRupee,
-  CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History,
+  CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History, Calculator,
 } from "lucide-react";
 import { LEAD_PRIORITIES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity } from "@/services/leadActivityService";
+import { buildEstimatorUrl } from "@/services/estimateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -94,6 +95,9 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
             <a href={`tel:${phoneClean}`} className="inline-flex items-center gap-1.5 px-3 h-9 bg-stone-900 hover:bg-stone-800 text-white text-xs tracking-widest uppercase font-semibold" data-testid="details-call"><Phone className="w-3.5 h-3.5" /> Call</a>
             <a href={`https://wa.me/${phoneClean}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs tracking-widest uppercase font-semibold" data-testid="details-whatsapp"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>
             <Button onClick={() => onEdit(lead)} disabled={lead.is_locked} variant="outline" className="rounded-none border-stone-300 h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-edit"><Pencil className="w-3.5 h-3.5 mr-1.5" />Edit</Button>
+            <Button onClick={() => { window.location.href = buildEstimatorUrl({ leadId: lead.id }); }} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-create-estimate">
+              <Calculator className="w-3.5 h-3.5 mr-1.5" />Create Estimate
+            </Button>
             {lead.status !== "converted" && (
               <Button onClick={() => onConvert(lead)} disabled={lead.is_locked} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-convert">
                 <ArrowRightCircle className="w-3.5 h-3.5 mr-1.5" />Convert to Customer

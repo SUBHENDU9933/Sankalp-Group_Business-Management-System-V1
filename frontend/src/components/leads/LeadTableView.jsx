@@ -4,10 +4,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  Phone, MessageCircle, Pencil, MoreVertical, ArrowRightCircle, Trash2, X, CalendarClock,
+  Phone, MessageCircle, Pencil, MoreVertical, ArrowRightCircle, Trash2, X, CalendarClock, Calculator,
 } from "lucide-react";
 import { LEAD_STATUSES, LEAD_PRIORITIES, formatDate, formatINR, isOverdue, isToday } from "@/utils/format";
 import { cn } from "@/lib/utils";
+import { buildEstimatorUrl } from "@/services/estimateService";
 
 function PriorityBadge({ priority }) {
   if (!priority) return <span className="text-xs text-stone-400">—</span>;
@@ -102,6 +103,9 @@ export default function LeadTableView({
                           </DropdownMenuItem>
                         ))}
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem className="rounded-none cursor-pointer text-blue-700" onClick={() => { window.location.href = buildEstimatorUrl({ leadId: l.id }); }} data-testid={`lead-create-estimate-${l.id}`}>
+                          <Calculator className="w-4 h-4 mr-2" />Create Estimate
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="rounded-none cursor-pointer text-emerald-700" onClick={() => onConvert(l)} disabled={l.is_locked || l.status === "converted"} data-testid={`lead-convert-${l.id}`}>
                           <ArrowRightCircle className="w-4 h-4 mr-2" />Convert to Customer
                         </DropdownMenuItem>

@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, UserCheck, ReceiptText, Hammer,
-  Truck, ShieldCheck, LogOut, UsersRound, Settings,
+  Truck, ShieldCheck, LogOut, UsersRound, Settings, Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, testid: "nav-dashboard" },
   { to: "/leads", label: "Leads", icon: Users, testid: "nav-leads" },
   { to: "/customers", label: "Customers", icon: UserCheck, testid: "nav-customers" },
+  { to: "/estimates", label: "Estimates", icon: Calculator, testid: "nav-estimates" },
   { to: "/projects", label: "Projects", icon: Hammer, testid: "nav-projects" },
   { to: "/receipts", label: "Receipts", icon: ReceiptText, testid: "nav-receipts" },
   { to: "/vendors", label: "Vendors", icon: Truck, testid: "nav-vendors" },

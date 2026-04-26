@@ -100,6 +100,42 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 9 (Feb 2026) — Estimate System Integration (Phase 7)
+**Strategy: zero-redesign integration of the existing HTML estimator**
+- The user's battle-tested HTML estimate system was preserved EXACTLY (all CSS, calculation logic, item table, Std/Prem/Ultra pricing, measurement system, offer section, signature/logo upload, A4 print layout). Only the storage layer was swapped from JSON file → Supabase.
+
+**Schema migration** `/app/supabase_schema_v5.sql` (must be applied):
+- `estimates` table — id (uuid), estimate_no (unique), lead_id (FK), customer_name, phone, data (jsonb full state), final_amount, status (draft/sent/approved/rejected), created_by, timestamps
+- RLS — admin sees all; RM only sees own (`created_by = auth.uid()`)
+- RPC `next_estimate_no()` — atomic sequence-based generator (e.g. `2026-INT-EST-04-SL00001`)
+- Sequence `estimate_seq` for global counter
+
+**HTML estimator** copied to `/app/frontend/public/estimator.html` with surgical edits ONLY:
+- Added Supabase JS UMD via CDN
+- Added bootstrap that reads `?u=<supabase_url>&k=<anon_key>&lead_id=<id>&id=<estimate_id>` query params
+- Added `saveEstimateToDB()`, `loadEstimateFromDB(id)`, `prefillFromLead(leadId)`, `generateEstimateNo()`
+- `saveRecord()` redirected to call `saveEstimateToDB()` when DB available; falls back to original JSON download otherwise
+- DOMContentLoaded bootstrap (replaced window.onload to fire before failing placeholder image timeouts) — synchronously renders default estimate no + first row, then async DB ops
+- Replaced toolbar's redundant button with a "Dashboard" back-button to `/estimates`
+
+**React additions**:
+- `EstimatesPage` (`/estimates`) — KPI strip (Total, Draft, Sent, Approved, Rejected, Total Value), search + status filter, table with View / Edit / Duplicate / Status / Delete actions, role-based via RLS
+- `estimateService.js` — fetchEstimates, fetchEstimateById, updateEstimateStatus, deleteEstimate, duplicateEstimate, `buildEstimatorUrl({leadId, estimateId})` helper that forwards env-config to the static HTML
+- Sidebar entry "Estimates" with Calculator icon
+- LeadTableView dropdown action: **Create Estimate** (passes lead_id to estimator)
+- LeadDetailsSheet header button: **Create Estimate** (blue accent, prominent)
+- Lead → Estimator flow auto-fills Name, Phone, Address, Work Details from lead
+
+**Files changed/created:**
+- `/app/supabase_schema_v5.sql` (new)
+- `/app/frontend/public/estimator.html` (existing HTML preserved + DB shim appended)
+- `/app/frontend/src/pages/EstimatesPage.jsx` (new)
+- `/app/frontend/src/services/estimateService.js` (new)
+- `/app/frontend/src/App.js` (route)
+- `/app/frontend/src/components/layout/DashboardLayout.jsx` (sidebar)
+- `/app/frontend/src/components/leads/LeadTableView.jsx` (Create Estimate menu item)
+- `/app/frontend/src/components/leads/LeadDetailsSheet.jsx` (Create Estimate header button)
+
 ## Iteration 8 (Feb 2026) — Lead Management v2 Upgrade
 **Schema migration** `/app/supabase_schema_v4.sql` (must be applied in Supabase before features work):
 - New `leads` columns: phone_secondary, area, pincode, property_type, area_sqft, priority, last_contact_date

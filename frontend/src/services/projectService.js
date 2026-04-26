@@ -4,7 +4,7 @@ export const fetchProjects = async () => {
   // Try with members join first (post v8). Fall back to plain query if table doesn't exist yet.
   const withMembers = await supabase
     .from("projects")
-    .select("*, customer:customers(id,name,phone), members:project_members(user_id,role,profile:profiles(id,full_name,email,designation))")
+    .select("*, customer:customers(id,name,phone), members:project_members(user_id,role,profile:profiles!project_members_user_id_fkey(id,full_name,email,designation))")
     .order("created_at", { ascending: false });
   if (!withMembers.error) return withMembers.data || [];
   const { data, error } = await supabase
@@ -55,11 +55,10 @@ export const deleteProject = async (id) => {
 export const fetchProjectMembers = async (projectId) => {
   const { data, error } = await supabase
     .from("project_members")
-    .select("*, profile:profiles(id,full_name,email,designation,role)")
+    .select("*, profile:profiles!project_members_user_id_fkey(id,full_name,email,designation,role)")
     .eq("project_id", projectId)
     .order("added_at", { ascending: true });
   if (error) {
-    // Table not yet migrated — return empty so UI still renders
     if ((error.message || "").includes("project_members")) return [];
     throw error;
   }

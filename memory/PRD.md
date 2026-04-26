@@ -100,6 +100,42 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 12 (Feb 2026) — Projects v2 (Edit/Delete, Multi-User Assignment, Receipts Log)
+**Schema migration** `/app/supabase_schema_v8.sql` (must be applied):
+- New `project_members` junction table (project_id, user_id, role, added_by, added_at)
+- RLS — admin sees all; RM sees projects they created OR are members of
+- Cascading scope: `expenses` are visible to project creator + project members + admin
+- Expense INSERT scoped to creator + members; UPDATE/DELETE only by creator or admin
+- Project DELETE — admin only
+- `updated_at` trigger added on projects table
+- Column added: `projects.updated_at`
+
+**Frontend rebuild:**
+- New `ProjectFormDialog` component supporting both **create AND edit** (added end_date, full validation)
+- `projectService.js` — added `deleteProject`, `deleteExpense`, `fetchProjectMembers`, `addProjectMember`, `removeProjectMember`. `fetchProjects` gracefully degrades if `project_members` doesn't exist yet (try-with-members → fallback).
+- New `ProjectMembersPanel` — owner row + member list with avatars, "Assign team member" picker (admin-only), Lead/Member role
+- `ProjectsPage` upgraded:
+  - Status filter dropdown
+  - Each card has **Edit** (Pencil) + **Delete** (admin-only, in 3-dot menu)
+  - **Member avatar stack** (overlapping) on each card with role-colored bullets
+  - Search + status filter combined
+- `ProjectDetailPage` upgraded:
+  - Edit + 3-dot Delete (admin) actions in header
+  - **Completion progress bar** based on Receipts/Quoted Value
+  - **Members Panel** in left sidebar of detail layout
+  - **Receipts Log** section (new) with green totals row, "Add Receipt" link
+  - Expense Log gains **Logged By** column + per-row **delete** action
+  - Date now shows time (formatDateTime)
+- All actions guarded by RLS — RMs can edit assigned projects but only admins can delete
+
+**Files changed/created:**
+- `/app/supabase_schema_v8.sql` (new)
+- `/app/frontend/src/services/projectService.js` (rewritten)
+- `/app/frontend/src/components/projects/ProjectFormDialog.jsx` (new)
+- `/app/frontend/src/components/projects/ProjectMembersPanel.jsx` (new)
+- `/app/frontend/src/pages/ProjectsPage.jsx` (rewritten)
+- `/app/frontend/src/pages/ProjectDetailPage.jsx` (rewritten)
+
 ## Iteration 11 (Feb 2026) — Estimate Presets DB + Lead Sync (System Upgrade)
 **Schema migration** `/app/supabase_schema_v7.sql` (must be applied):
 - 5 preset tables — `estimate_rooms`, `estimate_items` (with `category`), `estimate_terms`, `estimate_notes`, `estimate_guides` — all with `is_active` for soft-delete + `sort_order`

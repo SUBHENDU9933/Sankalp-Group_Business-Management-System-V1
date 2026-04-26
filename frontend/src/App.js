@@ -16,6 +16,7 @@ import ApprovalsPage from "@/pages/ApprovalsPage";
 import VerifyReceiptPage from "@/pages/VerifyReceiptPage";
 import TeamPage from "@/pages/TeamPage";
 import EstimatesPage from "@/pages/EstimatesPage";
+import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -71,6 +72,7 @@ function App() {
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/estimates" element={<EstimatesPage />} />
+                <Route path="/profile" element={<ProfileSettingsPage />} />
                 <Route path="/receipts" element={<ReceiptsPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/projects/:id" element={<ProjectDetailPage />} />

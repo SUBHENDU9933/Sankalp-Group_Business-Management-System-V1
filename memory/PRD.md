@@ -100,6 +100,30 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 10 (Feb 2026) — Estimate System Polish (Auto-User, Signature, PDF, Profile)
+**Schema migration** `/app/supabase_schema_v6.sql` (must be applied):
+- Adds `designation` and `signature_url` columns to `profiles`
+- Creates a public Supabase Storage bucket `signatures` with RLS — each user can only upload/update files inside their own `{user_id}/` folder
+
+**Frontend additions / changes:**
+- New page `/profile` (`ProfileSettingsPage.jsx`) — edit Full Name, Phone, Designation; upload Signature image; "Send Password Reset Email" button (uses `supabase.auth.resetPasswordForEmail`)
+- `profileService.js` extended with `uploadSignature(userId, file)` (uploads to bucket + persists public URL on profile) and `sendPasswordReset(email)`
+- Sidebar profile chip is now clickable → navigates to `/profile`; shows designation as the role label when set
+- Estimator HTML upgrades:
+  - Real Sankalp logo loads automatically (replaced placeholder.com)
+  - Real default signature loads from CDN (overridable per-user)
+  - **Auto-fills Created By + Designation + Signature** from current user's profile via `loadCurrentUserProfile()` — uses `select('*')` so it works even before v6 columns exist
+  - **PDF auto-filename** — Print buttons now call `printPDF()` which sets `document.title = EST-{CLIENT}-{YYYY-MM-DD}` before printing so browser uses it as default Save-as-PDF name
+  - All edits are surgical — original UI / calculation / layout untouched
+
+**Files changed/created:**
+- `/app/supabase_schema_v6.sql` (new)
+- `/app/frontend/src/pages/ProfileSettingsPage.jsx` (new)
+- `/app/frontend/src/services/profileService.js` (uploadSignature, sendPasswordReset)
+- `/app/frontend/src/App.js` (`/profile` route)
+- `/app/frontend/src/components/layout/DashboardLayout.jsx` (clickable profile chip)
+- `/app/frontend/public/estimator.html` (logo+signature URLs, loadCurrentUserProfile, printPDF)
+
 ## Iteration 9 (Feb 2026) — Estimate System Integration (Phase 7)
 **Strategy: zero-redesign integration of the existing HTML estimator**
 - The user's battle-tested HTML estimate system was preserved EXACTLY (all CSS, calculation logic, item table, Std/Prem/Ultra pricing, measurement system, offer section, signature/logo upload, A4 print layout). Only the storage layer was swapped from JSON file → Supabase.

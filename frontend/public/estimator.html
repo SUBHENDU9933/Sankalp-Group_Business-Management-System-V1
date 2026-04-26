@@ -375,7 +375,7 @@
             <div class="vr-line"></div>
             
             <button class="btn btn-settings" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
-            <button class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
+            <button class="btn btn-print" onclick="printPDF()"><i class="fas fa-print"></i> PDF</button>
         </div>
     </div>
 
@@ -385,8 +385,8 @@
             <header>
                 <div class="brand-identity">
                     <div class="logo-area" onclick="document.getElementById('logoInput').click()">
-                        <img src="sankalp logo.png" id="logoImg"
-                             onerror="this.src='https://via.placeholder.com/200x100/ffffff/ea580c?text=CLICK+TO+UPLOAD+LOGO'" 
+                        <img src="https://customer-assets.emergentagent.com/job_lead-conversion-14/artifacts/zhm4xxih_sankalp%20logo.png" id="logoImg"
+                             onerror="this.src='https://customer-assets.emergentagent.com/job_lead-conversion-14/artifacts/lycugiiu_sankalp-logo.png'"
                              alt="SANKALP LOGO">
                         <div class="upload-hint-logo"><i class="fas fa-camera"></i></div>
                         <input type="file" id="logoInput" style="display:none" accept="image/*" onchange="loadLogo(event)">
@@ -508,7 +508,7 @@
                 <div class="signature-section">
                     <div class="sign-box" onclick="document.getElementById('sigInput').click()">
                         <div class="sign-img-wrap">
-                            <img src="sankalp sign.png" id="sigImage" alt="Signature" onerror="this.style.display='none'">
+                            <img src="https://customer-assets.emergentagent.com/job_lead-conversion-14/artifacts/6b16apmf_sankalp%20sign.png" id="sigImage" alt="Signature" onerror="this.style.display='none'">
                             <div class="upload-hint-sig"><i class="fas fa-upload"></i> Upload Sign</div>
                         </div>
                         <input type="file" id="sigInput" style="display:none" accept="image/*" onchange="loadSignature(event)">
@@ -516,8 +516,8 @@
                     </div>
 
                     <div class="employee-badge">
-                        <div class="emp-row"><span><i class="fas fa-user-tie icon-primary"></i> CREATED BY:</span><input type="text" class="emp-input" value="Rahul Das"></div>
-                        <div class="emp-row"><span><i class="fas fa-id-badge icon-primary"></i> DESIGNATION:</span><input type="text" class="emp-input" value="Site Executive"></div>
+                        <div class="emp-row"><span><i class="fas fa-user-tie icon-primary"></i> CREATED BY:</span><input type="text" id="empCreatedBy" class="emp-input" value="Rahul Das"></div>
+                        <div class="emp-row"><span><i class="fas fa-id-badge icon-primary"></i> DESIGNATION:</span><input type="text" id="empDesignation" class="emp-input" value="Site Executive"></div>
                         <div class="emp-row" style="margin-top:10px; padding-top:5px; border-top:1px dashed #e2e8f0; justify-content:center; color:var(--primary); font-weight:700;">OFFICIAL ESTIMATE</div>
                     </div>
                 </div>
@@ -528,7 +528,7 @@
 
     <div class="bottom-actions">
         <button class="btn btn-print btn-large" onclick="saveRecord()"><i class="fas fa-save"></i> Save Estimate</button>
-        <button class="btn btn-print btn-large" onclick="window.print()"><i class="fas fa-print"></i> Print PDF</button>
+        <button class="btn btn-print btn-large" onclick="printPDF()"><i class="fas fa-print"></i> Print PDF</button>
     </div>
 
     <!-- ============== SANKALP DB INTEGRATION (added) ============== -->
@@ -734,6 +734,41 @@
                 document.getElementById('cliAddr').value = data.location || '';
                 document.getElementById('cliWork').value = [data.project_type, data.requirement].filter(Boolean).join(' — ');
             } catch (e) { console.error('prefillFromLead', e); }
+        }
+
+        // === Auto-load current user's profile (Created By, Designation, Signature) ===
+        async function loadCurrentUserProfile() {
+            const sb = window.SANKALP.supabase;
+            if (!sb) return;
+            try {
+                const { data: { user } } = await sb.auth.getUser();
+                if (!user) return;
+                // SELECT * so this works whether or not v6 columns (designation, signature_url) exist
+                const { data: prof, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+                if (error) throw error;
+                if (!prof) return;
+                const cb = document.getElementById('empCreatedBy');
+                const dg = document.getElementById('empDesignation');
+                if (cb) cb.value = prof.full_name || prof.email || cb.value;
+                if (dg && prof.designation) dg.value = prof.designation;
+                if (prof.signature_url) {
+                    const sig = document.getElementById('sigImage');
+                    if (sig) { sig.src = prof.signature_url; sig.style.display = 'block'; }
+                }
+            } catch (e) { console.error('loadCurrentUserProfile', e); }
+        }
+
+        // === PDF print with auto-generated filename ===
+        // Browser uses document.title as the default filename in the Save-as-PDF dialog.
+        function printPDF() {
+            const cli = (document.getElementById('cliName').value || 'Client').replace(/[^a-zA-Z0-9]+/g, '-');
+            const d = new Date();
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const original = document.title;
+            document.title = `EST-${cli}-${dateStr}`;
+            window.print();
+            // Restore after a tick (some browsers read title at print time)
+            setTimeout(() => { document.title = original; }, 1000);
         }
     </script>
 
@@ -1219,12 +1254,12 @@
             loadPresets();
             const d = new Date();
             document.getElementById('estDate').value = `${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} - ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-            // Always set a client-side estimate number IMMEDIATELY so UI never appears blank
             document.getElementById('estNo').value = `${d.getFullYear()}-INT-EST-${(d.getMonth()+1).toString().padStart(2,'0')}-SL${Math.floor(1000 + Math.random() * 9000)}`;
             addRow();
             if (window.innerWidth < 768) { document.getElementById('chkMobile').checked = true; toggleMobileView(); }
-            // SANKALP DB bootstrap (async; non-blocking)
             const S = window.SANKALP || {};
+            // Auto-fill creator details and signature from current user (non-blocking)
+            if (S.supabase) loadCurrentUserProfile();
             if (S.estimateId && S.supabase) {
                 loadEstimateFromDB(S.estimateId);
             } else if (S.leadId && S.supabase) {

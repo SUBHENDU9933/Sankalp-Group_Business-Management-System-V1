@@ -82,7 +82,11 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="border-t border-slate-100 p-3">
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-50">
+          <NavLink to="/profile" data-testid="sidebar-profile-link"
+            className={({ isActive }) =>
+              cn("flex items-center gap-3 p-2 rounded-lg transition-colors",
+                isActive ? "bg-blue-50 ring-1 ring-blue-200" : "bg-slate-50 hover:bg-slate-100")
+            }>
             <div className="w-9 h-9 rounded-full bg-blue-700 text-white grid place-items-center font-bold text-sm">
               {(profile?.full_name || profile?.email || "?").slice(0,1).toUpperCase()}
             </div>
@@ -93,11 +97,11 @@ export default function DashboardLayout() {
               <div className="inline-flex items-center gap-1.5 mt-0.5">
                 <span className={cn("inline-block w-1.5 h-1.5 rounded-full", isAdmin ? "bg-emerald-500" : "bg-slate-400")} />
                 <span className="text-[10px] tracking-widest uppercase font-semibold text-slate-500" data-testid="sidebar-user-role">
-                  {isAdmin ? "Administrator" : "RM"}
+                  {profile?.designation || (isAdmin ? "Administrator" : "RM")}
                 </span>
               </div>
             </div>
-          </div>
+          </NavLink>
           <button onClick={handleLogout} data-testid="sidebar-logout-button"
             className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-medium">
             <LogOut className="w-4 h-4" /> Sign out

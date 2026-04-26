@@ -100,6 +100,37 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 13 (Feb 2026) — Vendors v2 (Profile, KYC, Docs, Project-Wise Ledger)
+**Schema migration** `/app/supabase_schema_v9.sql` (must be applied):
+- Extends `vendors` with: email, address, gst_no, pan_no, aadhar_no, upi_id, account_holder, account_no, ifsc, bank_name, photo_url, id_card_url, visiting_card_url, notes, is_active, updated_at
+- New public Storage bucket `vendor-docs` (RLS: public read, authenticated write/update/delete) — files stored at `{vendor_id}/{kind}.{ext}`
+- updated_at trigger on vendors
+
+**Frontend**:
+- `vendorService.js` rewritten — supports legacy/new schema gracefully (try-full-then-base), adds `deleteVendor`, `deleteVendorPayment`, `fetchVendorById`, `uploadVendorDoc`
+- New `VendorFormDialog` (extracted, supports edit) — 2-column layout: Profile + KYC (left), Payment Details + Notes (right). All vendor fields supported.
+- New `VendorPaymentDialog` (extracted) — supports `lockVendor` and `lockProject` flags, payment_mode (UPI/Bank/Cash/Cheque) prefix in note
+- New **`VendorDetailPage`** (`/vendors/:id`):
+  - **KPI strip**: Total Paid · Payments · Projects · Last Payment
+  - **Profile card** — photo, name, trade, phone (call+WhatsApp icons), email, address, GST/PAN/Aadhar (with Copy buttons), notes
+  - **Payment Details card** — UPI (highlighted green), Account Holder, Bank A/C, IFSC, Bank Name (Copy buttons everywhere)
+  - **Documents card** — 3 upload slots (Photo / ID Card / Visiting Card), click to enlarge in new tab
+  - **Project Ledger tab** (default) — table of unique projects with last payment date + count + total + per-row "Pay" quick action
+  - **Payment Log tab** — full chronological log with project links + per-row delete
+- `VendorsPage` upgraded:
+  - Type filter dropdown
+  - Card photo, project count stat, click-to-detail "View →" button, 3-dot Edit/Delete menu, WhatsApp icon
+  - Payments tab gets per-row delete + clickable vendor + project links
+
+**Files changed/created:**
+- `/app/supabase_schema_v9.sql` (new)
+- `/app/frontend/src/services/vendorService.js` (rewritten)
+- `/app/frontend/src/components/vendors/VendorFormDialog.jsx` (new)
+- `/app/frontend/src/components/vendors/VendorPaymentDialog.jsx` (new)
+- `/app/frontend/src/pages/VendorDetailPage.jsx` (new)
+- `/app/frontend/src/pages/VendorsPage.jsx` (rewritten)
+- `/app/frontend/src/App.js` (vendor detail route)
+
 ## Iteration 12 (Feb 2026) — Projects v2 (Edit/Delete, Multi-User Assignment, Receipts Log)
 **Schema migration** `/app/supabase_schema_v8.sql` (must be applied):
 - New `project_members` junction table (project_id, user_id, role, added_by, added_at)

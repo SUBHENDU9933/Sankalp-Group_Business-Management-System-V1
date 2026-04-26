@@ -1,73 +1,95 @@
 # SANKALP GROUP & BUSINESS SOLUTIONS — Business Management System v1
 
 ## Original Problem Statement
-Build a scalable internal SaaS for an Interior & Infrastructure Solutions Company. 6 phases:
-1. Login + Dashboard, 2. Lead Management, 3. Customer Management, 4. Receipt & Payment, 5. Project & Expense, 6. Vendor Management. Roles: admin (full access, delete approval) and rm (relationship manager). No direct deletes — admin approval workflow.
+Internal SaaS for an Interior & Infrastructure Solutions Company. 6 phases:
+1. Login + Dashboard, 2. Lead Management, 3. Customer Management, 4. Receipt & Payment, 5. Project & Expense, 6. Vendor Management. Roles: admin (full access, delete approval) and rm. No direct deletes — admin approval workflow.
 
 ## Architecture
-- **Frontend:** React 19 + Vite-style craco + TailwindCSS + Shadcn UI (`@/components/ui/*`)
-- **Backend / DB:** Supabase (Postgres + Auth + RLS) — talks directly from browser using anon key
+- **Frontend:** React 19 + craco + TailwindCSS + Shadcn UI
+- **Backend / DB:** Supabase (Postgres + Auth + RLS) — direct from browser via anon key
 - **Auth:** Supabase Email/Password
 - **Hosting target:** Vercel (frontend) + Supabase (backend)
-- **The bundled FastAPI/MongoDB backend is unused** in this app.
 
 ## Supabase Project
 - URL: https://tbfzxmbvzpszjldupycy.supabase.co
-- 8 tables created via /app/supabase_schema.sql: profiles, leads, customers, receipts, projects, expenses, vendors, vendor_payments
-- RLS enabled on all tables. SELECT/INSERT/UPDATE for authenticated; DELETE only for admin via `is_admin()` helper.
-- Auto-trigger on `auth.users` insert creates a `profiles` row with role='rm' by default.
+- Migrations applied: `/app/supabase_schema.sql` (v1 — 8 tables + RLS) and `/app/supabase_schema_v2.sql` (v2 — notifications, RPCs, receipt_uid/si_no/project_id/payment_purpose, vendor-payment→expense trigger)
 
 ## User Personas
-1. **Admin** (info.subhendu@gmail.com) — sees all data, approves/rejects delete requests, manages team roles.
-2. **RM (Relationship Manager)** — manages assigned leads/customers, can request delete (cannot delete directly), can create receipts/projects/expenses.
+1. **Admin** (info.subhendu@gmail.com) — sees all data, approves/rejects delete requests, manages team roles, receives notifications.
+2. **RM** — manages assigned leads/customers, can request delete (no direct delete), can create receipts/projects/expenses/vendor payments.
 
-## Core Requirements (Static)
-- Lead pipeline: new → contacted → site_visit → quotation_given → negotiation → converted/lost
-- Lead → Customer conversion (locks the lead, creates customer with `linked_lead_id`)
-- Receipt auto-numbering: `SG-01001`, `SG-01002`, … via Postgres sequence
-- Print-to-PDF receipts via browser print
-- Project & Expense tracking by category (labour/material/vendor/transport/misc)
-- Vendor management + Vendor payments (linkable to projects)
-- Today's follow-ups + Overdue follow-ups on Dashboard
-- Pending Approvals queue (admin-only)
+## Implemented (Iteration 1 → 6)
 
-## Implemented (2026-04-25 / Iteration 1)
-- ✅ Supabase schema, RLS policies, helpers, triggers, admin seed
-- ✅ Login page (Swiss/brutalist design with concrete texture hero)
-- ✅ Auth context with profile loading, role gating, public/protected/admin routes
-- ✅ Sidebar layout with role-aware menu (Team + Approvals only for admin)
-- ✅ Dashboard with 5 KPIs + Today's & Overdue follow-ups + Recent Activity + Pending Approvals banner
-- ✅ Leads page: table + kanban view, status filter, search, full CRUD via dialog
-- ✅ Lead → Customer conversion + lead locking
-- ✅ Delete-request flow + Approvals page (Admin Approve/Reject)
-- ✅ Customers CRUD + delete-request flow
-- ✅ Receipts: auto receipt_no, payment modes, full print page with amount-in-words (Indian rupee format)
-- ✅ Projects + Project Detail page with expense log + receipts + P/L summary
-- ✅ Vendors page (cards) + Vendor Payments tab
-- ✅ Team page (admin only) — promote/demote rm↔admin
-- ✅ Sonner toasts, react-hook-form, lucide-react icons, IBM Plex Sans + Cabinet Grotesk fonts
-- ✅ Square corners (rounded-none) brutalist theme, stone palette + orange accent
-- ✅ data-testid on all interactive elements (verified by testing agent)
+### Phase 1 — Auth & Dashboard ✅
+- Login page (redesigned to match user reference: features grid + Bengali tagline + blue+orange wave footer)
+- Topbar with "Welcome back" greeting + **Notification Bell** (popover, polling 30s + Postgres realtime + mark-all-read)
+- 5 colored KPI cards (leads/converted/customers/receipts/expenses)
+- Today's Follow-ups + Overdue + Recent Activity panels
+- Pending Approvals banner (admin-only, gradient orange→rose)
+
+### Phase 2 — Leads ✅
+- Table + Kanban views, search, status filter
+- Status pipeline: new → contacted → site_visit → quotation_given → negotiation → converted/lost
+- Lead → Customer conversion (locks lead, redirects, toasts)
+- Delete-request workflow (RPC `request_delete_lead` bypasses RLS) + admin notification
+
+### Phase 3 — Customers ✅
+- Manual create + auto-create on lead conversion
+- Same delete-request workflow
+
+### Phase 4 — Receipts ✅
+- Auto receipt_no (`SG-XXXXX` sequence) + auto si_no (`YYYYCR/MM/NNN/UID` trigger)
+- Auto receipt_uid (5-char alphanumeric for QR verification)
+- New form fields: project link, payment_purpose (advance/token/part/others), transaction_ref
+- **Pixel-match receipt template** with: blue+orange diagonal corners, Sankalp logo, Bengali tagline, character-box date, PAYMENT RECEIPT banner, customer/amount details, Payment Method + Purpose checkboxes, RECEIVED/GENERATED BY block, **QR-based AUTHENTICATE THIS RECEIPT** section, SECURE & VERIFIED notice, Terms, contact footer
+- Public **/verify/:uid** page (no auth) — anyone can scan QR to confirm receipt authenticity
+
+### Phase 5 — Projects & Expenses ✅
+- Project CRUD with status, customer, total_value
+- Expense log by category (labour/material/vendor/transport/misc)
+- **Auto-mirror trigger**: vendor_payments.project_id → inserts an `expenses` row (category=vendor)
+- Live P/L summary (Receipts − Expenses) with green/red highlight
+
+### Phase 6 — Vendors ✅
+- Vendor CRUD (carpenter/painter/electrician/plumber/etc)
+- Vendor payments with optional project link
+- Tabs: Vendors / Payments
+
+### Admin Capabilities ✅
+- /approvals: Reject/Delete pending requests (leads + customers)
+- /team: Promote/demote user roles between admin/rm
+- Notification bell receives all delete requests in real-time
+
+### Cross-cutting ✅
+- Sankalp logo across sidebar/login/receipt/verify pages
+- Color palette: white/royal-blue (#1E3FAD)/vivid-orange (#F97316)
+- Plus Jakarta Sans + Inter (Latin) + Noto Sans Bengali
+- AuthContext with split session/profile load + 5s safety timeout
+- ResizeObserver dev-overlay suppression + iframe hidden via CSS
+- All interactive elements have unique data-testid
+
+## Known Constraints
+- Receipt print uses browser print-to-PDF (no server-side PDF library)
+- Notifications: client-side `pushToAllAdmins` defense-in-depth on top of DB trigger (works regardless of trigger state)
 
 ## Backlog (P1)
-- Pre-fill phone in DB via `idx_leads_phone_unique` to prevent duplicate leads (currently allowed)
-- Add DialogDescription on dialogs to silence Radix a11y warning (cosmetic)
-- Lead status history table + audit log
-- Email notifications (Resend) when delete request submitted
+- Estimate & Agreement system (Phase 7)
+- Lead status history audit log
+- Email/WhatsApp notifications (Resend / Twilio) when delete request submitted or follow-up due
 - File uploads (estimates/agreements) — Supabase Storage
+- Customer payment ledger PDF export
+- Bulk CSV import for leads/vendors
 
 ## Backlog (P2)
-- Estimate & Agreement system (Phase 7 mentioned as future-ready)
-- Reports / analytics dashboard (per-RM performance)
-- Customer payment ledger PDF export
-- Mobile-app PWA install
-- Bulk import (CSV) for leads/vendors
+- Mobile PWA install
+- Per-RM analytics dashboard
+- Receipts: GST invoice variant
+- Reports: monthly P/L by project / by RM
 
-## Deployment Notes
-- Push frontend to GitHub → import in Vercel
-- In Vercel project, set env vars: `REACT_APP_SUPABASE_URL`, `REACT_APP_SUPABASE_ANON_KEY` (publishable key)
-- Build command: `yarn build` (or `craco build`)
-- Output dir: `build`
+## Deployment
+- Frontend → Vercel: import repo, set env vars `REACT_APP_SUPABASE_URL` + `REACT_APP_SUPABASE_ANON_KEY`, build `yarn build`, output `build`
+- Backend = Supabase project (already deployed)
+- The bundled FastAPI backend in /app/backend is unused
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`

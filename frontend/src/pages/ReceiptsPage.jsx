@@ -133,28 +133,45 @@ export default function ReceiptsPage() {
 function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, onSaved }) {
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [projects, setProjects] = useState([]);
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
 
   useEffect(() => {
     if (!open) return;
     reset({
       customer_id: defaultCustomerId || "",
+      project_id: "",
       amount: "",
       payment_mode: "cash",
+      payment_purpose: "advance",
+      transaction_ref: "",
       note: "",
     });
   }, [open, defaultCustomerId, reset]);
 
+  // load projects for selected customer
+  const cid = watch("customer_id");
+  useEffect(() => {
+    if (!cid) { setProjects([]); return; }
+    (async () => {
+      const { supabase } = await import("@/lib/supabase");
+      const { data } = await supabase.from("projects").select("id,project_name").eq("customer_id", cid).order("created_at", { ascending: false });
+      setProjects(data || []);
+    })();
+  }, [cid]);
+
   const onSubmit = async (values) => {
     if (!values.customer_id) { toast.error("Select a customer"); return; }
     setSubmitting(true);
-    // Open a placeholder tab synchronously so popup blockers don't block it.
     const printWindow = window.open("", "_blank");
     try {
       const r = await createReceipt({
         customer_id: values.customer_id,
+        project_id: values.project_id || null,
         amount: Number(values.amount),
         payment_mode: values.payment_mode,
+        payment_purpose: values.payment_purpose || null,
+        transaction_ref: values.transaction_ref || null,
         note: values.note || null,
       }, user.id);
       toast.success(`Receipt ${r.receipt_no} created`);
@@ -170,45 +187,72 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-none border-stone-300 max-w-xl p-0" data-testid="receipt-form-dialog">
-        <DialogHeader className="px-6 py-5 border-b border-stone-200">
+      <DialogContent className="rounded-xl border-slate-200 max-w-xl p-0" data-testid="receipt-form-dialog">
+        <DialogHeader className="px-6 py-5 border-b border-slate-200">
           <div className="label-uppercase">New Receipt</div>
           <DialogTitle className="font-display text-2xl tracking-tight">Generate Payment Receipt</DialogTitle>
-          <DialogDescription className="sr-only">Record a customer payment. The receipt number is generated automatically.</DialogDescription>
+          <DialogDescription className="sr-only">Record a customer payment. Receipt number generated automatically.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <Label className="label-uppercase">Customer *</Label>
             <Select value={watch("customer_id") || ""} onValueChange={(v) => setValue("customer_id", v)}>
-              <SelectTrigger className="rounded-none mt-1.5 border-stone-300" data-testid="receipt-select-customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent className="rounded-none">
-                {customers.map((c) => <SelectItem key={c.id} value={c.id} className="rounded-none">{c.name} <span className="text-stone-500 ml-1">({c.phone})</span></SelectItem>)}
+              <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectContent className="rounded-lg">
+                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} <span className="text-slate-500 ml-1">({c.phone})</span></SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="label-uppercase">Project (optional)</Label>
+            <Select value={watch("project_id") || ""} onValueChange={(v) => setValue("project_id", v)} disabled={!cid || projects.length === 0}>
+              <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-project"><SelectValue placeholder={projects.length === 0 ? "No projects for this customer" : "Link to project"} /></SelectTrigger>
+              <SelectContent className="rounded-lg">
+                {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="label-uppercase">Amount (₹) *</Label>
-              <Input type="number" step="0.01" className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("amount", { required: true, min: 0.01 })} data-testid="receipt-input-amount" />
+              <Input type="number" step="0.01" className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("amount", { required: true, min: 0.01 })} data-testid="receipt-input-amount" />
               {errors.amount && <span className="text-xs text-rose-600">Required (&gt; 0)</span>}
             </div>
             <div>
               <Label className="label-uppercase">Payment Mode</Label>
               <Select value={watch("payment_mode") || "cash"} onValueChange={(v) => setValue("payment_mode", v)}>
-                <SelectTrigger className="rounded-none mt-1.5 border-stone-300" data-testid="receipt-select-mode"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-none">
-                  {PAYMENT_MODES.map((m) => <SelectItem key={m.key} value={m.key} className="rounded-none">{m.label}</SelectItem>)}
+                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-mode"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  {PAYMENT_MODES.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="label-uppercase">Payment Purpose</Label>
+              <Select value={watch("payment_purpose") || "advance"} onValueChange={(v) => setValue("payment_purpose", v)}>
+                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-purpose"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  <SelectItem value="advance">Advance</SelectItem>
+                  <SelectItem value="token">Token</SelectItem>
+                  <SelectItem value="part">Part Payment</SelectItem>
+                  <SelectItem value="others">Others</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="label-uppercase">Transaction Ref No.</Label>
+              <Input className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("transaction_ref")} data-testid="receipt-input-ref" placeholder="UPI / Cheque / UTR no." />
+            </div>
+          </div>
           <div>
             <Label className="label-uppercase">Note</Label>
-            <Textarea className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("note")} data-testid="receipt-input-note" />
+            <Textarea className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("note")} data-testid="receipt-input-note" />
           </div>
-          <DialogFooter className="-mx-6 -mb-6 px-6 py-4 border-t border-stone-200 bg-stone-50">
-            <Button type="button" variant="outline" className="rounded-none border-stone-300" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="receipt-form-submit">{submitting ? "Saving…" : "Generate Receipt"}</Button>
+          <DialogFooter className="-mx-6 -mb-6 px-6 py-4 border-t border-slate-200 bg-slate-50">
+            <Button type="button" variant="outline" className="rounded-lg" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={submitting} className="rounded-lg bg-blue-700 hover:bg-blue-800 text-white" data-testid="receipt-form-submit">{submitting ? "Saving…" : "Generate Receipt"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

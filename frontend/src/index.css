@@ -1,5 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
-@import url("https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,71 +6,71 @@
 
 @layer base {
   :root {
-    /* Swiss & High-Contrast (Stone palette) */
-    --background: 60 5% 96%;       /* #F5F5F4 stone-100 */
-    --foreground: 24 10% 10%;      /* #1C1917 stone-900 */
+    /* Sankalp brand palette: white / royal blue / vivid orange */
+    --background: 220 33% 98%;       /* #F6F8FB */
+    --foreground: 222 47% 11%;       /* #0F172A slate-900 */
     --card: 0 0% 100%;
-    --card-foreground: 24 10% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 24 9% 14%;          /* #292524 stone-800 */
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 76% 38%;          /* #1E3FAD royal blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 60 5% 96%;
-    --secondary-foreground: 24 10% 10%;
-    --muted: 60 5% 96%;
-    --muted-foreground: 25 5% 35%; /* stone-600 */
-    --accent: 25 95% 53%;          /* #F97316 orange-500 */
+    --secondary: 220 14% 96%;        /* slate-100 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%; /* slate-500 */
+    --accent: 25 95% 53%;            /* #F97316 orange */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 24 6% 90%;           /* stone-200 */
-    --input: 24 6% 90%;
-    --ring: 24 9% 14%;
-    --radius: 0px;                 /* Brutalist square edges */
+    --border: 220 13% 91%;           /* slate-200 */
+    --input: 220 13% 91%;
+    --ring: 222 76% 38%;
+    --radius: 0.75rem;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   html, body {
     @apply bg-background text-foreground;
-    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-feature-settings: "ss01", "ss02";
+    font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, .font-display {
-    font-family: "Cabinet Grotesk", "IBM Plex Sans", sans-serif;
-    letter-spacing: -0.015em;
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+    letter-spacing: -0.02em;
   }
-  ::selection {
-    background-color: #1C1917;
-    color: #F5F5F4;
-  }
+  .font-bengali { font-family: "Noto Sans Bengali", "Plus Jakarta Sans", sans-serif; }
+  ::selection { background: #1E3FAD; color: #fff; }
 }
 
 @layer base {
-    [data-debug-wrapper="true"] { display: contents !important; }
-    [data-debug-wrapper="true"] > * {
-        margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
-        padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
-        column-gap: inherit; row-gap: inherit; gap: inherit;
-        border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
-        border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
-        border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
-    }
+  [data-debug-wrapper="true"] { display: contents !important; }
+  [data-debug-wrapper="true"] > * {
+    margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+    padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+    column-gap: inherit; row-gap: inherit; gap: inherit;
+    border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+    border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+    border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+  }
 }
 
 @layer utilities {
-  .label-uppercase {
-    @apply text-xs tracking-[0.2em] uppercase font-semibold text-stone-500;
-  }
+  .label-uppercase { @apply text-[11px] tracking-[0.18em] uppercase font-semibold text-slate-500; }
   .grid-divider-x > * + * { border-left: 1px solid hsl(var(--border)); }
   .grid-divider-y > * + * { border-top: 1px solid hsl(var(--border)); }
+  .brand-blue { color: #1E3FAD; }
+  .bg-brand-blue { background: #1E3FAD; }
+  .brand-orange { color: #F97316; }
+  .bg-brand-orange { background: #F97316; }
+  .receipt-corner-tl { background: linear-gradient(135deg, #F97316 0%, #F97316 50%, #1E3FAD 50%, #1E3FAD 100%); }
 }
 
 @media print {
   .no-print { display: none !important; }
   body { background: #fff !important; }
-  .print-page { box-shadow: none !important; border: none !important; }
+  .print-page { box-shadow: none !important; }
+  @page { size: A4; margin: 8mm; }
 }

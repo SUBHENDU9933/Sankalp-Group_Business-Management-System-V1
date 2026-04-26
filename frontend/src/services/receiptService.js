@@ -22,7 +22,7 @@ export const fetchReceiptsByCustomer = async (customerId) => {
 export const fetchReceiptById = async (id) => {
   const { data, error } = await supabase
     .from("receipts")
-    .select("*, customer:customers(id,name,phone,address,project_details)")
+    .select("*, customer:customers(id,name,phone,address,project_details), project:projects(id,project_name), creator:profiles!receipts_created_by_fkey(full_name,email)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;

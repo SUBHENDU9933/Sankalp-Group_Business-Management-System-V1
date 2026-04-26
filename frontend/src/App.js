@@ -13,6 +13,7 @@ import ProjectsPage from "@/pages/ProjectsPage";
 import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import VendorsPage from "@/pages/VendorsPage";
 import ApprovalsPage from "@/pages/ApprovalsPage";
+import VerifyReceiptPage from "@/pages/VerifyReceiptPage";
 import TeamPage from "@/pages/TeamPage";
 
 const ProtectedRoute = () => {
@@ -56,6 +57,8 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/verify/:uid" element={<VerifyReceiptPage />} />
+
             <Route element={<PublicOnly />}>
               <Route path="/login" element={<LoginPage />} />
             </Route>

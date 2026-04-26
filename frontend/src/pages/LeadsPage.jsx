@@ -242,7 +242,7 @@ function LeadTable({ leads, onEdit, onStatusChange, onConvert, onRequestDelete, 
                         <DropdownMenuSeparator />
                         <div className="px-2 py-1 label-uppercase">Set Status</div>
                         {LEAD_STATUSES.filter(s => s.key !== "converted").map((s) => (
-                          <DropdownMenuItem key={s.key} className="rounded-none cursor-pointer" onClick={() => onStatusChange(l, s.key)} disabled={l.is_locked || l.status === s.key}>
+                          <DropdownMenuItem key={s.key} className="rounded-none cursor-pointer" onClick={() => onStatusChange(l, s.key)} disabled={l.is_locked || l.status === s.key} data-testid={`lead-status-option-${s.key}-${l.id}`}>
                             {s.label}
                           </DropdownMenuItem>
                         ))}

@@ -30,15 +30,15 @@ export const updateCustomer = async (id, payload) => {
   return data;
 };
 
-export const requestDeleteCustomer = async (id, userId) =>
-  updateCustomer(id, {
-    delete_request: true,
-    delete_requested_by: userId,
-    delete_requested_at: new Date().toISOString(),
-  });
+export const requestDeleteCustomer = async (id, _userId) => {
+  const { error } = await supabase.rpc("request_delete_customer", { p_id: id });
+  if (error) throw error;
+};
 
-export const cancelDeleteCustomer = async (id) =>
-  updateCustomer(id, { delete_request: false, delete_requested_by: null, delete_requested_at: null });
+export const cancelDeleteCustomer = async (id) => {
+  const { error } = await supabase.rpc("cancel_delete_customer", { p_id: id });
+  if (error) throw error;
+};
 
 export const adminDeleteCustomer = async (id) => {
   const { error } = await supabase.from("customers").delete().eq("id", id);

@@ -35,20 +35,14 @@ export const updateLead = async (id, payload) => {
 
 export const updateLeadStatus = async (id, status) => updateLead(id, { status });
 
-export const requestDelete = async (id, userId) => {
-  return updateLead(id, {
-    delete_request: true,
-    delete_requested_by: userId,
-    delete_requested_at: new Date().toISOString(),
-  });
+export const requestDelete = async (id, _userId) => {
+  const { error } = await supabase.rpc("request_delete_lead", { p_id: id });
+  if (error) throw error;
 };
 
 export const cancelDeleteRequest = async (id) => {
-  return updateLead(id, {
-    delete_request: false,
-    delete_requested_by: null,
-    delete_requested_at: null,
-  });
+  const { error } = await supabase.rpc("cancel_delete_lead", { p_id: id });
+  if (error) throw error;
 };
 
 export const adminDeleteLead = async (id) => {

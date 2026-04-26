@@ -22,6 +22,23 @@ function PriorityBadge({ priority }) {
   );
 }
 
+const ESTIMATE_BADGES = {
+  draft:    { label: "Est · Draft",    cls: "bg-stone-100 text-stone-800 border-stone-300", dot: "bg-stone-500" },
+  sent:     { label: "Est · Sent",     cls: "bg-blue-50 text-blue-800 border-blue-300", dot: "bg-blue-500" },
+  approved: { label: "Est · Approved", cls: "bg-emerald-50 text-emerald-800 border-emerald-300", dot: "bg-emerald-500" },
+  rejected: { label: "Est · Rejected", cls: "bg-rose-50 text-rose-800 border-rose-300", dot: "bg-rose-500" },
+};
+function EstimateBadge({ status, count }) {
+  if (!status) return null;
+  const b = ESTIMATE_BADGES[status] || ESTIMATE_BADGES.draft;
+  return (
+    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] tracking-[0.12em] uppercase font-semibold border", b.cls)}>
+      <span className={cn("w-1 h-1 rounded-full", b.dot)} />
+      {b.label}{count > 1 ? ` ×${count}` : ""}
+    </span>
+  );
+}
+
 export default function LeadTableView({
   leads, onOpen, onEdit, onStatusChange, onConvert, onRequestDelete, onCancelDelete,
 }) {
@@ -57,7 +74,10 @@ export default function LeadTableView({
               >
                 <td className="px-4 py-3 align-top">
                   <div className="font-medium text-stone-900">{l.name}</div>
-                  {l.delete_request && <div className="text-[10px] tracking-widest uppercase text-rose-600 mt-1 font-semibold">Delete pending</div>}
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                    <EstimateBadge status={l.estimate_status} count={l.estimate_count} />
+                    {l.delete_request && <span className="text-[10px] tracking-widest uppercase text-rose-600 font-semibold">Delete pending</span>}
+                  </div>
                 </td>
                 <td className="px-4 py-3 align-top text-stone-700">
                   <div className="space-y-0.5">
@@ -106,6 +126,11 @@ export default function LeadTableView({
                         <DropdownMenuItem className="rounded-none cursor-pointer text-blue-700" onClick={() => { window.location.href = buildEstimatorUrl({ leadId: l.id }); }} data-testid={`lead-create-estimate-${l.id}`}>
                           <Calculator className="w-4 h-4 mr-2" />Create Estimate
                         </DropdownMenuItem>
+                        {l.last_estimate_id && (
+                          <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => { window.location.href = buildEstimatorUrl({ estimateId: l.last_estimate_id }); }} data-testid={`lead-view-estimate-${l.id}`}>
+                            <Calculator className="w-4 h-4 mr-2" />View Last Estimate
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem className="rounded-none cursor-pointer text-emerald-700" onClick={() => onConvert(l)} disabled={l.is_locked || l.status === "converted"} data-testid={`lead-convert-${l.id}`}>
                           <ArrowRightCircle className="w-4 h-4 mr-2" />Convert to Customer
                         </DropdownMenuItem>

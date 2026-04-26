@@ -100,6 +100,32 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 11 (Feb 2026) — Estimate Presets DB + Lead Sync (System Upgrade)
+**Schema migration** `/app/supabase_schema_v7.sql` (must be applied):
+- 5 preset tables — `estimate_rooms`, `estimate_items` (with `category`), `estimate_terms`, `estimate_notes`, `estimate_guides` — all with `is_active` for soft-delete + `sort_order`
+- Seed data — full default rooms (14), items (64 with categories like Kitchen/Furniture/Wardrobe/Flooring/Civil/Ceiling/Electrical/Wall Decor/Soft Furnishing/Office), terms (6), notes (4), guides (3 tiers)
+- RLS: read by all authenticated, write by admin only
+- Lead-estimate tracking columns on `leads`: `estimate_status`, `estimate_count`, `last_estimate_id`
+- Trigger `trg_sync_lead_estimate` (ON INSERT/UPDATE/DELETE on estimates) auto-maintains the above with priority: approved > sent > draft > rejected
+
+**Estimator HTML upgrades** (`/app/frontend/public/estimator.html`):
+- `loadPresets()` is now async — fetches from DB via `Promise.all` (5 parallel queries), caches in `window.SANKALP.cachedPresets`. Falls back to localStorage → defaults if DB unavailable.
+- `savePresets()` now syncs to DB (admin RLS) via soft-delete-then-upsert; localStorage kept for offline.
+- **Lead picker** added in Presented To section: searchable autocomplete (name/phone), shows top 30 matches with project type tag. On select → auto-fills cliName + cliPhone (locked yellow), cliAddr, cliWork (project_type — requirement), cliBudg, sets `window.SANKALP.leadId`. **Unlink** button restores edit mode.
+- Lead picker UI re-populates on `loadEstimateFromDB()` (when reopening saved estimate that has lead_id)
+- Bootstrap awaits `loadPresets()` so first row dropdowns render correctly
+
+**Lead views**:
+- `LeadTableView` shows new **estimate badge** under name (e.g. "Est · Sent ×2" with status color)
+- `LeadDetailsSheet` header shows estimate badge + adds **View Last Estimate** button when `last_estimate_id` exists
+- Table dropdown menu adds **View Last Estimate** action
+
+**Files changed/created:**
+- `/app/supabase_schema_v7.sql` (new)
+- `/app/frontend/public/estimator.html` (loadPresets/savePresets DB-backed, lead picker, prefillFromLead simplified)
+- `/app/frontend/src/components/leads/LeadTableView.jsx` (EstimateBadge, View Last Estimate)
+- `/app/frontend/src/components/leads/LeadDetailsSheet.jsx` (estimate chip + View Last Estimate button)
+
 ## Iteration 10 (Feb 2026) — Estimate System Polish (Auto-User, Signature, PDF, Profile)
 **Schema migration** `/app/supabase_schema_v6.sql` (must be applied):
 - Adds `designation` and `signature_url` columns to `profiles`

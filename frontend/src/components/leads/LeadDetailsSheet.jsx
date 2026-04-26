@@ -83,6 +83,12 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                     <span className={cn("w-1.5 h-1.5 rounded-full", priority.dot)} /> {priority.label}
                   </span>
                 )}
+                {lead.estimate_status && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase font-semibold border bg-blue-50 text-blue-800 border-blue-300">
+                    <Calculator className="w-3 h-3" />
+                    Est · {lead.estimate_status}{lead.estimate_count > 1 ? ` (${lead.estimate_count})` : ""}
+                  </span>
+                )}
                 {lead.is_locked && (
                   <span className="inline-block px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase font-semibold border bg-emerald-50 text-emerald-800 border-emerald-300">
                     Locked
@@ -98,6 +104,11 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
             <Button onClick={() => { window.location.href = buildEstimatorUrl({ leadId: lead.id }); }} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-create-estimate">
               <Calculator className="w-3.5 h-3.5 mr-1.5" />Create Estimate
             </Button>
+            {lead.last_estimate_id && (
+              <Button onClick={() => { window.location.href = buildEstimatorUrl({ estimateId: lead.last_estimate_id }); }} variant="outline" className="rounded-none border-blue-300 text-blue-700 hover:bg-blue-50 h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-view-estimate">
+                <Calculator className="w-3.5 h-3.5 mr-1.5" />View Last Estimate
+              </Button>
+            )}
             {lead.status !== "converted" && (
               <Button onClick={() => onConvert(lead)} disabled={lead.is_locked} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-convert">
                 <ArrowRightCircle className="w-3.5 h-3.5 mr-1.5" />Convert to Customer

@@ -414,6 +414,16 @@
                 </div>
                 <div class="meta-box client">
                     <span class="meta-title" style="color: var(--primary);"><i class="fas fa-user-circle icon-primary"></i> Presented To</span>
+                    <!-- LEAD PICKER (added) -->
+                    <div class="meta-row no-print" style="position:relative; align-items:center;">
+                        <span class="inp-label" style="color: var(--primary); font-weight:700;"><i class="fas fa-search icon-primary"></i> Lead:</span>
+                        <input type="text" class="inp-field" id="leadSearch" placeholder="Search lead by name / phone…" autocomplete="off"
+                               oninput="onLeadSearchInput(event)" onfocus="onLeadSearchInput(event)"
+                               style="border-bottom-color:var(--primary)">
+                        <button type="button" id="leadClearBtn" class="hidden" onclick="clearLeadSelection()" title="Unlink lead"
+                                style="margin-left:6px; background:transparent; border:none; color:#dc2626; cursor:pointer; font-size:12px; padding:2px 6px;"><i class="fas fa-times-circle"></i> Unlink</button>
+                        <div id="leadSearchDropdown" class="hidden" style="position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e7e5e4; border-top:none; max-height:240px; overflow-y:auto; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,0.08);"></div>
+                    </div>
                     <div class="meta-row"><span class="inp-label">Name:</span><input type="text" class="inp-field" id="cliName" placeholder="Customer Name"></div>
                     <div class="meta-row-split">
                         <div style="display:flex;"><span class="inp-label" style="min-width:50px;">Ph:</span><input type="text" class="inp-field" id="cliPhone" placeholder="Phone Number"></div>
@@ -716,6 +726,21 @@
                 if (data.estimate_no && document.getElementById('estNo')) {
                     document.getElementById('estNo').value = data.estimate_no;
                 }
+                if (data.lead_id) {
+                    window.SANKALP.leadId = data.lead_id;
+                    // Restore lead picker lock state
+                    try {
+                        const { data: lead } = await sb.from('leads').select('id,name,phone').eq('id', data.lead_id).maybeSingle();
+                        if (lead) {
+                            const cn = document.getElementById('cliName');
+                            const cp = document.getElementById('cliPhone');
+                            cn.readOnly = true; cn.style.background = '#fffbeb';
+                            cp.readOnly = true; cp.style.background = '#fffbeb';
+                            document.getElementById('leadSearch').value = `${lead.name} · ${lead.phone || ''}`;
+                            document.getElementById('leadClearBtn').classList.remove('hidden');
+                        }
+                    } catch (_) { /* ignore */ }
+                }
             } catch (e) {
                 console.error(e);
                 alert('Load failed: ' + (e.message || e));
@@ -726,13 +751,10 @@
             const sb = window.SANKALP.supabase;
             if (!sb || !leadId) return;
             try {
-                const { data, error } = await sb.from('leads').select('id,name,phone,location,requirement,project_type').eq('id', leadId).maybeSingle();
+                const { data, error } = await sb.from('leads').select('id,name,phone,location,requirement,project_type,budget').eq('id', leadId).maybeSingle();
                 if (error) throw error;
                 if (!data) return;
-                document.getElementById('cliName').value = data.name || '';
-                document.getElementById('cliPhone').value = data.phone || '';
-                document.getElementById('cliAddr').value = data.location || '';
-                document.getElementById('cliWork').value = [data.project_type, data.requirement].filter(Boolean).join(' — ');
+                selectLead(data);
             } catch (e) { console.error('prefillFromLead', e); }
         }
 
@@ -767,9 +789,84 @@
             const original = document.title;
             document.title = `EST-${cli}-${dateStr}`;
             window.print();
-            // Restore after a tick (some browsers read title at print time)
             setTimeout(() => { document.title = original; }, 1000);
         }
+
+        // ============ LEAD PICKER (added) ============
+        async function loadLeadCache() {
+            const sb = window.SANKALP && window.SANKALP.supabase;
+            if (!sb) return [];
+            if (window.SANKALP.cachedLeads) return window.SANKALP.cachedLeads;
+            try {
+                const { data, error } = await sb.from('leads')
+                    .select('id,name,phone,location,requirement,project_type,budget')
+                    .order('created_at', { ascending: false }).limit(500);
+                if (error) throw error;
+                window.SANKALP.cachedLeads = data || [];
+                return window.SANKALP.cachedLeads;
+            } catch (e) { console.error('loadLeadCache', e); return []; }
+        }
+
+        async function onLeadSearchInput(ev) {
+            const q = (ev.target.value || '').trim().toLowerCase();
+            const dropdown = document.getElementById('leadSearchDropdown');
+            const list = await loadLeadCache();
+            const filtered = (q
+                ? list.filter(l => (l.name || '').toLowerCase().includes(q) || (l.phone || '').toLowerCase().includes(q))
+                : list
+            ).slice(0, 30);
+            if (!filtered.length) {
+                dropdown.innerHTML = `<div style="padding:10px 12px; font-size:13px; color:#78716c;">No matching leads</div>`;
+            } else {
+                dropdown.innerHTML = filtered.map(l => `
+                    <div onclick='selectLead(${JSON.stringify(l).replace(/'/g, "&#39;")})'
+                         style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f5f5f4; display:flex; justify-content:space-between; gap:8px;"
+                         onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fff'">
+                        <div style="min-width:0;">
+                            <div style="font-weight:600; color:#1c1917; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${l.name || ''}</div>
+                            <div style="font-size:11px; color:#78716c;">${l.phone || ''}${l.location ? ' · ' + l.location : ''}</div>
+                        </div>
+                        ${l.project_type ? `<div style="font-size:10px; color:#0e44a3; align-self:center; white-space:nowrap;">${l.project_type}</div>` : ''}
+                    </div>
+                `).join('');
+            }
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectLead(lead) {
+            window.SANKALP.leadId = lead.id;
+            const cn = document.getElementById('cliName');
+            const cp = document.getElementById('cliPhone');
+            cn.value = lead.name || '';
+            cp.value = lead.phone || '';
+            cn.readOnly = true;  cn.style.background = '#fffbeb';
+            cp.readOnly = true;  cp.style.background = '#fffbeb';
+            document.getElementById('cliAddr').value = lead.location || document.getElementById('cliAddr').value;
+            const work = [lead.project_type, lead.requirement].filter(Boolean).join(' — ');
+            if (work) document.getElementById('cliWork').value = work;
+            if (lead.budget) document.getElementById('cliBudg').value = String(lead.budget);
+            document.getElementById('leadSearch').value = `${lead.name} · ${lead.phone || ''}`;
+            document.getElementById('leadSearchDropdown').classList.add('hidden');
+            document.getElementById('leadClearBtn').classList.remove('hidden');
+        }
+
+        function clearLeadSelection() {
+            window.SANKALP.leadId = '';
+            const cn = document.getElementById('cliName');
+            const cp = document.getElementById('cliPhone');
+            cn.readOnly = false; cn.style.background = '';
+            cp.readOnly = false; cp.style.background = '';
+            document.getElementById('leadSearch').value = '';
+            document.getElementById('leadClearBtn').classList.add('hidden');
+        }
+
+        // Hide lead dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dd = document.getElementById('leadSearchDropdown');
+            const inp = document.getElementById('leadSearch');
+            if (!dd || !inp) return;
+            if (!dd.contains(e.target) && e.target !== inp) dd.classList.add('hidden');
+        });
     </script>
 
     <script>
@@ -867,42 +964,122 @@
         let appData = { rooms: [], items: [], notes: [], projectNotes: [], guide: [] };
         let rowCount = 0;
 
-        // --- INIT & PRESETS ---
-        function loadPresets() {
-            const saved = localStorage.getItem('sankalpEstimatorData_v14_MultiUnit'); // NEW KEY
+        // --- INIT & PRESETS (DB-first; localStorage as offline fallback) ---
+        async function loadPresets() {
+            const sb = window.SANKALP && window.SANKALP.supabase;
+            if (sb) {
+                try {
+                    const [rooms, items, terms, notes, guides] = await Promise.all([
+                        sb.from('estimate_rooms').select('name').eq('is_active', true).order('sort_order'),
+                        sb.from('estimate_items').select('*').eq('is_active', true).order('sort_order'),
+                        sb.from('estimate_terms').select('content').eq('is_active', true).order('sort_order'),
+                        sb.from('estimate_notes').select('content').eq('is_active', true).order('sort_order'),
+                        sb.from('estimate_guides').select('content').eq('is_active', true).order('sort_order'),
+                    ]);
+                    if (!rooms.error && !items.error && !terms.error && !notes.error && !guides.error
+                        && (rooms.data?.length || items.data?.length)) {
+                        appData = {
+                            rooms: rooms.data.map(r => r.name),
+                            items: items.data.map(i => ({
+                                name: i.name, desc: i.description || '', unitType: i.unit_type || 'sqft_dim',
+                                category: i.category || 'General',
+                                rates: { std: Number(i.rate_standard)||0, prem: Number(i.rate_premium)||0, ultra: Number(i.rate_ultra)||0 }
+                            })),
+                            notes: terms.data.map(t => t.content),
+                            projectNotes: notes.data.map(n => n.content),
+                            guide: guides.data.map(g => g.content),
+                        };
+                        window.SANKALP.cachedPresets = appData;
+                        refreshUI();
+                        return;
+                    }
+                } catch (e) { console.warn('DB presets failed, using local cache', e); }
+            }
+            // Fallback to localStorage / hardcoded defaults
+            const saved = localStorage.getItem('sankalpEstimatorData_v14_MultiUnit');
             if (saved) {
                 appData = JSON.parse(saved);
                 if(!appData.notes) appData.notes = [...defaultStandardTerms];
                 if(!appData.projectNotes) appData.projectNotes = [...defaultProjectNotes];
                 if(!appData.guide) appData.guide = [...defaultGuide];
             } else {
-                appData.rooms = [...defaultRooms]; appData.items = JSON.parse(JSON.stringify(defaultItems)); 
-                appData.notes = [...defaultStandardTerms]; 
+                appData.rooms = [...defaultRooms]; appData.items = JSON.parse(JSON.stringify(defaultItems));
+                appData.notes = [...defaultStandardTerms];
                 appData.projectNotes = [...defaultProjectNotes];
                 appData.guide = [...defaultGuide];
             }
             refreshUI();
         }
 
-        function savePresets() {
+        async function savePresets() {
             appData.rooms = Array.from(document.querySelectorAll('.mod-room-inp')).map(i => i.value.trim()).filter(v => v);
             appData.notes = Array.from(document.querySelectorAll('.mod-note-inp')).map(i => i.value.trim()).filter(v => v);
             appData.projectNotes = Array.from(document.querySelectorAll('.mod-pnote-inp')).map(i => i.value.trim()).filter(v => v);
             appData.guide = Array.from(document.querySelectorAll('.mod-guide-inp')).map(i => i.value.trim()).filter(v => v);
-            
             appData.items = Array.from(document.querySelectorAll('.item-setting-row')).map(row => {
                 const inputs = row.querySelectorAll('input, select');
-                return { 
-                    name: inputs[0].value.trim(), 
-                    desc: inputs[1].value.trim(), 
+                return {
+                    name: inputs[0].value.trim(),
+                    desc: inputs[1].value.trim(),
                     unitType: inputs[2].value,
-                    rates: { std: parseFloat(inputs[3].value)||0, prem: parseFloat(inputs[4].value)||0, ultra: parseFloat(inputs[5].value)||0 } 
+                    category: appData.items.find(x => x.name === inputs[0].value.trim())?.category || 'General',
+                    rates: { std: parseFloat(inputs[3].value)||0, prem: parseFloat(inputs[4].value)||0, ultra: parseFloat(inputs[5].value)||0 }
                 };
             }).filter(i => i.name);
 
             localStorage.setItem('sankalpEstimatorData_v14_MultiUnit', JSON.stringify(appData));
-            refreshUI(); closeSettings(); alert("Settings Saved Successfully!");
+
+            // DB sync — admin only (RLS will reject for non-admin gracefully)
+            const sb = window.SANKALP && window.SANKALP.supabase;
+            let dbSynced = false;
+            if (sb) {
+                try {
+                    // Soft-delete-then-replace strategy for each table
+                    await Promise.all([
+                        sb.from('estimate_rooms').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
+                        sb.from('estimate_items').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
+                        sb.from('estimate_terms').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
+                        sb.from('estimate_notes').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
+                        sb.from('estimate_guides').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
+                    ]);
+                    const errs = [];
+                    if (appData.rooms.length) {
+                        const { error } = await sb.from('estimate_rooms')
+                            .upsert(appData.rooms.map((name, idx) => ({ name, sort_order: idx, is_active: true })), { onConflict: 'name' });
+                        if (error) errs.push(error.message);
+                    }
+                    if (appData.items.length) {
+                        const payload = appData.items.map((i, idx) => ({
+                            name: i.name, description: i.desc || null, category: i.category || 'General',
+                            unit_type: i.unitType, rate_standard: i.rates.std, rate_premium: i.rates.prem, rate_ultra: i.rates.ultra,
+                            sort_order: idx, is_active: true
+                        }));
+                        const { error } = await sb.from('estimate_items').upsert(payload, { onConflict: 'name' });
+                        if (error) errs.push(error.message);
+                    }
+                    if (appData.notes.length) {
+                        const { error } = await sb.from('estimate_terms')
+                            .insert(appData.notes.map((content, idx) => ({ content, sort_order: idx, is_active: true })));
+                        if (error) errs.push(error.message);
+                    }
+                    if (appData.projectNotes.length) {
+                        const { error } = await sb.from('estimate_notes')
+                            .insert(appData.projectNotes.map((content, idx) => ({ content, sort_order: idx, is_active: true })));
+                        if (error) errs.push(error.message);
+                    }
+                    if (appData.guide.length) {
+                        const { error } = await sb.from('estimate_guides')
+                            .insert(appData.guide.map((content, idx) => ({ tier: 'standard', content, sort_order: idx, is_active: true })));
+                        if (error) errs.push(error.message);
+                    }
+                    dbSynced = errs.length === 0;
+                    if (errs.length) console.warn('Preset DB sync errors:', errs);
+                } catch (e) { console.warn('DB preset sync failed', e); }
+            }
+            refreshUI(); closeSettings();
+            alert(dbSynced ? 'Settings saved & synced to cloud!' : 'Settings saved locally. (Cloud sync requires admin role)');
         }
+
 
         function refreshUI() {
             document.querySelectorAll('.room-select').forEach(sel => {
@@ -1251,7 +1428,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
-            loadPresets();
+            // Load presets from DB FIRST so addRow() can populate dropdowns correctly
+            await loadPresets();
             const d = new Date();
             document.getElementById('estDate').value = `${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} - ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
             document.getElementById('estNo').value = `${d.getFullYear()}-INT-EST-${(d.getMonth()+1).toString().padStart(2,'0')}-SL${Math.floor(1000 + Math.random() * 9000)}`;

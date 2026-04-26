@@ -69,7 +69,7 @@ export const addProjectMember = async ({ projectId, userId, role = "member", add
   const { data, error } = await supabase
     .from("project_members")
     .insert([{ project_id: projectId, user_id: userId, role, added_by: addedBy }])
-    .select("*, profile:profiles(id,full_name,email,designation,role)")
+    .select("*, profile:profiles!project_members_user_id_fkey(id,full_name,email,designation,role)")
     .single();
   if (error) throw error;
   return data;

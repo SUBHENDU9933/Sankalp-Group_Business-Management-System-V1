@@ -18,7 +18,7 @@ export const buildEstimatorUrl = ({ leadId, estimateId } = {}) => {
 export const fetchEstimates = async () => {
   const { data, error } = await supabase
     .from("estimates")
-    .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads(id,name)")
+    .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];

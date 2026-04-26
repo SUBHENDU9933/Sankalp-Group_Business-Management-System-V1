@@ -11,8 +11,8 @@ import NotificationBell from "@/components/layout/NotificationBell";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, testid: "nav-dashboard" },
   { to: "/leads", label: "Leads", icon: Users, testid: "nav-leads" },
-  { to: "/customers", label: "Customers", icon: UserCheck, testid: "nav-customers" },
   { to: "/estimates", label: "Estimates", icon: Calculator, testid: "nav-estimates" },
+  { to: "/customers", label: "Customers", icon: UserCheck, testid: "nav-customers" },
   { to: "/projects", label: "Projects", icon: Hammer, testid: "nav-projects" },
   { to: "/receipts", label: "Receipts", icon: ReceiptText, testid: "nav-receipts" },
   { to: "/vendors", label: "Vendors", icon: Truck, testid: "nav-vendors" },

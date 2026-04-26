@@ -100,6 +100,37 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 14 (Feb 2026) — Operations Dashboard Redesign
+Goal: surprise the user with a professional, sober, animated dashboard that surfaces the entire business in one glance.
+
+**Design system:**
+- Sober palette — deep navy `#0c1c3e` + warm orange `#f97316` + cream `#f5f4ef` body (replaced pure-white)
+- Hero strip with two soft gradient orbs (orange + blue) and subtle grain texture
+- All numbers use `useCountUp` cubic ease-out animation (~900ms)
+- Staggered fade-up on lists/grids (40ms steps)
+- Hover states everywhere (lift + shadow on cards, accent strip animation, chevron translate)
+
+**New layout (top → bottom):**
+1. **Hero** — date, time-aware greeting (Good morning/afternoon/evening/Working late), waving emoji, 5 quick-action chips, optional "delete approval" admin banner
+2. **Money snapshot** — 4 cards: Receipts, Expenses, Net P/L (in navy with PROFIT/LOSS chip), Estimate Pipeline (₹ from sent + approved)
+3. **Operations** — 6 gradient tiles: Leads, Hot Leads, Conversion%, Customers, Projects (with in-progress count), Vendors (with team count)
+4. **Lead pipeline funnel** — stage-wise distribution with animated mini bars per stage, colored dots
+5. **Two-column** — Today + Overdue follow-ups (priority avatar, click-to-call/whatsapp inline) + Recent Activity feed (8 latest leads/receipts/expenses with type-coded icons + relative time)
+6. **Two-column** — Active Projects (in_progress only) + Top Vendors by total paid (avatars with photos)
+
+**New Supabase queries** (single useEffect, all parallel):
+- counts for leads/customers/vendors/team/projects/projects_active
+- receipts & expenses (all + month-to-date)
+- estimates (sum of sent + approved as "pipeline")
+- today's follow-ups + overdue
+- 5 recent leads + 5 recent receipts + 5 recent expenses (merged into activity feed)
+- 20 recent projects → top 3 in_progress
+- 150 recent vendor payments → aggregate to top 4 vendors
+
+**Components** (private to file): HeroBanner, QuickChip, MoneyCard, PLCard, PipelineCard, OpsTile, PipelineFunnel, FollowupsPanel, ActivityFeed, ActiveProjectsPanel, TopVendorsPanel, SectionLabel.
+
+**File changed:** `/app/frontend/src/pages/DashboardPage.jsx` (rewritten — 600 lines)
+
 ## Iteration 13 (Feb 2026) — Vendors v2 (Profile, KYC, Docs, Project-Wise Ledger)
 **Schema migration** `/app/supabase_schema_v9.sql` (must be applied):
 - Extends `vendors` with: email, address, gst_no, pan_no, aadhar_no, upi_id, account_holder, account_no, ifsc, bank_name, photo_url, id_card_url, visiting_card_url, notes, is_active, updated_at

@@ -93,3 +93,8 @@ Internal SaaS for an Interior & Infrastructure Solutions Company. 6 phases:
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`
+
+## Iteration 7 (Feb 2026)
+- Removed "Made with Emergent" badge + emergent-main.js script + posthog tracking + emergent.sh meta description from `/app/frontend/public/index.html`
+- Verified: badge no longer rendered on login page
+- User must push to GitHub via "Save to GitHub" so Vercel redeploys

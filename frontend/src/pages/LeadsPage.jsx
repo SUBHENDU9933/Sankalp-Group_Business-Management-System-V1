@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader, PageBody } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Upload, Download, ChevronDown, FileSpreadsheet } from "lucide-react";
 import {
   fetchLeads, updateLeadStatus, requestDelete, cancelDeleteRequest, convertLeadToCustomer,
+  bulkUpdateLeads,
 } from "@/services/leadService";
 import { fetchProfiles } from "@/services/profileService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +17,9 @@ import LeadFilters from "@/components/leads/LeadFilters";
 import LeadTableView from "@/components/leads/LeadTableView";
 import LeadPipelineView from "@/components/leads/LeadPipelineView";
 import LeadDetailsSheet from "@/components/leads/LeadDetailsSheet";
+import LeadBulkActionBar from "@/components/leads/LeadBulkActionBar";
+import LeadImportDialog from "@/components/leads/LeadImportDialog";
+import { exportLeadsCSV, downloadLeadTemplate } from "@/utils/leadCsv";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +44,17 @@ export default function LeadsPage() {
   const [editLead, setEditLead] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeLead, setActiveLead] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Bulk selection
+  const [selected, setSelected] = useState(new Set());
+  const toggleSelect = (id) => setSelected((s) => {
+    const next = new Set(s);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const toggleAll = (checked, list) => setSelected(() => checked ? new Set(list.map((l) => l.id)) : new Set());
+  const clearSelection = () => setSelected(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -124,6 +142,38 @@ export default function LeadsPage() {
     } catch (e) { toast.error(e.message); }
   };
 
+  // ---------- BULK ACTIONS ----------
+  const selectedIds = () => Array.from(selected);
+  const selectedLeads = () => filtered.filter((l) => selected.has(l.id));
+
+  const runBulk = async (actionLabel, payload) => {
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!window.confirm(`Apply "${actionLabel}" to ${ids.length} lead${ids.length !== 1 ? "s" : ""}?`)) return;
+    try {
+      const n = await bulkUpdateLeads(ids, payload);
+      toast.success(`Updated ${n} lead${n !== 1 ? "s" : ""}`);
+      clearSelection();
+      load();
+    } catch (e) { toast.error(e.message); }
+  };
+
+  const handleBulkStatus = (status) => runBulk(`status → ${status}`, { status });
+  const handleBulkPriority = (priority) => runBulk(`priority → ${priority || "none"}`, { priority });
+  const handleBulkAssign = (assigned_to) => runBulk(`assign`, { assigned_to });
+  const handleBulkDeleteRequest = () => runBulk("request delete", { delete_request: true, delete_requested_by: user.id });
+  const handleExportSelected = () => {
+    const rows = selectedLeads();
+    if (!rows.length) return;
+    exportLeadsCSV(rows, `leads-selected-${new Date().toISOString().slice(0,10)}.csv`);
+    toast.success(`Exported ${rows.length} leads`);
+  };
+  const handleExportFiltered = () => {
+    if (!filtered.length) { toast.info("No leads to export"); return; }
+    exportLeadsCSV(filtered, `leads-${new Date().toISOString().slice(0,10)}.csv`);
+    toast.success(`Exported ${filtered.length} leads`);
+  };
+
   const openDetails = (lead) => { setActiveLead(lead); setDetailsOpen(true); };
   const openEdit = (lead) => { setEditLead(lead); setFormOpen(true); setDetailsOpen(false); };
 
@@ -138,14 +188,51 @@ export default function LeadsPage() {
         subtitle="Phase 2"
         title="Lead Management"
         actions={
-          <Button onClick={() => { setEditLead(null); setFormOpen(true); }} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="lead-add-button">
-            <Plus className="w-4 h-4" /> New Lead
-          </Button>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-none border-stone-300 hover:bg-stone-100" data-testid="lead-bulk-menu-btn">
+                  <FileSpreadsheet className="w-4 h-4 mr-1" />Bulk<ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-none border-stone-300 w-56">
+                <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => setImportOpen(true)} data-testid="lead-import-open">
+                  <Upload className="w-4 h-4 mr-2" />Import from CSV…
+                </DropdownMenuItem>
+                <DropdownMenuItem className="rounded-none cursor-pointer" onClick={downloadLeadTemplate} data-testid="lead-template-download">
+                  <Download className="w-4 h-4 mr-2" />Download CSV template
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="rounded-none cursor-pointer" onClick={handleExportFiltered} data-testid="lead-export-filtered">
+                  <Download className="w-4 h-4 mr-2" />Export filtered ({filtered.length})
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => { setEditLead(null); setFormOpen(true); }} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="lead-add-button">
+              <Plus className="w-4 h-4" /> New Lead
+            </Button>
+          </>
         }
       />
 
       <PageBody>
         <LeadKpiStrip leads={filtered} />
+
+        <div className="mt-4">
+          <LeadBulkActionBar
+            selectedCount={selected.size}
+            totalCount={filtered.length}
+            onClear={clearSelection}
+            onSelectAll={() => toggleAll(true, filtered)}
+            isAdmin={isAdmin}
+            rmOptions={profiles}
+            onBulkStatus={handleBulkStatus}
+            onBulkPriority={handleBulkPriority}
+            onBulkAssign={handleBulkAssign}
+            onBulkDeleteRequest={handleBulkDeleteRequest}
+            onExportSelected={handleExportSelected}
+          />
+        </div>
 
         <div className="mt-5">
           <LeadFilters
@@ -184,6 +271,9 @@ export default function LeadsPage() {
               onConvert={handleConvert}
               onRequestDelete={handleRequestDelete}
               onCancelDelete={handleCancelDelete}
+              selected={selected}
+              onToggleSelect={toggleSelect}
+              onToggleAll={(checked) => toggleAll(checked, filtered)}
             />
           ) : (
             <LeadPipelineView
@@ -197,6 +287,12 @@ export default function LeadsPage() {
       </PageBody>
 
       <LeadFormDialog open={formOpen} onOpenChange={setFormOpen} lead={editLead} onSaved={load} />
+      <LeadImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        rmOptions={profiles}
+        onImported={load}
+      />
       <LeadDetailsSheet
         open={detailsOpen}
         onOpenChange={setDetailsOpen}

@@ -34,6 +34,52 @@ export const updateLead = async (id, payload) => {
   return data;
 };
 
+/**
+ * Bulk update — applies same `payload` to every id in `ids`.
+ * Returns count of rows updated.
+ */
+export const bulkUpdateLeads = async (ids, payload) => {
+  if (!ids?.length) return 0;
+  const { data, error } = await supabase
+    .from("leads")
+    .update(payload)
+    .in("id", ids)
+    .select("id");
+  if (error) throw error;
+  return data?.length || 0;
+};
+
+/**
+ * Bulk insert leads. Returns { inserted, skipped, errors }.
+ * Deduplicates by phone against existing leads (only if existing phone is set).
+ */
+export const bulkInsertLeads = async (rows, userId) => {
+  if (!rows?.length) return { inserted: 0, skipped: 0, errors: [] };
+  // Pre-fetch existing phones to deduplicate (light: select only phone)
+  const { data: existing, error: e1 } = await supabase.from("leads").select("phone");
+  if (e1) throw e1;
+  const seen = new Set((existing || []).map((r) => (r.phone || "").trim()).filter(Boolean));
+  const toInsert = [];
+  let skipped = 0;
+  for (const r of rows) {
+    const phone = (r.phone || "").trim();
+    if (phone && seen.has(phone)) { skipped += 1; continue; }
+    if (phone) seen.add(phone);
+    toInsert.push({ ...r, created_by: userId });
+  }
+  if (!toInsert.length) return { inserted: 0, skipped, errors: [] };
+  // Insert in batches of 100 to stay under Postgres limits
+  let inserted = 0;
+  const errors = [];
+  for (let i = 0; i < toInsert.length; i += 100) {
+    const slice = toInsert.slice(i, i + 100);
+    const { data, error } = await supabase.from("leads").insert(slice).select("id");
+    if (error) errors.push(error.message);
+    else inserted += data?.length || 0;
+  }
+  return { inserted, skipped, errors };
+};
+
 export const updateLeadStatus = async (id, status, userId) => {
   const lead = await updateLead(id, { status });
   // Log status change to timeline (best-effort)

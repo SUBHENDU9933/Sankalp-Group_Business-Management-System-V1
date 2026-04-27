@@ -100,6 +100,42 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 15 (Feb 2026) — Bulk Operations on Leads (Excel/CSV Import + Export + Bulk Edit)
+**New dependency**: `papaparse@5.5.3` (yarn add) — battle-tested CSV parser, ~24kb gzip.
+
+**New files**:
+- `/app/frontend/src/utils/csv.js` — `downloadBlob`, `toCSV`, `parseCSV` (Papaparse wrappers)
+- `/app/frontend/src/utils/leadCsv.js` — `LEAD_CSV_COLUMNS` schema, `parseLeadRow` (validates + normalises status/priority/source/project_type/property_type/dates), `exportLeadsCSV`, `downloadLeadTemplate`
+- `/app/frontend/src/components/leads/LeadBulkActionBar.jsx` — navy sticky bar appears when any lead is selected; Status / Priority / Assign (admin-only) / Export / Request Delete dropdowns + clear button
+- `/app/frontend/src/components/leads/LeadImportDialog.jsx` — 3-step wizard: (1) Download template, (2) Pick CSV, (3) Choose default assignee; live preview of first 8 rows; result panel showing inserted/skipped/errors
+
+**Service additions** (`leadService.js`):
+- `bulkUpdateLeads(ids, payload)` — `.in("id", ids).update(payload)`
+- `bulkInsertLeads(rows, userId)` — pre-fetches existing phones, deduplicates, inserts in batches of 100; returns `{inserted, skipped, errors}`
+
+**LeadTableView**:
+- New checkbox column (header + per-row); header has indeterminate state when partial
+- Selected rows highlight in `bg-orange-50`
+- All `data-testid="bulk-select-{id}"` for testing
+
+**LeadsPage**:
+- Selection state via `Set<id>` with `toggle`, `toggleAll`, `clearSelection` helpers
+- Bulk handlers: `handleBulkStatus`, `handleBulkPriority`, `handleBulkAssign`, `handleBulkDeleteRequest`, `handleExportSelected`, `handleExportFiltered` (all confirm before applying)
+- New "Bulk" header dropdown: Import from CSV / Download CSV template / Export filtered (count visible)
+
+**CSV format** — 17 columns supported, demo template includes 1 example row:
+name, phone, phone_secondary, location, area, pincode, project_type, property_type, area_sqft, budget, requirement, source, priority, status, next_followup_date, last_contact_date, reminder_note. Dates accept YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY. Invalid statuses default to "new"; duplicates by phone are auto-skipped.
+
+**Files changed:**
+- `/app/frontend/package.json` (papaparse)
+- `/app/frontend/src/services/leadService.js` (bulk fns)
+- `/app/frontend/src/utils/csv.js` (new)
+- `/app/frontend/src/utils/leadCsv.js` (new)
+- `/app/frontend/src/components/leads/LeadBulkActionBar.jsx` (new)
+- `/app/frontend/src/components/leads/LeadImportDialog.jsx` (new)
+- `/app/frontend/src/components/leads/LeadTableView.jsx` (checkboxes)
+- `/app/frontend/src/pages/LeadsPage.jsx` (orchestrator)
+
 ## Iteration 14 (Feb 2026) — Operations Dashboard Redesign
 Goal: surprise the user with a professional, sober, animated dashboard that surfaces the entire business in one glance.
 

@@ -41,12 +41,25 @@ function EstimateBadge({ status, count }) {
 
 export default function LeadTableView({
   leads, onOpen, onEdit, onStatusChange, onConvert, onRequestDelete, onCancelDelete,
+  selected, onToggleSelect, onToggleAll,
 }) {
+  const allSelected = leads.length > 0 && leads.every((l) => selected?.has(l.id));
+  const someSelected = leads.some((l) => selected?.has(l.id));
   return (
     <div className="bg-white border border-stone-200 overflow-x-auto">
       <table className="w-full text-sm" data-testid="leads-table">
         <thead className="bg-stone-50 border-b border-stone-200">
           <tr className="text-left">
+            <Th className="w-10 pl-4">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => { if (el) el.indeterminate = !allSelected && someSelected; }}
+                onChange={() => onToggleAll?.(!allSelected)}
+                className="w-4 h-4 accent-orange-500 cursor-pointer"
+                data-testid="bulk-select-header"
+              />
+            </Th>
             <Th>Name</Th>
             <Th>Phone</Th>
             <Th>Location</Th>
@@ -68,10 +81,23 @@ export default function LeadTableView({
             return (
               <tr
                 key={l.id}
-                className={cn("hover:bg-stone-50 transition-colors cursor-pointer", l.delete_request && "bg-rose-50/40")}
+                className={cn(
+                  "hover:bg-stone-50 transition-colors cursor-pointer",
+                  l.delete_request && "bg-rose-50/40",
+                  selected?.has(l.id) && "bg-orange-50 hover:bg-orange-100",
+                )}
                 data-testid={`lead-row-${l.id}`}
                 onClick={() => onOpen(l)}
               >
+                <td className="pl-4 align-top py-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selected?.has(l.id) || false}
+                    onChange={() => onToggleSelect?.(l.id)}
+                    className="w-4 h-4 accent-orange-500 cursor-pointer"
+                    data-testid={`bulk-select-${l.id}`}
+                  />
+                </td>
                 <td className="px-4 py-3 align-top">
                   <div className="font-medium text-stone-900">{l.name}</div>
                   <div className="flex flex-wrap items-center gap-1 mt-1">

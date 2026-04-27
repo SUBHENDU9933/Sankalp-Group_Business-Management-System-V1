@@ -37,11 +37,12 @@ export default function LeadBulkActionBar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="rounded-none border-stone-300">
-            {LEAD_STATUSES.map((s) => (
+            {LEAD_STATUSES.filter((s) => s.key !== "converted").map((s) => (
               <DropdownMenuItem key={s.key} className="rounded-none cursor-pointer" onClick={() => onBulkStatus(s.key)} data-testid={`bulk-status-${s.key}`}>
                 <span className={`w-2 h-2 rounded-full mr-2 ${s.dot}`} />{s.label}
               </DropdownMenuItem>
             ))}
+            <div className="px-3 py-1.5 text-[9px] tracking-widest uppercase text-stone-400 border-t border-stone-100 mt-1">Use the Convert action to make a customer</div>
           </DropdownMenuContent>
         </DropdownMenu>
 

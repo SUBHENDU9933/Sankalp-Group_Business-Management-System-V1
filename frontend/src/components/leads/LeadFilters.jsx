@@ -14,6 +14,7 @@ export default function LeadFilters({
   status, onStatusChange,
   rm, onRmChange,
   source, onSourceChange,
+  tag, onTagChange,
   fromDate, onFromDateChange,
   toDate, onToDateChange,
   view, onViewChange,
@@ -21,7 +22,7 @@ export default function LeadFilters({
   isAdmin = false,
   onClear,
 }) {
-  const hasFilters = search || status !== "all" || rm !== "all" || source !== "all" || fromDate || toDate;
+  const hasFilters = search || status !== "all" || rm !== "all" || source !== "all" || (tag && tag !== "all") || fromDate || toDate;
   return (
     <div className="bg-white border border-stone-200" data-testid="leads-filters">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-0 grid-divider-x">
@@ -49,7 +50,7 @@ export default function LeadFilters({
           </Tabs>
         </div>
       </div>
-      <div className="border-t border-stone-200 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-0 grid-divider-x">
+      <div className="border-t border-stone-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-0 grid-divider-x">
         <FilterCell label="Status">
           <Select value={status} onValueChange={onStatusChange}>
             <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-status-filter"><SelectValue /></SelectTrigger>
@@ -83,6 +84,18 @@ export default function LeadFilters({
               {LEAD_SOURCES.map((s) => (
                 <SelectItem key={s} value={s} className="rounded-none">{s}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </FilterCell>
+        <FilterCell label="Tag">
+          <Select value={tag || "all"} onValueChange={onTagChange}>
+            <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-tag-filter"><SelectValue /></SelectTrigger>
+            <SelectContent className="rounded-none">
+              <SelectItem value="all" className="rounded-none">All Tags</SelectItem>
+              <SelectItem value="website" className="rounded-none">Website (Direct)</SelectItem>
+              <SelectItem value="repeat" className="rounded-none">Website · Repeat</SelectItem>
+              <SelectItem value="any-website" className="rounded-none">Any Website Lead</SelectItem>
+              <SelectItem value="none" className="rounded-none">No Tag</SelectItem>
             </SelectContent>
           </Select>
         </FilterCell>

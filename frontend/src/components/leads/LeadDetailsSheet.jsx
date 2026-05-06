@@ -83,6 +83,21 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                     <span className={cn("w-1.5 h-1.5 rounded-full", priority.dot)} /> {priority.label}
                   </span>
                 )}
+                {lead.tag && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase font-semibold border",
+                      /repeat/i.test(lead.tag)
+                        ? "bg-rose-50 text-rose-800 border-rose-300"
+                        : "bg-orange-50 text-orange-800 border-orange-300"
+                    )}
+                    title={lead.tag}
+                    data-testid="lead-detail-tag-badge"
+                  >
+                    <span className={cn("w-1.5 h-1.5 rounded-full", /repeat/i.test(lead.tag) ? "bg-rose-500" : "bg-orange-500")} />
+                    {/repeat/i.test(lead.tag) ? "Website · Repeat" : "Website"}
+                  </span>
+                )}
                 {lead.estimate_status && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase font-semibold border bg-blue-50 text-blue-800 border-blue-300">
                     <Calculator className="w-3 h-3" />

@@ -39,6 +39,26 @@ function EstimateBadge({ status, count }) {
   );
 }
 
+function TagBadge({ tag }) {
+  if (!tag) return null;
+  const isRepeat = /repeat/i.test(tag);
+  const cls = isRepeat
+    ? "bg-rose-50 text-rose-800 border-rose-300"
+    : "bg-orange-50 text-orange-800 border-orange-300";
+  const dot = isRepeat ? "bg-rose-500" : "bg-orange-500";
+  const label = isRepeat ? "Website · Repeat" : "Website";
+  return (
+    <span
+      className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] tracking-[0.12em] uppercase font-semibold border", cls)}
+      title={tag}
+      data-testid="lead-tag-badge"
+    >
+      <span className={cn("w-1 h-1 rounded-full", dot)} />
+      {label}
+    </span>
+  );
+}
+
 export default function LeadTableView({
   leads, onOpen, onEdit, onStatusChange, onConvert, onRequestDelete, onCancelDelete,
   selected, onToggleSelect, onToggleAll,
@@ -101,6 +121,7 @@ export default function LeadTableView({
                 <td className="px-4 py-3 align-top">
                   <div className="font-medium text-stone-900">{l.name}</div>
                   <div className="flex flex-wrap items-center gap-1 mt-1">
+                    <TagBadge tag={l.tag} />
                     <EstimateBadge status={l.estimate_status} count={l.estimate_count} />
                     {l.delete_request && <span className="text-[10px] tracking-widest uppercase text-rose-600 font-semibold">Delete pending</span>}
                   </div>

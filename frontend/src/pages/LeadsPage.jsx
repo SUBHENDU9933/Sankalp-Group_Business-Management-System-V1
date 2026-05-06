@@ -35,6 +35,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [rmFilter, setRmFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [view, setView] = useState("table");
@@ -87,6 +88,13 @@ export default function LeadsPage() {
         if (rmFilter !== "unassigned" && l.assigned_to !== rmFilter) return false;
       }
       if (sourceFilter !== "all" && l.source !== sourceFilter) return false;
+      if (tagFilter && tagFilter !== "all") {
+        const t = (l.tag || "").toLowerCase();
+        if (tagFilter === "website" && !(t.includes("website") && !t.includes("repeat"))) return false;
+        if (tagFilter === "repeat" && !t.includes("repeat")) return false;
+        if (tagFilter === "any-website" && !t.includes("website")) return false;
+        if (tagFilter === "none" && l.tag) return false;
+      }
       if (fromDate && new Date(l.created_at) < new Date(fromDate)) return false;
       if (toDate) {
         const end = new Date(toDate); end.setHours(23, 59, 59, 999);
@@ -101,7 +109,7 @@ export default function LeadsPage() {
       }
       return true;
     });
-  }, [leads, search, statusFilter, rmFilter, sourceFilter, fromDate, toDate]);
+  }, [leads, search, statusFilter, rmFilter, sourceFilter, tagFilter, fromDate, toDate]);
 
   const handleStatusChange = async (lead, status) => {
     try {
@@ -179,7 +187,7 @@ export default function LeadsPage() {
 
   const clearFilters = () => {
     setSearch(""); setStatusFilter("all"); setRmFilter("all");
-    setSourceFilter("all"); setFromDate(""); setToDate("");
+    setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate("");
   };
 
   return (
@@ -240,6 +248,7 @@ export default function LeadsPage() {
             status={statusFilter} onStatusChange={setStatusFilter}
             rm={rmFilter} onRmChange={setRmFilter}
             source={sourceFilter} onSourceChange={setSourceFilter}
+            tag={tagFilter} onTagChange={setTagFilter}
             fromDate={fromDate} onFromDateChange={setFromDate}
             toDate={toDate} onToDateChange={setToDate}
             view={view} onViewChange={setView}

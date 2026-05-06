@@ -100,6 +100,35 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 16 (Feb 2026) — Website → BM App Lead Auto-Sync (LIVE ✅)
+**Goal**: Public website lead submissions auto-flow into the CRM, deduplicated and tagged.
+
+**Backend (Supabase Project B — BM App)**:
+- Schema migration `/app/supabase_schema_v11.sql` applied: adds nullable `tag` text column + partial index on `leads`
+- Edge Function `sync-website-lead` deployed via Supabase Dashboard Editor (`/app/supabase/functions/sync-website-lead/index.ts`)
+- Function logic: validates shared-secret header, parses budget bands & property types, dedupes by phone, marks repeat enquiries as `priority=hot`, populates reminder_note with email/budget/page metadata
+- Secret `WEBSITE_SYNC_SECRET` configured in Edge Function secrets
+
+**External wiring (Supabase Project A — Website)**:
+- Database Webhook on `leads` table → INSERT event → POSTs to BM Function URL with `x-sync-secret` header
+- Tested live: fresh submissions tag `Website Direct Enquiry`, repeats tag `Website · Repeat`
+
+**Frontend UI highlights**:
+- `LeadTableView.jsx` — new `TagBadge` component renders orange "WEBSITE" / red "WEBSITE · REPEAT" chip under lead name
+- `LeadDetailsSheet.jsx` — same chip in detail drawer header
+- `LeadFilters.jsx` — new "Tag" filter dropdown with All / Website (Direct) / Website · Repeat / Any Website Lead / No Tag
+- `LeadsPage.jsx` — wired `tagFilter` state + filter logic + clear-filters integration
+- All chips render conditionally on `lead.tag` so codebase remains safe even if v11.sql is rolled back
+
+**Files created/changed:**
+- `/app/supabase_schema_v11.sql` (new)
+- `/app/supabase/functions/sync-website-lead/index.ts` (new)
+- `/app/WEBSITE_SYNC_DEPLOYMENT.md` (deployment playbook for user)
+- `/app/frontend/src/components/leads/LeadTableView.jsx` (TagBadge)
+- `/app/frontend/src/components/leads/LeadFilters.jsx` (Tag filter cell)
+- `/app/frontend/src/components/leads/LeadDetailsSheet.jsx` (header tag chip)
+- `/app/frontend/src/pages/LeadsPage.jsx` (filter state + logic)
+
 ## Iteration 15 (Feb 2026) — Bulk Operations on Leads (Excel/CSV Import + Export + Bulk Edit)
 **New dependency**: `papaparse@5.5.3` (yarn add) — battle-tested CSV parser, ~24kb gzip.
 

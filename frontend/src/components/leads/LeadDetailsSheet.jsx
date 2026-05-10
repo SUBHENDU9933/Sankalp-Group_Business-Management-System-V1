@@ -13,11 +13,12 @@ import {
 import { LEAD_PRIORITIES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity } from "@/services/leadActivityService";
 import { buildEstimatorUrl } from "@/services/estimateService";
+import AssigneeManager from "@/components/leads/AssigneeManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert }) {
+export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged }) {
   const { user } = useAuth();
   const [tab, setTab] = useState("overview");
   const [activities, setActivities] = useState([]);
@@ -160,7 +161,14 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
               <Field label="Requirement" value={lead.requirement} full />
             </Section>
             <Section title="Tracking">
-              <Field label="Assigned RM" value={lead.assigned_profile?.full_name || lead.assigned_profile?.email} />
+              <div className="col-span-2 mb-1 px-3 py-3 bg-stone-50 border border-stone-200">
+                <AssigneeManager
+                  lead={lead}
+                  profiles={profiles}
+                  onChanged={onAssigneesChanged}
+                  variant="inline"
+                />
+              </div>
               <Field label="Created By" value={lead.creator?.full_name || lead.creator?.email} />
               <Field icon={<CalendarClock className="w-3.5 h-3.5" />} label="Next Follow-up" value={
                 lead.next_followup_date ? (

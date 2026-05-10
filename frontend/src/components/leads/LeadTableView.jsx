@@ -9,6 +9,7 @@ import {
 import { LEAD_STATUSES, LEAD_PRIORITIES, formatDate, formatINR, isOverdue, isToday } from "@/utils/format";
 import { cn } from "@/lib/utils";
 import { buildEstimatorUrl } from "@/services/estimateService";
+import AssigneeManager, { AvatarStack } from "@/components/leads/AssigneeManager";
 
 function PriorityBadge({ priority }) {
   if (!priority) return <span className="text-xs text-stone-400">—</span>;
@@ -62,6 +63,7 @@ function TagBadge({ tag }) {
 export default function LeadTableView({
   leads, onOpen, onEdit, onStatusChange, onConvert, onRequestDelete, onCancelDelete,
   selected, onToggleSelect, onToggleAll,
+  profiles = [], onAssigneesChanged,
 }) {
   const allSelected = leads.length > 0 && leads.every((l) => selected?.has(l.id));
   const someSelected = leads.some((l) => selected?.has(l.id));
@@ -88,7 +90,7 @@ export default function LeadTableView({
             <Th className="text-right">Budget</Th>
             <Th>Priority</Th>
             <Th>Status</Th>
-            <Th>Assigned RM</Th>
+            <Th>Assigned RMs</Th>
             <Th>Next Follow-up</Th>
             <Th className="text-right">Actions</Th>
           </tr>
@@ -144,7 +146,23 @@ export default function LeadTableView({
                 <td className="px-4 py-3 align-top text-stone-700 text-right tabular-nums">{formatINR(l.budget)}</td>
                 <td className="px-4 py-3 align-top"><PriorityBadge priority={l.priority} /></td>
                 <td className="px-4 py-3 align-top"><StatusBadge status={l.status} /></td>
-                <td className="px-4 py-3 align-top text-stone-700">{l.assigned_profile?.full_name || l.assigned_profile?.email || <span className="text-stone-400">—</span>}</td>
+                <td className="px-4 py-3 align-top text-stone-700">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <AvatarStack
+                      assignees={l.assignees || []}
+                      primary={l.assigned_profile}
+                      size="sm"
+                      onClick={() => onOpen(l)}
+                      dataTestId={`lead-assignees-stack-${l.id}`}
+                    />
+                    <AssigneeManager
+                      lead={l}
+                      profiles={profiles}
+                      onChanged={onAssigneesChanged}
+                      variant="quick"
+                    />
+                  </div>
+                </td>
                 <td className="px-4 py-3 align-top">
                   {l.next_followup_date ? (
                     <span className={cn("text-stone-700 inline-flex items-center gap-1", overdue && "text-rose-600 font-medium", today && "text-orange-600 font-medium")}>

@@ -7,7 +7,7 @@ import {
 import { Plus, Upload, Download, ChevronDown, FileSpreadsheet } from "lucide-react";
 import {
   fetchLeads, updateLeadStatus, requestDelete, cancelDeleteRequest, convertLeadToCustomer,
-  bulkUpdateLeads,
+  bulkUpdateLeads, bulkAddCoAssignee,
 } from "@/services/leadService";
 import { fetchProfiles } from "@/services/profileService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -169,6 +169,19 @@ export default function LeadsPage() {
   const handleBulkStatus = (status) => runBulk(`status → ${status}`, { status });
   const handleBulkPriority = (priority) => runBulk(`priority → ${priority || "none"}`, { priority });
   const handleBulkAssign = (assigned_to) => runBulk(`assign`, { assigned_to });
+  const handleBulkAddCoAssignee = async (rmId) => {
+    const ids = selectedIds();
+    if (!ids.length || !rmId) return;
+    const rm = profiles.find((p) => p.id === rmId);
+    const label = rm ? (rm.full_name || rm.email) : "selected RM";
+    if (!window.confirm(`Add ${label} as Co-RM to ${ids.length} lead${ids.length !== 1 ? "s" : ""}?`)) return;
+    try {
+      await bulkAddCoAssignee(ids, rmId, user.id);
+      toast.success(`Added ${label} to ${ids.length} lead${ids.length !== 1 ? "s" : ""}`);
+      clearSelection();
+      load();
+    } catch (e) { toast.error(e.message); }
+  };
   const handleBulkDeleteRequest = () => runBulk("request delete", { delete_request: true, delete_requested_by: user.id });
   const handleExportSelected = () => {
     const rows = selectedLeads();
@@ -237,6 +250,7 @@ export default function LeadsPage() {
             onBulkStatus={handleBulkStatus}
             onBulkPriority={handleBulkPriority}
             onBulkAssign={handleBulkAssign}
+            onBulkAddCoAssignee={handleBulkAddCoAssignee}
             onBulkDeleteRequest={handleBulkDeleteRequest}
             onExportSelected={handleExportSelected}
           />
@@ -283,6 +297,8 @@ export default function LeadsPage() {
               selected={selected}
               onToggleSelect={toggleSelect}
               onToggleAll={(checked) => toggleAll(checked, filtered)}
+              profiles={profiles}
+              onAssigneesChanged={load}
             />
           ) : (
             <LeadPipelineView
@@ -308,6 +324,8 @@ export default function LeadsPage() {
         lead={activeLead}
         onEdit={openEdit}
         onConvert={handleConvert}
+        profiles={profiles}
+        onAssigneesChanged={load}
       />
     </div>
   );

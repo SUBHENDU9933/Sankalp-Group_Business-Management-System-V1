@@ -3,14 +3,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  X, ChevronDown, UserCog, Tag, Activity, Trash2, Download, CheckSquare,
+  X, ChevronDown, UserCog, UserPlus, Tag, Activity, Trash2, Download, CheckSquare,
 } from "lucide-react";
 import { LEAD_STATUSES, LEAD_PRIORITIES } from "@/utils/format";
 
 export default function LeadBulkActionBar({
   selectedCount, totalCount, onClear, onSelectAll,
   isAdmin, rmOptions = [],
-  onBulkStatus, onBulkPriority, onBulkAssign, onBulkDeleteRequest, onExportSelected,
+  onBulkStatus, onBulkPriority, onBulkAssign, onBulkAddCoAssignee, onBulkDeleteRequest, onExportSelected,
 }) {
   if (!selectedCount) return null;
   return (
@@ -71,7 +71,7 @@ export default function LeadBulkActionBar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="rounded-none h-8 text-white hover:bg-white/10 text-xs tracking-widest uppercase font-bold" data-testid="bulk-assign-btn">
-                <UserCog className="w-3.5 h-3.5 mr-1.5" />Assign<ChevronDown className="w-3 h-3 ml-1" />
+                <UserCog className="w-3.5 h-3.5 mr-1.5" />Assign Primary<ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="rounded-none border-stone-300 max-h-[300px] overflow-y-auto">
@@ -89,6 +89,24 @@ export default function LeadBulkActionBar({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        {/* Bulk Add Co-RM (any current assignee or admin) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="rounded-none h-8 text-white hover:bg-white/10 text-xs tracking-widest uppercase font-bold" data-testid="bulk-add-co-rm-btn">
+              <UserPlus className="w-3.5 h-3.5 mr-1.5" />Add Co-RM<ChevronDown className="w-3 h-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="rounded-none border-stone-300 max-h-[300px] overflow-y-auto">
+            {rmOptions.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-stone-500">No RMs available</div>
+            ) : rmOptions.map((p) => (
+              <DropdownMenuItem key={p.id} className="rounded-none cursor-pointer" onClick={() => onBulkAddCoAssignee?.(p.id)} data-testid={`bulk-add-co-rm-${p.id}`}>
+                {p.full_name || p.email} <span className="text-stone-500 ml-1">({p.role})</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button variant="ghost" size="sm" className="rounded-none h-8 text-white hover:bg-white/10 text-xs tracking-widest uppercase font-bold" onClick={onExportSelected} data-testid="bulk-export-btn">
           <Download className="w-3.5 h-3.5 mr-1.5" />Export

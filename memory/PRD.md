@@ -100,6 +100,44 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 17 (Feb 2026) — Multi-RM Assignment for Leads
+**Goal**: Allow multiple Relationship Managers to collaborate on a single lead. All assignees are EQUAL — admin or any current assignee can add/remove others.
+
+**Schema migration** `/app/supabase_schema_v12.sql` (must be applied):
+- New junction table `lead_assignees` (lead_id, user_id, assigned_by, added_at)
+- Helper RPC `is_lead_assignee(lead_id, user_id)` for RLS
+- Auto-backfill: every existing `leads.assigned_to` becomes a row in `lead_assignees`
+- Trigger `trg_sync_lead_primary_assignee` keeps junction in sync when `leads.assigned_to` is changed
+- Widened RLS: `leads_select` and `leads_update` now include `is_lead_assignee()` so co-RMs see and edit
+- `lead_activities_select` and `_insert` also extended to co-assignees so they can read/write the timeline
+
+**Service additions** (`leadService.js`):
+- `addLeadAssignee(leadId, userId, addedBy)`
+- `removeLeadAssignee(leadId, userId)`
+- `bulkAddCoAssignee(leadIds, userId, addedBy)` — onConflict ignore-duplicates upsert
+- `fetchLeads()` now joins `lead_assignees` (with profile FK) — falls back gracefully if v12 not yet applied
+
+**New component** `/app/frontend/src/components/leads/AssigneeManager.jsx`:
+- `<AssigneeAvatar>` — coloured initial bubble (palette hashed on user id)
+- `<AvatarStack>` — overlapping avatars with overflow chip (`+N`)
+- `<AssigneeManager>` two variants: `inline` (drawer panel) + `quick` (popover off Users icon)
+- Permission gate: admin OR creator OR any current assignee can manage
+
+**UI integration**:
+- `LeadTableView` — "Assigned RM" column → "Assigned RMs" with avatar stack + Users-icon popover (+RM picker)
+- `LeadDetailsSheet` — inline `<AssigneeManager>` panel inside Tracking section (chips with X to remove + "Add RM" picker)
+- `LeadBulkActionBar` — "Assign Primary" (admin only, sets `assigned_to`) + new "Add Co-RM" (admin or assignees, adds to junction without changing primary)
+- `LeadsPage` — new `bulkAddCoAssignee` handler
+
+**Files created/changed:**
+- `/app/supabase_schema_v12.sql` (new)
+- `/app/frontend/src/services/leadService.js` (multi-RM functions)
+- `/app/frontend/src/components/leads/AssigneeManager.jsx` (new)
+- `/app/frontend/src/components/leads/LeadTableView.jsx` (avatar stack + quick picker)
+- `/app/frontend/src/components/leads/LeadDetailsSheet.jsx` (inline panel)
+- `/app/frontend/src/components/leads/LeadBulkActionBar.jsx` (Add Co-RM button)
+- `/app/frontend/src/pages/LeadsPage.jsx` (bulk handler + props wiring)
+
 ## Iteration 16 (Feb 2026) — Website → BM App Lead Auto-Sync (LIVE ✅)
 **Goal**: Public website lead submissions auto-flow into the CRM, deduplicated and tagged.
 

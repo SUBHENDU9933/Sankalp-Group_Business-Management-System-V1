@@ -4,13 +4,54 @@ import { pushToAllAdmins } from "@/services/notificationService";
 export const fetchLeads = async (filters = {}) => {
   let q = supabase
     .from("leads")
-    .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
+    .select(
+      "*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email), assignees:lead_assignees(user_id, added_at, profile:profiles!lead_assignees_user_id_fkey(id,full_name,email))"
+    )
     .order("created_at", { ascending: false });
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.includeDeleteRequested === false) q = q.eq("delete_request", false);
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) {
+    // Graceful degrade if v12 not yet applied — retry without assignees
+    if (/lead_assignees/i.test(error.message)) {
+      const fallback = await supabase
+        .from("leads")
+        .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
+        .order("created_at", { ascending: false });
+      if (fallback.error) throw fallback.error;
+      return (fallback.data || []).map((l) => ({ ...l, assignees: [] }));
+    }
+    throw error;
+  }
   return data || [];
+};
+
+// ---------- Multi-RM Assignment (v12+) ----------------------------------
+export const addLeadAssignee = async (leadId, userId, addedBy) => {
+  const { error } = await supabase
+    .from("lead_assignees")
+    .insert([{ lead_id: leadId, user_id: userId, assigned_by: addedBy }]);
+  if (error && !/duplicate key/i.test(error.message)) throw error;
+};
+
+export const removeLeadAssignee = async (leadId, userId) => {
+  const { error } = await supabase
+    .from("lead_assignees")
+    .delete()
+    .eq("lead_id", leadId)
+    .eq("user_id", userId);
+  if (error) throw error;
+};
+
+export const bulkAddCoAssignee = async (leadIds, userId, addedBy) => {
+  if (!leadIds?.length || !userId) return 0;
+  const rows = leadIds.map((lead_id) => ({ lead_id, user_id: userId, assigned_by: addedBy }));
+  // Insert with upsert-like semantics: ignore conflicts
+  const { error } = await supabase
+    .from("lead_assignees")
+    .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
+  return rows.length;
 };
 
 export const createLead = async (payload, userId) => {

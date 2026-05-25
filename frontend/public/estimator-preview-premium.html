@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Estimate Preview — Premium Brand (Option A)</title>
+
+<!-- Preview-only fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+  :root {
+    --navy:        #0c1c3e;
+    --navy-soft:   #1a2f5a;
+    --cream:       #fdf6e3;   /* warm body background */
+    --cream-2:     #f8eecf;   /* alt table row */
+    --cream-3:     #fcefc8;   /* qty highlight */
+    --paper:       #fffdf6;
+    --gold:        #d4a017;
+    --gold-soft:   rgba(212,160,23,0.16);
+    --gold-deep:   #a87d0a;
+    --terra:       #c97a4a;
+    --blush:       #f7e3d8;   /* premium tier tint */
+    --mint:        #e6f1ea;   /* ultra tier tint */
+    --ink:         #2a2520;
+    --ink-soft:    #6b6357;
+    --rule:        #e6d9b5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    padding: 36px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(ellipse at top right, rgba(212,160,23,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse at bottom left, rgba(201,122,74,0.06) 0%, transparent 55%);
+  }
+
+  /* ===== Preview banner ===== */
+  .preview-strip {
+    max-width: 1100px;
+    margin: 0 auto 22px;
+    background: var(--navy);
+    color: var(--cream);
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    font-size: 12px; letter-spacing: 0.05em;
+  }
+  .preview-strip i { color: var(--gold); }
+  .preview-strip strong { color: #fff; font-weight: 700; }
+
+  /* ===== Sheet ===== */
+  .sheet {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-top: 6px solid var(--gold);
+    box-shadow:
+      0 1px 0 var(--rule),
+      0 30px 60px -20px rgba(12,28,62,0.18),
+      0 12px 30px -15px rgba(12,28,62,0.12);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Embossed corner monogram */
+  .sheet::before {
+    content: ""; position: absolute; top: -80px; right: -80px;
+    width: 240px; height: 240px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(212,160,23,0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .sheet::after {
+    content: ""; position: absolute; bottom: -100px; left: -100px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,122,74,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ===== Header ===== */
+  .head {
+    padding: 36px 44px 28px;
+    display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px;
+    align-items: end;
+    border-bottom: 1px solid var(--rule);
+    position: relative; z-index: 1;
+  }
+  .brand-block { display: flex; gap: 16px; align-items: center; }
+  .logo-mark {
+    width: 78px; height: 78px;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+    color: var(--gold);
+    display: grid; place-items: center;
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 700;
+    box-shadow: 0 8px 24px -8px rgba(12,28,62,0.45);
+  }
+  .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 700;
+    color: var(--navy); letter-spacing: -0.01em;
+    line-height: 1.05;
+  }
+  .brand-tag-en {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold-deep); font-weight: 600; margin-top: 6px;
+  }
+  .brand-tag-bn {
+    font-size: 11px; color: var(--ink-soft); margin-top: 3px; font-style: italic;
+  }
+
+  .contact-block { text-align: right; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+  .contact-block i { color: var(--gold); width: 14px; margin-right: 4px; }
+  .contact-block strong { color: var(--ink); font-weight: 600; }
+
+  /* ===== Document Title ===== */
+  .doc-title-row {
+    padding: 26px 44px 8px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+    position: relative; z-index: 1;
+  }
+  .doc-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 700;
+    color: var(--navy); letter-spacing: -0.02em;
+  }
+  .doc-title em {
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 500;
+  }
+  .doc-sub {
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--ink-soft); font-weight: 600;
+  }
+
+  /* ===== Info Cards ===== */
+  .cards {
+    padding: 16px 44px 8px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+    position: relative; z-index: 1;
+  }
+  .card {
+    background: var(--cream);
+    border: 1px solid var(--rule);
+    padding: 22px 22px;
+    position: relative;
+  }
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: linear-gradient(180deg, var(--gold), var(--terra));
+  }
+  .card-title {
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--gold-deep); font-weight: 700; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title i { font-size: 12px; }
+  .field-row {
+    display: grid; grid-template-columns: 110px 1fr; gap: 8px;
+    padding: 7px 0;
+    font-size: 13.5px;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { color: var(--ink-soft); font-weight: 500; }
+  .field-value { color: var(--ink); font-weight: 600; }
+  .field-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* ===== Items Table ===== */
+  .table-wrap {
+    padding: 24px 44px 12px;
+    position: relative; z-index: 1;
+  }
+  .table-label {
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--gold-deep); font-weight: 700; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .table-label::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+  }
+
+  table.items {
+    width: 100%;
+    border-collapse: separate; border-spacing: 0;
+    font-size: 12.5px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+  }
+  table.items thead tr.main { background: var(--navy); color: var(--cream); }
+  table.items thead tr.main th {
+    padding: 14px 10px;
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    font-weight: 700;
+    border-right: 1px solid rgba(212,160,23,0.25);
+    text-align: center;
+    position: relative;
+  }
+  table.items thead tr.main th:first-child { border-top-left-radius: 0; }
+  table.items thead tr.main th i { margin-right: 6px; color: var(--gold); }
+  table.items thead tr.main th .tier-std    { color: var(--gold); }
+  table.items thead tr.main th .tier-prem   { color: #f4b88b; }
+  table.items thead tr.main th .tier-ultra  { color: #b8e0c8; }
+  table.items thead tr.sub  { background: var(--navy-soft); color: var(--cream); }
+  table.items thead tr.sub th {
+    padding: 7px 6px; font-size: 10px; letter-spacing: 0.15em; font-weight: 600;
+    border-right: 1px solid rgba(212,160,23,0.20);
+  }
+
+  table.items tbody td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    vertical-align: middle;
+    text-align: center;
+    color: var(--ink);
+  }
+  table.items tbody tr:nth-child(even) td { background: var(--cream-2); }
+  table.items tbody tr:nth-child(odd)  td { background: var(--paper); }
+  table.items tbody tr { transition: transform .15s ease, box-shadow .15s ease; position: relative; }
+  table.items tbody tr:hover td { background: var(--cream-3) !important; }
+  table.items tbody tr:hover { box-shadow: inset 4px 0 0 0 var(--gold); }
+
+  /* Cell themes */
+  .col-sl       { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold-deep); font-weight: 700; width: 44px; }
+  .col-room     { text-align: left !important; font-weight: 600; color: var(--navy); width: 130px; }
+  .col-room small { display: block; font-size: 10px; color: var(--terra); font-weight: 600; letter-spacing: 0.1em; margin-top: 2px; text-transform: uppercase; }
+  .col-desc     { text-align: left !important; width: 230px; }
+  .col-desc .item-name { color: var(--navy); font-weight: 600; }
+  .col-desc .item-sub  { color: var(--ink-soft); font-size: 11px; margin-top: 3px; font-style: italic; }
+  .col-meas     { width: 130px; }
+  .col-meas .unit-pill {
+    display: inline-block; background: var(--gold-soft); color: var(--gold-deep);
+    font-size: 9px; letter-spacing: 0.12em; padding: 2px 8px; border-radius: 99px; font-weight: 700;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .col-meas .dims { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); }
+  .col-meas .dims b { color: var(--navy); }
+  .col-qty {
+    width: 70px;
+    background: var(--cream-3) !important;
+    color: var(--terra) !important;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px;
+  }
+
+  /* Tier-specific column tints */
+  .tier-std-cell    { background: rgba(253,246,227,0.6) !important; }
+  .tier-prem-cell   { background: rgba(247,227,216,0.5) !important; }
+  .tier-ultra-cell  { background: rgba(230,241,234,0.55) !important; }
+  table.items tbody tr:nth-child(even) .tier-std-cell    { background: rgba(248,238,207,0.85) !important; }
+  table.items tbody tr:nth-child(even) .tier-prem-cell   { background: rgba(247,227,216,0.8) !important; }
+  table.items tbody tr:nth-child(even) .tier-ultra-cell  { background: rgba(230,241,234,0.8) !important; }
+
+  .rate-val  { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  .total-val { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 700; color: var(--navy); }
+
+  table.items tbody tr:last-child td { border-bottom: none; }
+
+  /* ===== Totals Strip ===== */
+  .totals-strip {
+    margin: 32px 44px 0;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+    color: var(--cream);
+    padding: 28px 30px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-top: 4px solid var(--gold);
+    position: relative; z-index: 1;
+  }
+  .totals-strip .t-cell {
+    text-align: center; padding: 6px 14px;
+    border-right: 1px dashed rgba(212,160,23,0.35);
+  }
+  .totals-strip .t-cell:last-child { border-right: none; }
+  .t-icon { font-size: 20px; color: var(--gold); margin-bottom: 8px; }
+  .t-lbl {
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(253,246,227,0.65); font-weight: 700; margin-bottom: 6px;
+  }
+  .t-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px; font-weight: 700;
+    color: var(--gold);
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 0 rgba(212,160,23,0.25);
+  }
+  .t-val .rupee { font-size: 24px; margin-right: 4px; color: rgba(212,160,23,0.7); }
+  .t-tier-std   .t-val { color: var(--gold); }
+  .t-tier-prem  .t-val { color: #f4b88b; }
+  .t-tier-ultra .t-val { color: #b8e0c8; }
+
+  /* ===== Two-column footer ===== */
+  .bottom {
+    margin: 36px 44px 0;
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px;
+    position: relative; z-index: 1;
+  }
+  .panel { background: var(--cream); border: 1px solid var(--rule); padding: 22px; position: relative; }
+  .panel::before {
+    content: ""; position: absolute; left: 0; top: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--terra) 100%);
+  }
+  .panel h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; color: var(--navy); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel h4 i { color: var(--gold); }
+  .panel ul { list-style: none; }
+  .panel li { padding: 8px 0; border-bottom: 1px dotted var(--rule); font-size: 12.5px; display: flex; gap: 10px; }
+  .panel li:last-child { border-bottom: none; }
+  .panel li::before { content: "◆"; color: var(--gold); font-size: 10px; }
+  .panel li strong { color: var(--navy); font-weight: 600; }
+
+  /* Cost calc */
+  .calc-panel { background: linear-gradient(180deg, var(--cream) 0%, var(--paper) 100%); border: 1px solid var(--rule); padding: 22px; }
+  .calc-panel h4 {
+    font-family: 'Playfair Display', serif; font-size: 16px; color: var(--navy); margin-bottom: 16px;
+    border-bottom: 1px solid var(--rule); padding-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .calc-panel h4 i { color: var(--gold); }
+  .calc-row {
+    display: flex; justify-content: space-between; padding: 7px 0;
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .calc-row b { color: var(--ink); font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .calc-row.discount b { color: var(--terra); }
+  .calc-row.gst b { color: var(--ink-soft); }
+  .calc-grand {
+    margin-top: 12px; padding: 16px 18px;
+    background: var(--navy); color: var(--cream);
+    border: 1px solid var(--navy-soft);
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative;
+  }
+  .calc-grand::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--gold);
+  }
+  .calc-grand .g-lbl {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(253,246,227,0.7); font-weight: 700;
+  }
+  .calc-grand .g-val {
+    font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: var(--gold);
+  }
+  .calc-words {
+    margin-top: 12px; padding: 12px 14px;
+    background: var(--cream); border: 1px solid var(--rule);
+    font-size: 12px; color: var(--ink-soft); font-style: italic;
+  }
+  .calc-words b { color: var(--navy); font-style: normal; font-weight: 700; }
+
+  /* ===== Authorisation ===== */
+  .auth {
+    margin: 36px 44px 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+    position: relative; z-index: 1;
+  }
+  .auth .a-card {
+    background: var(--paper); border: 1px solid var(--rule); padding: 22px;
+    text-align: center;
+  }
+  .auth .a-lbl {
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--gold-deep); font-weight: 700; margin-bottom: 14px;
+  }
+  .signature-line {
+    margin: 30px 18px 8px;
+    border-top: 1.5px dashed var(--ink-soft);
+  }
+  .sig-name {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 18px; color: var(--navy);
+  }
+  .sig-desig {
+    font-size: 11px; color: var(--ink-soft); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px;
+  }
+
+  /* ===== Terms ===== */
+  .terms {
+    margin: 36px 44px 0;
+    background: var(--cream); border: 1px solid var(--rule); padding: 26px;
+    position: relative; z-index: 1;
+  }
+  .terms h4 {
+    font-family: 'Playfair Display', serif; font-size: 18px; color: var(--navy);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .terms h4 i { color: var(--gold); }
+  .terms ol { padding-left: 22px; font-size: 12.5px; color: var(--ink); line-height: 1.7; }
+  .terms ol li { padding: 4px 0; }
+  .terms ol li::marker { color: var(--gold-deep); font-weight: 700; }
+
+  /* ===== Footer ===== */
+  .footer-bar {
+    margin-top: 40px;
+    background: var(--navy);
+    color: var(--cream);
+    padding: 22px 44px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    position: relative;
+  }
+  .footer-bar::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--terra) 50%, var(--gold) 100%);
+  }
+  .footer-bar .f-lbl {
+    font-family: 'Playfair Display', serif; font-style: italic; font-size: 16px; color: var(--gold);
+  }
+  .footer-bar .f-meta { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(253,246,227,0.7); }
+
+  /* ===== Hover/animation polish ===== */
+  .card, .panel, .calc-panel, .a-card, .terms { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+  .card:hover, .panel:hover, .calc-panel:hover, .a-card:hover, .terms:hover {
+    box-shadow: 0 8px 20px -10px rgba(12,28,62,0.18);
+  }
+
+  @media (max-width: 820px) {
+    .head, .cards, .bottom, .auth { grid-template-columns: 1fr; padding-left: 22px; padding-right: 22px; }
+    .totals-strip { margin: 28px 22px 0; grid-template-columns: 1fr; gap: 14px; }
+    .totals-strip .t-cell { border-right: none; border-bottom: 1px dashed rgba(212,160,23,0.35); padding-bottom: 14px; }
+    .totals-strip .t-cell:last-child { border-bottom: none; }
+    .table-wrap, .terms, .footer-bar { padding-left: 22px; padding-right: 22px; }
+    .doc-title-row { padding-left: 22px; padding-right: 22px; }
+    .doc-title { font-size: 28px; }
+    table.items thead { display: none; }
+    table.items tbody tr { display: block; margin-bottom: 14px; border: 1px solid var(--rule); }
+    table.items tbody td { display: block; text-align: left !important; border-right: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-strip">
+  <i class="fas fa-eye"></i>
+  <strong>DESIGN PREVIEW — Option A · Premium Brand</strong>
+  <span>Sample data shown · No DB or calculations · Compare with your current /estimator.html</span>
+</div>
+
+<section class="sheet">
+
+  <!-- HEADER -->
+  <header class="head">
+    <div class="brand-block">
+      <div class="logo-mark">S</div>
+      <div>
+        <div class="brand-name">Sankalp Interior<br/>Solution</div>
+        <div class="brand-tag-en">— Crafted Living Spaces —</div>
+        <div class="brand-tag-bn">"ঘর নয়, স্বপ্ন সাজাই আমরা!"</div>
+      </div>
+    </div>
+    <div class="contact-block">
+      <div><strong>Sankalp Group · Business Solutions</strong></div>
+      <div><i class="fas fa-map-marker-alt"></i>GB, Oishi Tower-II, Rabindra Pally, Jyangra Baguiati, VIP Rd, Kolkata 700059</div>
+      <div><i class="fas fa-phone-alt"></i>+91 9748297035 &nbsp;·&nbsp; <i class="fas fa-envelope"></i>info.sankalpgrp@gmail.com</div>
+      <div><i class="fas fa-globe"></i>www.sankalpdesign.com</div>
+    </div>
+  </header>
+
+  <!-- TITLE -->
+  <div class="doc-title-row">
+    <div>
+      <div class="doc-sub">Document of Estimate</div>
+      <div class="doc-title">Interior <em>Estimate</em></div>
+    </div>
+    <div class="doc-sub">Valid for 30 days · Confidential</div>
+  </div>
+
+  <!-- INFO CARDS -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-file-invoice"></i>Estimate Details</div>
+      <div class="field-row"><div class="field-label">Estimate No.</div><div class="field-value mono">2026-INT-EST-05-SL00162</div></div>
+      <div class="field-row"><div class="field-label">Date &amp; Time</div><div class="field-value">25 May 2026 · 03:05 pm</div></div>
+      <div class="field-row"><div class="field-label">Validity</div><div class="field-value">30 Days</div></div>
+      <div class="field-row"><div class="field-label">Field Visit</div><div class="field-value">No</div></div>
+      <div class="field-row"><div class="field-label">Created By</div><div class="field-value">Subhendu Roy · Founder</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fas fa-user-tie"></i>Presented To</div>
+      <div class="field-row"><div class="field-label">Name</div><div class="field-value">A. Alam</div></div>
+      <div class="field-row"><div class="field-label">Phone</div><div class="field-value mono">+91 97352 74273</div></div>
+      <div class="field-row"><div class="field-label">Email</div><div class="field-value">—</div></div>
+      <div class="field-row"><div class="field-label">Project</div><div class="field-value">3 BHK · Full Interior</div></div>
+      <div class="field-row"><div class="field-label">Budget</div><div class="field-value mono">₹ 20,00,000</div></div>
+      <div class="field-row"><div class="field-label">Address</div><div class="field-value">Malda, West Bengal</div></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div class="table-label"><i class="fas fa-list-ol"></i>Scope &amp; Pricing</div>
+    <table class="items">
+      <thead>
+        <tr class="main">
+          <th rowspan="2">SL</th>
+          <th rowspan="2">Room</th>
+          <th rowspan="2">Item Description</th>
+          <th rowspan="2">Measurement / Qty</th>
+          <th rowspan="2">Qty / Area</th>
+          <th colspan="2"><i class="fas fa-star tier-std"></i>Standard</th>
+          <th colspan="2"><i class="fas fa-crown tier-prem"></i>Premium</th>
+          <th colspan="2"><i class="fas fa-gem tier-ultra"></i>Ultra</th>
+        </tr>
+        <tr class="sub">
+          <th class="tier-std-cell">Rate</th>
+          <th class="tier-std-cell">Total</th>
+          <th class="tier-prem-cell">Rate</th>
+          <th class="tier-prem-cell">Total</th>
+          <th class="tier-ultra-cell">Rate</th>
+          <th class="tier-ultra-cell">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-sl">1</td>
+          <td class="col-room">Master Bedroom<small>Bedroom Suite</small></td>
+          <td class="col-desc">
+            <div class="item-name">Bed with Hydraulic Storage</div>
+            <div class="item-sub">Upto 42" headboard · Veneer finish</div>
+          </td>
+          <td class="col-meas"><span class="unit-pill">Sq.Ft · Dim</span><div class="dims"><b>6</b> × <b>7</b></div></td>
+          <td class="col-qty">42</td>
+          <td class="tier-std-cell"><span class="rate-val">1,480</span></td>
+          <td class="tier-std-cell"><span class="total-val">₹ 62,160</span></td>
+          <td class="tier-prem-cell"><span class="rate-val">1,680</span></td>
+          <td class="tier-prem-cell"><span class="total-val">₹ 70,560</span></td>
+          <td class="tier-ultra-cell"><span class="rate-val">1,890</span></td>
+          <td class="tier-ultra-cell"><span class="total-val">₹ 79,380</span></td>
+        </tr>
+        <tr>
+          <td class="col-sl">2</td>
+          <td class="col-room">Master Bedroom<small>Bedroom Suite</small></td>
+          <td class="col-desc">
+            <div class="item-name">Dressing Table</div>
+            <div class="item-sub">Mirror &amp; drawer unit · soft-close hinges</div>
+          </td>
+          <td class="col-meas"><span class="unit-pill">Sq.Ft · Dim</span><div class="dims"><b>2</b> × <b>6</b></div></td>
+          <td class="col-qty">12</td>
+          <td class="tier-std-cell"><span class="rate-val">1,465</span></td>
+          <td class="tier-std-cell"><span class="total-val">₹ 17,580</span></td>
+          <td class="tier-prem-cell"><span class="rate-val">1,670</span></td>
+          <td class="tier-prem-cell"><span class="total-val">₹ 20,040</span></td>
+          <td class="tier-ultra-cell"><span class="rate-val">1,860</span></td>
+          <td class="tier-ultra-cell"><span class="total-val">₹ 22,320</span></td>
+        </tr>
+        <tr>
+          <td class="col-sl">3</td>
+          <td class="col-room">Master Bedroom<small>Bedroom Suite</small></td>
+          <td class="col-desc">
+            <div class="item-name">Side Table</div>
+            <div class="item-sub">Beside bed storage · matching finish</div>
+          </td>
+          <td class="col-meas"><span class="unit-pill">Sq.Ft · Dim</span><div class="dims"><b>1.5</b> × <b>2</b></div></td>
+          <td class="col-qty">3</td>
+          <td class="tier-std-cell"><span class="rate-val">1,480</span></td>
+          <td class="tier-std-cell"><span class="total-val">₹ 4,440</span></td>
+          <td class="tier-prem-cell"><span class="rate-val">1,695</span></td>
+          <td class="tier-prem-cell"><span class="total-val">₹ 5,085</span></td>
+          <td class="tier-ultra-cell"><span class="rate-val">1,890</span></td>
+          <td class="tier-ultra-cell"><span class="total-val">₹ 5,670</span></td>
+        </tr>
+        <tr>
+          <td class="col-sl">4</td>
+          <td class="col-room">Kitchen<small>Cooking Area</small></td>
+          <td class="col-desc">
+            <div class="item-name">Modular Kitchen</div>
+            <div class="item-sub">L-shape · shutter + handle hardware</div>
+          </td>
+          <td class="col-meas"><span class="unit-pill">Sq.Ft · Dim</span><div class="dims"><b>8</b> × <b>10</b></div></td>
+          <td class="col-qty">80</td>
+          <td class="tier-std-cell"><span class="rate-val">1,200</span></td>
+          <td class="tier-std-cell"><span class="total-val">₹ 96,000</span></td>
+          <td class="tier-prem-cell"><span class="rate-val">1,500</span></td>
+          <td class="tier-prem-cell"><span class="total-val">₹ 1,20,000</span></td>
+          <td class="tier-ultra-cell"><span class="rate-val">1,800</span></td>
+          <td class="tier-ultra-cell"><span class="total-val">₹ 1,44,000</span></td>
+        </tr>
+        <tr>
+          <td class="col-sl">5</td>
+          <td class="col-room">Living Room<small>Common Area</small></td>
+          <td class="col-desc">
+            <div class="item-name">TV Unit + Wall Paneling</div>
+            <div class="item-sub">Floating shelf · LED accent groove</div>
+          </td>
+          <td class="col-meas"><span class="unit-pill">Sq.Ft · Dim</span><div class="dims"><b>10</b> × <b>8</b></div></td>
+          <td class="col-qty">80</td>
+          <td class="tier-std-cell"><span class="rate-val">1,350</span></td>
+          <td class="tier-std-cell"><span class="total-val">₹ 1,08,000</span></td>
+          <td class="tier-prem-cell"><span class="rate-val">1,550</span></td>
+          <td class="tier-prem-cell"><span class="total-val">₹ 1,24,000</span></td>
+          <td class="tier-ultra-cell"><span class="rate-val">1,750</span></td>
+          <td class="tier-ultra-cell"><span class="total-val">₹ 1,40,000</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TOTALS -->
+  <div class="totals-strip">
+    <div class="t-cell t-tier-std">
+      <div class="t-icon"><i class="fas fa-star"></i></div>
+      <div class="t-lbl">Standard Total</div>
+      <div class="t-val"><span class="rupee">₹</span>2,88,180</div>
+    </div>
+    <div class="t-cell t-tier-prem">
+      <div class="t-icon"><i class="fas fa-crown"></i></div>
+      <div class="t-lbl">Premium Total</div>
+      <div class="t-val"><span class="rupee">₹</span>3,39,685</div>
+    </div>
+    <div class="t-cell t-tier-ultra">
+      <div class="t-icon"><i class="fas fa-gem"></i></div>
+      <div class="t-lbl">Ultra Total</div>
+      <div class="t-val"><span class="rupee">₹</span>3,91,370</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM PANELS -->
+  <div class="bottom">
+    <div class="panel">
+      <h4><i class="fas fa-layer-group"></i> Category / Material Guide</h4>
+      <ul>
+        <li><div><strong>Standard:</strong> Indian plywood (Century Sainik), laminate finish, regular hardware</div></li>
+        <li><div><strong>Premium:</strong> BWP marine ply (Century Architect), Merino laminate, soft-close hardware</div></li>
+        <li><div><strong>Ultra:</strong> Imported veneer / PU finish, Hettich/Hafele premium hardware, LED accents</div></li>
+      </ul>
+    </div>
+    <div class="calc-panel">
+      <h4><i class="fas fa-calculator"></i> Lowest-Costing Estimate</h4>
+      <div class="calc-row"><span>Sub-total (Standard)</span><b>₹ 2,88,180</b></div>
+      <div class="calc-row discount"><span>Festive Discount (−5%)</span><b>− ₹ 14,409</b></div>
+      <div class="calc-row"><span>After Discount</span><b>₹ 2,73,771</b></div>
+      <div class="calc-row gst"><span>GST (18%)</span><b>₹ 49,279</b></div>
+      <div class="calc-grand">
+        <span class="g-lbl">Grand Total</span>
+        <span class="g-val">₹ 3,23,050</span>
+      </div>
+      <div class="calc-words"><b>In words:</b> Three Lakh Twenty-Three Thousand &amp; Fifty Rupees Only</div>
+    </div>
+  </div>
+
+  <!-- AUTHORISATION -->
+  <div class="auth">
+    <div class="a-card">
+      <div class="a-lbl">Prepared By</div>
+      <div class="signature-line"></div>
+      <div class="sig-name">Subhendu Roy</div>
+      <div class="sig-desig">Founder · Sankalp Group</div>
+    </div>
+    <div class="a-card">
+      <div class="a-lbl">Accepted By Client</div>
+      <div class="signature-line"></div>
+      <div class="sig-name">Client Signature</div>
+      <div class="sig-desig">Date · Place</div>
+    </div>
+  </div>
+
+  <!-- TERMS -->
+  <div class="terms">
+    <h4><i class="fas fa-balance-scale"></i> Terms &amp; Conditions</h4>
+    <ol>
+      <li><b>Advance Payment:</b> 20–30% to be paid on signing this estimate to commence procurement.</li>
+      <li><b>Payment Schedule:</b> Balance payable in milestones — 40% on carcass, 25% on shutters, 10% on handover.</li>
+      <li><b>Scope:</b> Civil, electrical, plumbing &amp; ceiling are quoted separately upon site inspection.</li>
+      <li><b>Changes:</b> Any design / material change after acceptance will be priced through a written change-order.</li>
+      <li><b>Timeline:</b> Estimated production starts T+5 working days from advance receipt; site execution as per project plan.</li>
+      <li><b>Warranty:</b> 12-month workmanship + manufacturer warranty on hardware (per OEM terms).</li>
+    </ol>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div class="f-lbl"><i class="fas fa-quote-left" style="color:var(--gold-deep); margin-right:8px;"></i>Where dreams meet craftsmanship<i class="fas fa-quote-right" style="color:var(--gold-deep); margin-left:8px;"></i></div>
+    <div class="f-meta">Sankalp Group · Business Solutions · © 2026</div>
+  </div>
+
+</section>
+
+</body>
+</html>

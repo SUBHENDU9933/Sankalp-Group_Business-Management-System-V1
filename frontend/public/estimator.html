@@ -305,32 +305,56 @@
                 <div class="modal-title"><i class="fas fa-sliders-h"></i> System Presets Configuration</div>
                 <button onclick="closeSettings()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
             </div>
+
+            <!-- LOAD STATUS BANNER (Layer 1) -->
+            <div id="presetsStatusBanner" style="display:flex; align-items:center; gap:10px; padding:10px 14px; margin-bottom:12px; border-radius:6px; font-size:13px;">
+                <i id="presetsStatusIcon" class="fas fa-circle-notch fa-spin" style="color:#f59e0b;"></i>
+                <span id="presetsStatusText">Loading from cloud…</span>
+                <span style="flex:1;"></span>
+                <button id="restoreBackupBtn" type="button" onclick="openBackupBrowser()" style="display:none; background:#fff; border:1px solid #d1d5db; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px;">
+                    <i class="fas fa-history"></i> Restore from backup
+                </button>
+                <button type="button" onclick="downloadPresetsJSON()" style="background:#fff; border:1px solid #d1d5db; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px;">
+                    <i class="fas fa-cloud-download-alt"></i> Backup JSON
+                </button>
+            </div>
+
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
                 <div class="section-box">
-                    <div class="section-title">Manage Rooms</div>
+                    <div class="section-title">Manage Rooms (<span id="cntRooms">0</span>)</div>
                     <div id="roomSettingsList" class="rooms-grid"></div>
                     <button class="mod-btn-add" onclick="addRoomInput()">+ Add Room</button>
                 </div>
                 <div class="section-box">
-                    <div class="section-title">Manage Standard Terms</div>
+                    <div class="section-title">Manage Standard Terms (<span id="cntTerms">0</span>)</div>
                     <div id="noteSettingsList" class="list-grid"></div>
                     <button class="mod-btn-add" onclick="addNoteInput()">+ Add Term</button>
                 </div>
             </div>
             
             <div class="section-box">
-                <div class="section-title">Manage Special / Project Notes (Presets)</div>
+                <div class="section-title">Manage Special / Project Notes (Presets) (<span id="cntProjNotes">0</span>)</div>
                 <div id="projNoteSettingsList" class="list-grid"></div>
                 <button class="mod-btn-add" onclick="addProjNoteInput()">+ Add Project Note</button>
             </div>
 
             <div class="section-box">
-                <div class="section-title">Manage Material/Category Guide</div>
+                <div class="section-title">Manage Material/Category Guide (<span id="cntGuide">0</span>)</div>
                 <div id="guideSettingsList" class="list-grid"></div>
                 <button class="mod-btn-add" onclick="addGuideInput()">+ Add Material Guide Line</button>
             </div>
             <div class="section-box">
-                <div class="section-title">Manage Items & Rates</div>
+                <div class="section-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <span>Manage Items &amp; Rates (<span id="cntItems">0</span>)</span>
+                    <span style="flex:1;"></span>
+                    <button type="button" onclick="downloadItemsExcelTemplate()" style="background:#16a34a; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">
+                        <i class="fas fa-file-excel"></i> Download Excel
+                    </button>
+                    <label style="background:#0c1c3e; color:#fff; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="fas fa-file-upload"></i> Bulk Import Excel
+                        <input type="file" accept=".xlsx,.xls,.csv" onchange="handleItemsExcelImport(event)" style="display:none;">
+                    </label>
+                </div>
                 <div class="items-table-head">
                     <div>Item Name</div><div>Description</div><div>Unit Type</div><div>Std Rate</div><div>Prem Rate</div><div>Ultra Rate</div><div></div>
                 </div>
@@ -339,7 +363,7 @@
             </div>
             <div class="modal-actions">
                 <button class="btn btn-reset" onclick="closeSettings()">Cancel</button>
-                <button class="btn btn-print" onclick="savePresets()">Save & Apply Changes</button>
+                <button id="saveSettingsBtn" class="btn btn-print" onclick="savePresets()" disabled style="opacity:0.5; cursor:not-allowed;">Save &amp; Apply Changes</button>
             </div>
         </div>
     </div>
@@ -543,6 +567,7 @@
 
     <!-- ============== SANKALP DB INTEGRATION (added) ============== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -965,7 +990,46 @@
         let rowCount = 0;
 
         // --- INIT & PRESETS (DB-first; localStorage as offline fallback) ---
+        // ===== PRESETS LOAD/SAVE — Cloud-safe with auto-backup (v13+) =====
+        // Track the loaded snapshot so we can do a smart diff on save (only
+        // mark inactive the names that were REMOVED — never wipe the table).
+        window.SANKALP = window.SANKALP || {};
+        window.SANKALP.presetsLoaded = false;       // becomes true after first successful DB load
+        window.SANKALP.presetsLoadError = null;
+        window.SANKALP.dbSnapshot = null;           // { rooms:[name], items:[name], notes:[content], projectNotes:[content], guide:[content] }
+
+        function setPresetsStatus(state, msg) {
+            const banner = document.getElementById('presetsStatusBanner');
+            const icon = document.getElementById('presetsStatusIcon');
+            const text = document.getElementById('presetsStatusText');
+            const restoreBtn = document.getElementById('restoreBackupBtn');
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            if (!banner) return;
+            if (state === 'loading') {
+                banner.style.background = '#fef3c7'; banner.style.border = '1px solid #fcd34d';
+                icon.className = 'fas fa-circle-notch fa-spin'; icon.style.color = '#d97706';
+                text.textContent = msg || 'Loading from cloud…';
+                if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = 0.5; saveBtn.style.cursor = 'not-allowed'; }
+                if (restoreBtn) restoreBtn.style.display = 'none';
+            } else if (state === 'ok') {
+                banner.style.background = '#dcfce7'; banner.style.border = '1px solid #86efac';
+                icon.className = 'fas fa-check-circle'; icon.style.color = '#16a34a';
+                text.textContent = msg || 'Loaded from cloud';
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = 1; saveBtn.style.cursor = 'pointer'; }
+                if (restoreBtn) restoreBtn.style.display = 'inline-block';
+            } else if (state === 'error') {
+                banner.style.background = '#fee2e2'; banner.style.border = '1px solid #fca5a5';
+                icon.className = 'fas fa-exclamation-triangle'; icon.style.color = '#dc2626';
+                text.textContent = msg || 'Cloud unreachable — using local cache (save is disabled to prevent data loss)';
+                if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = 0.5; saveBtn.style.cursor = 'not-allowed'; }
+                if (restoreBtn) restoreBtn.style.display = 'inline-block';
+            }
+        }
+
         async function loadPresets() {
+            window.SANKALP.presetsLoaded = false;
+            window.SANKALP.presetsLoadError = null;
+            setPresetsStatus('loading');
             const sb = window.SANKALP && window.SANKALP.supabase;
             if (sb) {
                 try {
@@ -990,10 +1054,23 @@
                             guide: guides.data.map(g => g.content),
                         };
                         window.SANKALP.cachedPresets = appData;
+                        window.SANKALP.dbSnapshot = {
+                            rooms: appData.rooms.slice(),
+                            items: appData.items.map(i => i.name),
+                            notes: appData.notes.slice(),
+                            projectNotes: appData.projectNotes.slice(),
+                            guide: appData.guide.slice(),
+                        };
+                        window.SANKALP.presetsLoaded = true;
+                        setPresetsStatus('ok', `Loaded ✓  Rooms ${appData.rooms.length} · Items ${appData.items.length} · Terms ${appData.notes.length} · Notes ${appData.projectNotes.length} · Guides ${appData.guide.length}`);
                         refreshUI();
                         return;
                     }
-                } catch (e) { console.warn('DB presets failed, using local cache', e); }
+                    window.SANKALP.presetsLoadError = (rooms.error || items.error || terms.error || notes.error || guides.error)?.message || 'Empty response';
+                } catch (e) {
+                    window.SANKALP.presetsLoadError = e.message || String(e);
+                    console.warn('DB presets failed, using local cache', e);
+                }
             }
             // Fallback to localStorage / hardcoded defaults
             const saved = localStorage.getItem('sankalpEstimatorData_v14_MultiUnit');
@@ -1008,76 +1085,348 @@
                 appData.projectNotes = [...defaultProjectNotes];
                 appData.guide = [...defaultGuide];
             }
+            setPresetsStatus('error', window.SANKALP.presetsLoadError
+                ? `Cloud error: ${window.SANKALP.presetsLoadError} — save disabled to protect your data`
+                : 'Using local cache (no cloud snapshot found) — save disabled to protect your data');
             refreshUI();
         }
 
+        // ===== SMART SAVE (Layer 2 + 3 + 4) =====
         async function savePresets() {
-            appData.rooms = Array.from(document.querySelectorAll('.mod-room-inp')).map(i => i.value.trim()).filter(v => v);
-            appData.notes = Array.from(document.querySelectorAll('.mod-note-inp')).map(i => i.value.trim()).filter(v => v);
-            appData.projectNotes = Array.from(document.querySelectorAll('.mod-pnote-inp')).map(i => i.value.trim()).filter(v => v);
-            appData.guide = Array.from(document.querySelectorAll('.mod-guide-inp')).map(i => i.value.trim()).filter(v => v);
-            appData.items = Array.from(document.querySelectorAll('.item-setting-row')).map(row => {
+            // ---- Hard guard: only allow save if cloud loaded successfully ----
+            if (!window.SANKALP.presetsLoaded) {
+                alert('⚠ Cannot save right now — presets did not load from cloud.\n\nThis safety lock prevents accidental data wipe.\n\nClick "Restore from backup" or close & retry.');
+                return;
+            }
+
+            // ---- Snapshot current modal state ----
+            const onScreenRooms       = Array.from(document.querySelectorAll('.mod-room-inp')).map(i => i.value.trim()).filter(v => v);
+            const onScreenTerms       = Array.from(document.querySelectorAll('.mod-note-inp')).map(i => i.value.trim()).filter(v => v);
+            const onScreenProjNotes   = Array.from(document.querySelectorAll('.mod-pnote-inp')).map(i => i.value.trim()).filter(v => v);
+            const onScreenGuide       = Array.from(document.querySelectorAll('.mod-guide-inp')).map(i => i.value.trim()).filter(v => v);
+            const onScreenItems       = Array.from(document.querySelectorAll('.item-setting-row')).map(row => {
                 const inputs = row.querySelectorAll('input, select');
+                const name = inputs[0].value.trim();
                 return {
-                    name: inputs[0].value.trim(),
+                    name,
                     desc: inputs[1].value.trim(),
                     unitType: inputs[2].value,
-                    category: appData.items.find(x => x.name === inputs[0].value.trim())?.category || 'General',
+                    category: appData.items.find(x => x.name === name)?.category || 'General',
                     rates: { std: parseFloat(inputs[3].value)||0, prem: parseFloat(inputs[4].value)||0, ultra: parseFloat(inputs[5].value)||0 }
                 };
             }).filter(i => i.name);
 
+            // ---- Compute diff vs DB snapshot ----
+            const snap = window.SANKALP.dbSnapshot || { rooms:[], items:[], notes:[], projectNotes:[], guide:[] };
+            const removedRooms     = snap.rooms.filter(n => !onScreenRooms.includes(n));
+            const removedItems     = snap.items.filter(n => !onScreenItems.find(x => x.name === n));
+            const removedTerms     = snap.notes.filter(n => !onScreenTerms.includes(n));
+            const removedProjNotes = snap.projectNotes.filter(n => !onScreenProjNotes.includes(n));
+            const removedGuide     = snap.guide.filter(n => !onScreenGuide.includes(n));
+
+            const addedItems       = onScreenItems.filter(x => !snap.items.includes(x.name)).length;
+            const addedRooms       = onScreenRooms.filter(n => !snap.rooms.includes(n)).length;
+
+            // ---- SUSPICIOUS WIPE GUARD: refuse if user is about to delete >50% of any section ----
+            const wipeFlag =
+                (snap.items.length > 5 && removedItems.length > Math.ceil(snap.items.length * 0.5)) ||
+                (snap.rooms.length > 3 && removedRooms.length > Math.ceil(snap.rooms.length * 0.5));
+            if (wipeFlag) {
+                const confirmWipe = confirm(
+                    `🚨 LARGE DELETION DETECTED 🚨\n\n` +
+                    `You are about to remove:\n` +
+                    `  • ${removedItems.length} of ${snap.items.length} items\n` +
+                    `  • ${removedRooms.length} of ${snap.rooms.length} rooms\n\n` +
+                    `This usually means the modal didn't load fully before you opened it.\n\n` +
+                    `Type OK only if you really want to delete this much data.\n` +
+                    `Otherwise click Cancel and use "Restore from backup".`
+                );
+                if (!confirmWipe) return;
+            }
+
+            // ---- Pre-save confirmation dialog (Layer 3) ----
+            const summary =
+                `Save summary:\n\n` +
+                `  Rooms:        ${snap.rooms.length}  →  ${onScreenRooms.length}` + (removedRooms.length ? `  (−${removedRooms.length} removed, +${addedRooms} new)` : '') + `\n` +
+                `  Items:        ${snap.items.length}  →  ${onScreenItems.length}` + (removedItems.length ? `  (−${removedItems.length} removed, +${addedItems} new)` : '') + `\n` +
+                `  Terms:        ${snap.notes.length}  →  ${onScreenTerms.length}\n` +
+                `  Proj.Notes:   ${snap.projectNotes.length}  →  ${onScreenProjNotes.length}\n` +
+                `  Guides:       ${snap.guide.length}  →  ${onScreenGuide.length}\n\n` +
+                `A backup snapshot will be saved automatically. Continue?`;
+            if (!confirm(summary)) return;
+
+            // Commit to appData
+            appData.rooms = onScreenRooms;
+            appData.notes = onScreenTerms;
+            appData.projectNotes = onScreenProjNotes;
+            appData.guide = onScreenGuide;
+            appData.items = onScreenItems;
             localStorage.setItem('sankalpEstimatorData_v14_MultiUnit', JSON.stringify(appData));
 
-            // DB sync — admin only (RLS will reject for non-admin gracefully)
             const sb = window.SANKALP && window.SANKALP.supabase;
             let dbSynced = false;
+            const errs = [];
+
+            // ---- Auto-backup BEFORE any destructive write (Layer 4) ----
             if (sb) {
                 try {
-                    // Soft-delete-then-replace strategy for each table
-                    await Promise.all([
-                        sb.from('estimate_rooms').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
-                        sb.from('estimate_items').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
-                        sb.from('estimate_terms').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
-                        sb.from('estimate_notes').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
-                        sb.from('estimate_guides').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000'),
-                    ]);
-                    const errs = [];
-                    if (appData.rooms.length) {
+                    // Local rolling buffer (last 5 backups)
+                    const localKey = 'sankalp_presets_backups_v1';
+                    const buf = JSON.parse(localStorage.getItem(localKey) || '[]');
+                    buf.unshift({
+                        snapshot: snap,
+                        full_snapshot: { rooms: snap.rooms, items: appData.items, notes: snap.notes, projectNotes: snap.projectNotes, guide: snap.guide },
+                        created_at: new Date().toISOString(),
+                        reason: 'auto-before-save'
+                    });
+                    localStorage.setItem(localKey, JSON.stringify(buf.slice(0, 5)));
+
+                    // DB backup (admin only — RLS will reject for non-admin gracefully)
+                    await sb.from('estimate_presets_backups').insert({
+                        snapshot: snap,
+                        rooms_count:  snap.rooms.length,
+                        items_count:  snap.items.length,
+                        terms_count:  snap.notes.length,
+                        notes_count:  snap.projectNotes.length,
+                        guides_count: snap.guide.length,
+                        reason: 'auto-before-save'
+                    });
+                } catch (e) { console.warn('Backup snapshot failed (non-fatal):', e); }
+            }
+
+            // ---- Smart write to DB (only remove rows that were actually removed) ----
+            if (sb) {
+                try {
+                    // 1. ROOMS — upsert by name; soft-delete only removed names
+                    if (onScreenRooms.length) {
                         const { error } = await sb.from('estimate_rooms')
-                            .upsert(appData.rooms.map((name, idx) => ({ name, sort_order: idx, is_active: true })), { onConflict: 'name' });
-                        if (error) errs.push(error.message);
+                            .upsert(onScreenRooms.map((name, idx) => ({ name, sort_order: idx, is_active: true })), { onConflict: 'name' });
+                        if (error) errs.push('Rooms: ' + error.message);
                     }
-                    if (appData.items.length) {
-                        const payload = appData.items.map((i, idx) => ({
+                    if (removedRooms.length) {
+                        const { error } = await sb.from('estimate_rooms').update({ is_active: false }).in('name', removedRooms);
+                        if (error) errs.push('Rooms soft-delete: ' + error.message);
+                    }
+
+                    // 2. ITEMS — upsert by name; soft-delete only removed names
+                    if (onScreenItems.length) {
+                        const payload = onScreenItems.map((i, idx) => ({
                             name: i.name, description: i.desc || null, category: i.category || 'General',
-                            unit_type: i.unitType, rate_standard: i.rates.std, rate_premium: i.rates.prem, rate_ultra: i.rates.ultra,
+                            unit_type: i.unitType,
+                            rate_standard: i.rates.std, rate_premium: i.rates.prem, rate_ultra: i.rates.ultra,
                             sort_order: idx, is_active: true
                         }));
                         const { error } = await sb.from('estimate_items').upsert(payload, { onConflict: 'name' });
-                        if (error) errs.push(error.message);
+                        if (error) errs.push('Items: ' + error.message);
                     }
-                    if (appData.notes.length) {
-                        const { error } = await sb.from('estimate_terms')
-                            .insert(appData.notes.map((content, idx) => ({ content, sort_order: idx, is_active: true })));
-                        if (error) errs.push(error.message);
+                    if (removedItems.length) {
+                        const { error } = await sb.from('estimate_items').update({ is_active: false }).in('name', removedItems);
+                        if (error) errs.push('Items soft-delete: ' + error.message);
                     }
-                    if (appData.projectNotes.length) {
-                        const { error } = await sb.from('estimate_notes')
-                            .insert(appData.projectNotes.map((content, idx) => ({ content, sort_order: idx, is_active: true })));
-                        if (error) errs.push(error.message);
-                    }
-                    if (appData.guide.length) {
-                        const { error } = await sb.from('estimate_guides')
-                            .insert(appData.guide.map((content, idx) => ({ tier: 'standard', content, sort_order: idx, is_active: true })));
-                        if (error) errs.push(error.message);
-                    }
+
+                    // 3. TERMS / NOTES / GUIDES — no natural key, so refresh-by-content (safe because
+                    // the local buffer + DB backup row above means any mistake is recoverable).
+                    await syncContentTable(sb, 'estimate_terms',  onScreenTerms,     errs);
+                    await syncContentTable(sb, 'estimate_notes',  onScreenProjNotes, errs);
+                    await syncContentTable(sb, 'estimate_guides', onScreenGuide,     errs, 'standard');
+
                     dbSynced = errs.length === 0;
                     if (errs.length) console.warn('Preset DB sync errors:', errs);
-                } catch (e) { console.warn('DB preset sync failed', e); }
+
+                    // Refresh snapshot to reflect new ground truth
+                    window.SANKALP.dbSnapshot = {
+                        rooms: onScreenRooms.slice(),
+                        items: onScreenItems.map(i => i.name),
+                        notes: onScreenTerms.slice(),
+                        projectNotes: onScreenProjNotes.slice(),
+                        guide: onScreenGuide.slice(),
+                    };
+                } catch (e) {
+                    errs.push(e.message || String(e));
+                    console.warn('DB preset sync failed', e);
+                }
             }
-            refreshUI(); closeSettings();
-            alert(dbSynced ? 'Settings saved & synced to cloud!' : 'Settings saved locally. (Cloud sync requires admin role)');
+            refreshUI();
+            closeSettings();
+            if (dbSynced) {
+                alert(`✓ Saved & synced to cloud\n\nA backup was created automatically.`);
+            } else if (sb) {
+                alert(`⚠ Partial save\n\nLocal saved OK. Cloud errors:\n  • ${errs.join('\n  • ')}\n\nYour previous data is preserved in the latest backup.`);
+            } else {
+                alert('Settings saved locally. (Cloud sync requires admin role)');
+            }
+        }
+
+        // Content-based section refresh: inactivate items whose content disappeared, insert new ones,
+        // leave matching content as-is. Avoids the old "delete everything then re-insert" wipe.
+        async function syncContentTable(sb, table, onScreenContents, errsBucket, extraField) {
+            try {
+                const { data: existing, error: e1 } = await sb.from(table).select('id, content').eq('is_active', true);
+                if (e1) { errsBucket.push(`${table}: ${e1.message}`); return; }
+                const existingSet = new Set((existing || []).map(r => r.content));
+                const onScreenSet = new Set(onScreenContents);
+                const toInactivateIds = (existing || []).filter(r => !onScreenSet.has(r.content)).map(r => r.id);
+                const toInsert = onScreenContents.filter(c => !existingSet.has(c));
+                if (toInactivateIds.length) {
+                    const { error } = await sb.from(table).update({ is_active: false }).in('id', toInactivateIds);
+                    if (error) errsBucket.push(`${table} inactivate: ${error.message}`);
+                }
+                if (toInsert.length) {
+                    const rows = toInsert.map((content, idx) => {
+                        const r = { content, sort_order: idx, is_active: true };
+                        if (extraField) r.tier = extraField;
+                        return r;
+                    });
+                    const { error } = await sb.from(table).insert(rows);
+                    if (error) errsBucket.push(`${table} insert: ${error.message}`);
+                }
+            } catch (e) { errsBucket.push(`${table}: ${e.message || e}`); }
+        }
+
+        // ===== BACKUP / RESTORE (Layer 4) =====
+        function downloadPresetsJSON() {
+            const snap = {
+                rooms: appData.rooms || [],
+                items: appData.items || [],
+                notes: appData.notes || [],
+                projectNotes: appData.projectNotes || [],
+                guide: appData.guide || [],
+                exported_at: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `sankalp_presets_${new Date().toISOString().slice(0,10)}.json`; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function openBackupBrowser() {
+            const sb = window.SANKALP && window.SANKALP.supabase;
+            const localBuf = JSON.parse(localStorage.getItem('sankalp_presets_backups_v1') || '[]');
+            let dbBackups = [];
+            if (sb) {
+                try {
+                    const { data } = await sb.from('estimate_presets_backups')
+                        .select('id, snapshot, rooms_count, items_count, terms_count, notes_count, guides_count, created_at, reason')
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                    dbBackups = data || [];
+                } catch (_) { /* RLS / table missing */ }
+            }
+            const opts = [
+                ...dbBackups.map((b, idx) => ({
+                    label: `[Cloud] ${new Date(b.created_at).toLocaleString()} — ${b.items_count} items, ${b.rooms_count} rooms (${b.reason||''})`,
+                    snap: b.snapshot
+                })),
+                ...localBuf.map((b, idx) => ({
+                    label: `[Local] ${new Date(b.created_at).toLocaleString()} — ${b.snapshot.items?.length||0} items (${b.reason||''})`,
+                    snap: b.snapshot,
+                    full: b.full_snapshot
+                }))
+            ];
+            if (!opts.length) { alert('No backups available yet. A backup is created automatically every time you save.'); return; }
+            const choice = prompt(
+                'Available backups (newest first):\n\n' +
+                opts.map((o, i) => `${i+1}. ${o.label}`).join('\n') +
+                '\n\nEnter the number of the backup to restore (or Cancel):'
+            );
+            const idx = parseInt(choice, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= opts.length) return;
+            const pick = opts[idx];
+            if (!confirm('Restore this backup? It will REPLACE everything currently on screen (you can still cancel before clicking Save & Apply Changes).')) return;
+            const snap = pick.snap || {};
+            const full = pick.full;
+            appData.rooms = snap.rooms || [];
+            appData.notes = snap.notes || [];
+            appData.projectNotes = snap.projectNotes || [];
+            appData.guide = snap.guide || [];
+            // For items, snap only stored names (light backup). Full snapshot has rates/desc.
+            if (full && Array.isArray(full.items)) appData.items = full.items;
+            // Re-render modal
+            openSettings();
+            alert('Backup loaded into the form. Review carefully, then click "Save & Apply Changes" to commit.');
+        }
+
+        // ===== EXCEL BULK IMPORT / EXPORT (Layer 5) =====
+        function downloadItemsExcelTemplate() {
+            if (typeof XLSX === 'undefined') { alert('Excel library not loaded yet, please retry in a second.'); return; }
+            const rows = (appData.items || []).map(i => ({
+                name: i.name,
+                description: i.desc || '',
+                unit_type: i.unitType || 'sqft_dim',
+                category: i.category || 'General',
+                rate_standard: i.rates?.std || 0,
+                rate_premium:  i.rates?.prem || 0,
+                rate_ultra:    i.rates?.ultra || 0
+            }));
+            if (!rows.length) {
+                rows.push({ name: 'Modular Kitchen', description: 'Full kitchen with shutters', unit_type: 'sqft_dim', category: 'Kitchen', rate_standard: 1200, rate_premium: 1500, rate_ultra: 1800 });
+            }
+            const ws = XLSX.utils.json_to_sheet(rows, { header: ['name','description','unit_type','category','rate_standard','rate_premium','rate_ultra'] });
+            // Width hints
+            ws['!cols'] = [{wch:30},{wch:35},{wch:14},{wch:18},{wch:14},{wch:14},{wch:14}];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Items');
+            XLSX.writeFile(wb, `sankalp_items_template_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function handleItemsExcelImport(ev) {
+            const file = ev.target?.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                    if (!rows.length) { alert('No rows found in the file.'); return; }
+                    const VALID_UNITS = new Set(['sqft_dim','sqft_total','nos','rft','lumsum']);
+                    const cleaned = [];
+                    const errors = [];
+                    rows.forEach((r, i) => {
+                        const name = (r.name || r.Name || '').toString().trim();
+                        if (!name) { errors.push(`Row ${i+2}: missing name`); return; }
+                        let unit = (r.unit_type || r['unit type'] || r.UnitType || 'sqft_dim').toString().trim().toLowerCase();
+                        if (!VALID_UNITS.has(unit)) unit = 'sqft_dim';
+                        cleaned.push({
+                            name,
+                            desc: (r.description || r.Description || '').toString(),
+                            unitType: unit,
+                            category: (r.category || r.Category || 'General').toString().trim() || 'General',
+                            rates: {
+                                std:   Number(r.rate_standard ?? r.std ?? r['Std Rate'] ?? 0) || 0,
+                                prem:  Number(r.rate_premium  ?? r.prem ?? r['Prem Rate'] ?? 0) || 0,
+                                ultra: Number(r.rate_ultra    ?? r.ultra ?? r['Ultra Rate'] ?? 0) || 0
+                            }
+                        });
+                    });
+                    // Merge mode: existing names get rate update, new names get inserted, others preserved
+                    const existing = appData.items || [];
+                    const byName = new Map(existing.map(x => [x.name, x]));
+                    let added = 0, updated = 0;
+                    cleaned.forEach(c => {
+                        if (byName.has(c.name)) { byName.set(c.name, c); updated += 1; }
+                        else { byName.set(c.name, c); added += 1; }
+                    });
+                    const merged = Array.from(byName.values());
+                    const msg =
+                        `Excel parsed:\n\n` +
+                        `  • Rows in file: ${rows.length}\n` +
+                        `  • Valid rows:   ${cleaned.length}\n` +
+                        `  • New items:    ${added}\n` +
+                        `  • Updates:      ${updated}\n` +
+                        `  • Total after merge: ${merged.length}\n` +
+                        (errors.length ? `\n⚠ Errors (${errors.length}):\n  • ${errors.slice(0,5).join('\n  • ')}\n` : '') +
+                        `\nClick OK to load into form (you still need to click "Save & Apply Changes" to commit).`;
+                    if (!confirm(msg)) return;
+                    appData.items = merged;
+                    openSettings();   // re-render
+                } catch (err) {
+                    alert('Excel parse error: ' + (err.message || err));
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            ev.target.value = '';     // reset so same file can be re-picked
         }
 
 
@@ -1249,6 +1598,22 @@
             const pnList = document.getElementById('projNoteSettingsList'); pnList.innerHTML=''; appData.projectNotes.forEach(n => addProjNoteInput(n));
             const gList = document.getElementById('guideSettingsList'); gList.innerHTML=''; appData.guide.forEach(g => addGuideInput(g));
             const iList = document.getElementById('itemSettingsList'); iList.innerHTML=''; appData.items.forEach(i => addItemInput(i));
+            // Count badges
+            const setCnt = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+            setCnt('cntRooms', appData.rooms.length);
+            setCnt('cntTerms', appData.notes.length);
+            setCnt('cntProjNotes', appData.projectNotes.length);
+            setCnt('cntGuide', appData.guide.length);
+            setCnt('cntItems', appData.items.length);
+            // Refresh status banner state on every open (re-applies save-disable rules)
+            if (window.SANKALP.presetsLoaded) {
+                setPresetsStatus('ok',
+                    `Loaded ✓  Rooms ${appData.rooms.length} · Items ${appData.items.length} · Terms ${appData.notes.length} · Notes ${appData.projectNotes.length} · Guides ${appData.guide.length}`);
+            } else {
+                setPresetsStatus('error', window.SANKALP.presetsLoadError
+                    ? `Cloud error: ${window.SANKALP.presetsLoadError} — save disabled to protect your data`
+                    : 'Still loading from cloud — please wait a moment, save is disabled.');
+            }
             document.getElementById('settingsModal').classList.remove('hidden');
         }
         function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }

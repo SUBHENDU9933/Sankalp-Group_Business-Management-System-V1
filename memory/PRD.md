@@ -100,6 +100,41 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 18 (Feb 2026) — Estimate Presets Data-Loss Fix + Excel Bulk Import
+**Critical bug**: The "Save & Apply Changes" button in Estimate Settings used a destructive "delete-all-then-reinsert" strategy that wiped the DB if the user clicked save before async cloud load completed. Reports of full Items & Rates deletion.
+
+**5-Layer Fix** applied to `/app/frontend/public/estimator.html`:
+
+**Layer 1 — Load-state guard**:
+- New `setPresetsStatus(state, msg)` controller renders an in-modal banner (loading / ok / error)
+- Save button starts `disabled` and only enables on successful cloud load — physically impossible to wipe data during load race
+- Live section count badges next to every section title (Rooms 14, Items 64, etc.)
+
+**Layer 2 — Smart save (non-destructive)**:
+- `window.SANKALP.dbSnapshot` tracks what was loaded from DB
+- On save: only the names that were REMOVED from screen get `is_active=false`; everything else is upserted by unique-name conflict key
+- `syncContentTable()` helper for terms/notes/guides — uses content-based diff (inactivate-by-id only for content that disappeared, insert only new content)
+
+**Layer 3 — Pre-save confirmation**:
+- Diff dialog shows before/after counts and explicit "−N removed, +M new" breakdown
+- "Suspicious wipe" guard refuses to save if >50% of items or rooms would be deleted (forces a second confirmation with explicit warning)
+
+**Layer 4 — Auto-backup before every save**:
+- New `estimate_presets_backups` table via `/app/supabase_schema_v13.sql` (admin-only RLS) — stores full JSONB snapshot + counts + reason
+- localStorage rolling buffer of last 5 backups (offline safety)
+- "Restore from backup" button in modal header → lists last 10 cloud + 5 local backups → one-click restore into form (still must click Save to commit)
+- "Backup JSON" button → instant downloadable JSON of current state
+
+**Layer 5 — Excel/CSV bulk import + export**:
+- SheetJS (xlsx@0.18.5) CDN added
+- "Download Excel" exports current items with all rates as `.xlsx` template
+- "BULK IMPORT EXCEL" file picker → parses → preview dialog with new/updated/error counts → smart merge (existing names get rates updated, new names inserted, missing names PRESERVED — opposite of old behaviour)
+- Validates `unit_type` against allowed set (sqft_dim, sqft_total, nos, rft, lumsum); defaults to sqft_dim on bad input
+
+**Files created/changed:**
+- `/app/supabase_schema_v13.sql` (new — backup table)
+- `/app/frontend/public/estimator.html` (loadPresets, savePresets rewrite, syncContentTable, downloadPresetsJSON, openBackupBrowser, downloadItemsExcelTemplate, handleItemsExcelImport, openSettings count badges, settings modal HTML — banner, buttons)
+
 ## Iteration 17 (Feb 2026) — Multi-RM Assignment for Leads
 **Goal**: Allow multiple Relationship Managers to collaborate on a single lead. All assignees are EQUAL — admin or any current assignee can add/remove others.
 

@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/approve/:token", "destination": "/api/approve/:token" },
+    { "source": "/approve-app/:token", "destination": "/index.html" }
+  ]
+}

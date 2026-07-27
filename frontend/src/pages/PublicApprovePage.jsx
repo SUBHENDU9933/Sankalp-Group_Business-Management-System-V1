@@ -92,7 +92,12 @@ function printApprovalEvidence(approval) {
         ` : ""}
       </div>
       ${approval.response_comment ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Comment / Change Request</label><div class="box">${esc(approval.response_comment)}</div></div>` : ""}
-      ${approval.response_photo_url ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie</label><img src="${esc(approval.response_photo_url)}" class="selfie" alt="Customer selfie"/></div>` : ""}
+      ${approval.response_photo_url || (approval.response_lat && approval.response_lng) ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie &amp; Location</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          ${approval.response_photo_url ? `<img src="${esc(approval.response_photo_url)}" style="width:100%;border:2px solid #cbd5e1;background:#000" alt="Selfie"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">Selfie not captured</div>`}
+          ${approval.response_lat && approval.response_lng ? `<img src="https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin" style="width:100%;border:2px solid #cbd5e1;background:#f1f5f9" alt="Location map"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">GPS not captured</div>`}
+        </div>
+      </div>` : ""}
       ${approval.response_user_agent ? `<div style="margin-top:10px;font-size:9px;color:#64748b">Device: ${esc(approval.response_user_agent)}</div>` : ""}
     </section>` : `<section><h3>Response Status</h3><div style="text-align:center;color:${statusColor};font-size:14px;font-weight:700;padding:12px">Awaiting customer response · Link expires ${fmt(approval.expires_at)}</div></section>`}
 
@@ -174,10 +179,51 @@ export default function PublicApprovePage() {
 
   const capturePhoto = async () => {
     if (!videoRef.current) return;
+    const v = videoRef.current;
     const c = document.createElement("canvas");
-    c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
-    c.getContext("2d").drawImage(videoRef.current, 0, 0);
-    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
+    c.width = v.videoWidth || 640;
+    c.height = v.videoHeight || 480;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+
+    // ---------- Watermark overlay (geo-tag, timestamp, brand) ----------
+    const pad = Math.round(c.width * 0.02);
+    const lineH = Math.round(c.width * 0.032);
+    const fontS = Math.round(c.width * 0.028);
+    const bandH = lineH * 4 + pad * 2;
+
+    // Semi-transparent dark band at bottom
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(0, c.height - bandH, c.width, bandH);
+
+    // Gold accent line
+    ctx.fillStyle = "#f5b800";
+    ctx.fillRect(0, c.height - bandH, c.width, 2);
+
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#f5b800";
+    ctx.font = `bold ${Math.round(fontS * 0.9)}px Inter, Arial, sans-serif`;
+    ctx.fillText("SANKALP GROUP · DIGITAL APPROVAL EVIDENCE", pad, c.height - bandH + pad);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `${fontS}px Inter, Arial, sans-serif`;
+    const now = new Date();
+    const ts = now.toLocaleString("en-IN", { hour12: true });
+    const geoLine = (lat != null && lng != null)
+      ? `GEO: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${Math.round(accuracy || 0)}m)`
+      : "GEO: not captured";
+
+    let y = c.height - bandH + pad + lineH;
+    ctx.fillText(`TIME: ${ts}`, pad, y);
+    y += lineH;
+    ctx.fillText(geoLine, pad, y);
+    y += lineH;
+    if (approval?.subject) {
+      const subjectLine = `RE: ${approval.subject.slice(0, 60)}${approval.customer_name ? ` · ${approval.customer_name}` : ""}`;
+      ctx.fillText(subjectLine, pad, y);
+    }
+
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.88));
     const localUrl = URL.createObjectURL(blob);
     setSelfie({ url: localUrl, blob });
     stopCamera();
@@ -273,8 +319,23 @@ export default function PublicApprovePage() {
             )}
             {approval.response_photo_url && (
               <div className="mt-3">
-                <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 mb-1">Customer Selfie / Photo</div>
-                <img src={approval.response_photo_url} alt="Customer" className="w-full max-w-md border-2 border-stone-300 shadow" data-testid="pa-response-selfie" />
+                <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 mb-1">Customer Selfie & Location Evidence</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <img src={approval.response_photo_url} alt="Customer" className="w-full border-2 border-stone-300 shadow bg-black" data-testid="pa-response-selfie" />
+                  {approval.response_lat && approval.response_lng && (
+                    <a href={`https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}`} target="_blank" rel="noreferrer" className="block border-2 border-stone-300 shadow overflow-hidden bg-stone-100" data-testid="pa-response-map">
+                      <img
+                        src={`https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin`}
+                        alt="Location map"
+                        className="w-full block"
+                        onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.innerHTML += `<div style='padding:2rem;text-align:center;font-size:11px;color:#666'>Static map unavailable · <a href='https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}' target='_blank' style='color:#1d4ed8;text-decoration:underline'>Open in Google Maps</a></div>`; }}
+                      />
+                    </a>
+                  )}
+                </div>
+                <div className="text-[10px] text-stone-500 mt-1 italic">
+                  Selfie carries watermark: time, GPS, subject. Map: OpenStreetMap · click for interactive Google Maps.
+                </div>
               </div>
             )}
             {approval.response_lat && approval.response_lng && (

@@ -66,6 +66,7 @@ function App() {
           <Routes>
             <Route path="/verify/:uid" element={<VerifyReceiptPage />} />
             <Route path="/approve/:token" element={<PublicApprovePage />} />
+            <Route path="/approve-app/:token" element={<PublicApprovePage />} />
 
             <Route element={<PublicOnly />}>
               <Route path="/login" element={<LoginPage />} />

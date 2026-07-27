@@ -1,0 +1,76 @@
+{
+  "verdict": "not_fixed",
+  "user_reported_bug": "submited photo/selfy add watermark geo tag and add a map PHOTO/screenshot side by side of that capture location. link should shorter. link title should be Approval or Info : SUBJECT (CUSTOMER NAME)",
+  "summary": "No relevant testing skill found. Focused Digital Approvals verification found watermark/photo evidence and public/admin print grids working, but the bug is only partially fixed: newly created approvals still generate 64-character tokens in the preview DB, the OG helper RPC is missing, and the admin detail on-screen evidence still does not show a side-by-side static map screenshot. No application APIs were mocked; the browser camera feed was SIMULATED/MOCKED with a Playwright canvas to verify the selfie watermark deterministically.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "Supabase table digital_approvals.token default / RPC get_approval_meta_by_token",
+        "issue": "supabase_schema_v15.sql exists in the repo but is not applied to the preview Supabase DB: UI-created approval token was 64 chars (45cce9f26683450c97bfa692681605c44d031b6c9a6444bbb763be487dca495c), and RPC get_approval_meta_by_token returned schema-cache missing. This prevents short links and production OG subject/customer lookup until migration is applied.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DigitalApprovalsPage admin detail sheet response evidence",
+        "issue": "Admin detail sheet on-screen evidence still renders only the customer selfie plus a 'View on Google Maps' link; it does not render a static map screenshot side-by-side with the selfie. Admin print HTML does have the side-by-side grid.",
+        "selector": "[data-testid='da-detail-sheet']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Create new digital approval \u2192 customer magic link",
+        "issue": "New approval created from the UI still displayed a 64-character token in [data-testid='da-link-input']; expected 12 when v15 migration is applied. Backward compatibility for 64-char links was verified separately and still works.",
+        "affected_selectors": [
+          "[data-testid='new-approval-btn']",
+          "[data-testid='da-link-input']"
+        ]
+      },
+      {
+        "flow": "Vercel OG preview title",
+        "issue": "Frontend serverless files/rewrite exist, but the current DB is missing get_approval_meta_by_token, so deployed OG preview would fall back to generic 'Approval Request' data unless v15.sql is applied. Dev/preview SPA still shows the generic document title, which is expected outside Vercel serverless routing.",
+        "affected_selectors": [
+          "/frontend/api/approve/[token].js",
+          "/frontend/vercel.json"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/bug_verification_iteration21.js",
+    "/app/tests/bug_verification_iteration21_adjust_token.js",
+    "/app/test_reports/bug_verification_21.json",
+    "/app/test_reports/iteration_21.json"
+  ],
+  "action_items": [
+    "Apply /app/supabase_schema_v15.sql to Supabase and confirm new UI-created approvals generate exactly 12-character tokens and get_approval_meta_by_token exists.",
+    "Update DigitalApprovalsPage admin detail sheet on-screen evidence to show selfie and static map/fallback side-by-side, matching the public evidence view and print output.",
+    "After migration, deploy to Vercel and verify crawler OG title resolves to 'Approval Info : SUBJECT (CUSTOMER NAME)' for /approve/:token."
+  ],
+  "critical_code_review_comments": [
+    "PublicApprovePage.jsx watermark code was runtime-verified: captured preview was a blob JPEG 640x480; bottom-band pixel sample darkRatio=0.80 and goldPixels=22.",
+    "Public approval evidence view and both public/admin print popups have selfie + location map in the same parent grid with grid-template-columns:1fr 1fr; OSM image failed in headless but the expected 'Static map unavailable \u00b7 Open in Google Maps' fallback appeared.",
+    "DigitalApprovalsPage.jsx printApprovalRecord was updated, but the admin on-screen detail sheet response evidence block was not updated to include a map image slot.",
+    "frontend/api/approve/[token].js and frontend/vercel.json are present with the intended rewrite, but runtime OG rendering was not tested because this preview environment is not Vercel serverless."
+  ],
+  "updated_files": [
+    "/app/tests/bug_verification_iteration21.js",
+    "/app/tests/bug_verification_iteration21_adjust_token.js",
+    "/app/test_reports/bug_verification_21.json",
+    "/app/test_reports/iteration_21.json"
+  ],
+  "success_rate": {
+    "backend": "50%",
+    "frontend": "75%"
+  },
+  "seed_data_creation": "Created QA customer ac1d15fc-e5e6-432c-8567-41f7909ff93b and approval 42a5a757-81dc-4745-81df-da34171fa6eb ('Watermark & Map Test ogmf86'). Also created UI approval 'Watermark & Map Test UI 21' with observed 64-char token. The main QA approval was manually retokened to qa21wmmap123 for the public 12-char flow after proving the DB default still generated 64 chars.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Retest after v15 is actually applied. Use admin credentials from /app/memory/test_credentials.md, create a fresh approval via UI, verify [data-testid='da-link-input'] token length is 12, complete /approve/:token with camera/geolocation, then check public evidence, admin detail on-screen evidence, and both print popups. OSM may fail in headless; fallback text is acceptable.",
+  "rca_of_the_issue": "The implementation is partial. The frontend watermark/public evidence/print changes work, and backward-compatible 64-character token lookup works, but the database migration that changes the token default and adds the OG RPC has not been applied in preview. Additionally, only the admin print function was updated for side-by-side selfie/map; the admin detail sheet visible evidence UI still lacks the map screenshot."
+}

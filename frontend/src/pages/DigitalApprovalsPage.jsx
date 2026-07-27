@@ -315,11 +315,17 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
     toast.success("Link copied");
   };
   const share = (channel) => {
-    const msg = encodeURIComponent(`Hi ${approval.customer_name || ""},\n\nPlease review & approve:\n${approval.subject}\n\n${link}\n\n— Sankalp Group`);
+    const title = `Approval Info : ${approval.subject}${approval.customer_name ? ` (${approval.customer_name})` : ""}`;
+    const msg = encodeURIComponent(
+      `*${title}*\n\n` +
+      (approval.project_name ? `Project: ${approval.project_name}\n` : "") +
+      (approval.description ? `\n${approval.description}\n` : "") +
+      `\nPlease review & respond:\n${link}\n\n— Sankalp Group · Business Solutions`
+    );
     const urls = {
       whatsapp: `https://wa.me/?text=${msg}`,
       sms: `sms:?&body=${msg}`,
-      email: `mailto:?subject=${encodeURIComponent(approval.subject)}&body=${msg}`,
+      email: `mailto:?subject=${encodeURIComponent(title)}&body=${msg}`,
     };
     window.open(urls[channel], "_blank");
   };
@@ -418,17 +424,35 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
                   <div className="text-sm text-stone-800 bg-white border border-stone-200 p-2 mt-1 whitespace-pre-wrap">{approval.response_comment}</div>
                 </div>
               )}
-              {approval.response_photo_url && (
+              {(approval.response_photo_url || (approval.response_lat && approval.response_lng)) && (
                 <div className="mt-3">
-                  <div className="label-uppercase mb-1">Customer Selfie / Photo</div>
-                  <a href={approval.response_photo_url} target="_blank" rel="noreferrer">
-                    <img src={approval.response_photo_url} alt="Customer" className="max-w-[200px] border border-stone-300" />
-                  </a>
-                </div>
-              )}
-              {approval.response_lat && approval.response_lng && (
-                <div className="mt-3">
-                  <a href={`https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}`} target="_blank" rel="noreferrer" className="text-xs text-blue-700 hover:underline inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> View on Google Maps</a>
+                  <div className="label-uppercase mb-1">Customer Selfie &amp; Location</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {approval.response_photo_url && (
+                      <a href={approval.response_photo_url} target="_blank" rel="noreferrer" data-testid="da-detail-selfie" className="block border-2 border-stone-300 shadow overflow-hidden bg-black">
+                        <img src={approval.response_photo_url} alt="Customer" className="w-full block" />
+                      </a>
+                    )}
+                    {approval.response_lat && approval.response_lng && (
+                      <a
+                        href={`https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-testid="da-detail-map"
+                        className="block border-2 border-stone-300 shadow overflow-hidden bg-stone-100"
+                      >
+                        <img
+                          src={`https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin`}
+                          alt="Location map"
+                          className="w-full block"
+                          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.innerHTML += `<div style='padding:1rem;text-align:center;font-size:11px;color:#666'>Static map unavailable · <span style='color:#1d4ed8;text-decoration:underline'>Open in Google Maps</span></div>`; }}
+                        />
+                      </a>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-stone-500 mt-1 italic">
+                    Click images to open full-size. Selfie has watermark; map is OpenStreetMap · click for Google Maps.
+                  </div>
                 </div>
               )}
               {approval.response_user_agent && (
@@ -542,7 +566,12 @@ function printApprovalRecord(approval) {
         ` : ""}
       </div>
       ${approval.response_comment ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Comment / Change Request</label><div class="box">${esc(approval.response_comment)}</div></div>` : ""}
-      ${approval.response_photo_url ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie</label><img src="${esc(approval.response_photo_url)}" class="selfie" alt="Customer selfie"/></div>` : ""}
+      ${approval.response_photo_url || (approval.response_lat && approval.response_lng) ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie &amp; Location</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          ${approval.response_photo_url ? `<img src="${esc(approval.response_photo_url)}" style="width:100%;border:2px solid #cbd5e1;background:#000" alt="Selfie"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">Selfie not captured</div>`}
+          ${approval.response_lat && approval.response_lng ? `<img src="https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin" style="width:100%;border:2px solid #cbd5e1;background:#f1f5f9" alt="Location map"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">GPS not captured</div>`}
+        </div>
+      </div>` : ""}
       ${approval.response_user_agent ? `<div style="margin-top:10px;font-size:9px;color:#64748b">Device: ${esc(approval.response_user_agent)}</div>` : ""}
     </section>` : `<section><h3>Response Status</h3><div style="text-align:center;color:${statusColor};font-size:14px;font-weight:700;padding:12px">Awaiting customer response · Link expires ${fmt(approval.expires_at)}</div></section>`}
     <div class="footer">This is a system-generated digital record. Sankalp Group · Business Solutions · © ${new Date().getFullYear()}</div>

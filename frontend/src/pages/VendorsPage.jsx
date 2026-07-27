@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Chip } from "@/components/shared/StatusBadge";
 import {
-  Plus, Search, Truck, Wallet, MoreVertical, Pencil, Trash2, ArrowRight, Phone, MessageCircle,
+  Plus, Search, Truck, Wallet, MoreVertical, Pencil, Trash2, ArrowRight, Phone, MessageCircle, Download, FileSpreadsheet, Printer, ChevronDown, X,
 } from "lucide-react";
 import {
   fetchVendors, fetchVendorPayments, deleteVendor, deleteVendorPayment,
@@ -38,6 +38,13 @@ export default function VendorsPage() {
   const [pOpen, setPOpen] = useState(false);
   const [presetVendor, setPresetVendor] = useState(null);
 
+  // Payment log filters
+  const [pmtProjectFilter, setPmtProjectFilter] = useState("all");   // "all" | "none" | projectId
+  const [pmtVendorFilter, setPmtVendorFilter] = useState("all");
+  const [pmtFrom, setPmtFrom] = useState("");
+  const [pmtTo, setPmtTo] = useState("");
+  const [pmtSearch, setPmtSearch] = useState("");
+
   const load = async () => {
     setLoading(true);
     try {
@@ -60,6 +67,151 @@ export default function VendorsPage() {
   }), [vendors, search, typeFilter]);
 
   const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  // Filtered payments (project / vendor / date-range / search)
+  const filteredPayments = useMemo(() => {
+    return payments.filter((p) => {
+      if (pmtProjectFilter === "none") { if (p.project?.id) return false; }
+      else if (pmtProjectFilter !== "all" && p.project?.id !== pmtProjectFilter) return false;
+      if (pmtVendorFilter !== "all" && p.vendor?.id !== pmtVendorFilter) return false;
+      if (pmtFrom && p.payment_date && new Date(p.payment_date) < new Date(pmtFrom)) return false;
+      if (pmtTo) {
+        const end = new Date(pmtTo); end.setHours(23,59,59,999);
+        if (p.payment_date && new Date(p.payment_date) > end) return false;
+      }
+      if (pmtSearch) {
+        const s = pmtSearch.toLowerCase();
+        const hay = [p.vendor?.name, p.vendor?.type, p.project?.project_name, p.note].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [payments, pmtProjectFilter, pmtVendorFilter, pmtFrom, pmtTo, pmtSearch]);
+  const filteredTotal = filteredPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const projectBreakdown = useMemo(() => {
+    const map = new Map();
+    filteredPayments.forEach((p) => {
+      const key = p.project?.id || "__none__";
+      const name = p.project?.project_name || "(No Project)";
+      const cur = map.get(key) || { name, count: 0, total: 0 };
+      cur.count += 1; cur.total += Number(p.amount || 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filteredPayments]);
+
+  const clearPmtFilters = () => {
+    setPmtProjectFilter("all"); setPmtVendorFilter("all"); setPmtFrom(""); setPmtTo(""); setPmtSearch("");
+  };
+  const hasPmtFilters = pmtProjectFilter !== "all" || pmtVendorFilter !== "all" || pmtFrom || pmtTo || pmtSearch;
+
+  // -------- Exports --------
+  const exportPaymentsCSV = () => {
+    if (!filteredPayments.length) { toast.info("No payments to export"); return; }
+    const headers = ["Date","Vendor","Vendor Type","Project","Note","Amount"];
+    const rows = filteredPayments.map((p) => [
+      p.payment_date ? formatDate(p.payment_date) : "",
+      p.vendor?.name || "",
+      p.vendor?.type || "",
+      p.project?.project_name || "",
+      (p.note || "").replace(/[\r\n]+/g, " "),
+      Number(p.amount || 0),
+    ]);
+    const csv = [headers, ...rows, [], ["", "", "", "", "TOTAL", filteredTotal]]
+      .map((r) => r.map((c) => {
+        const s = String(c ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `vendor-payments-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredPayments.length} payments`);
+  };
+
+  const exportPaymentsPDF = () => {
+    if (!filteredPayments.length) { toast.info("No payments to export"); return; }
+    const win = window.open("", "_blank", "width=1000,height=800");
+    if (!win) { toast.error("Popup blocked — allow popups to print"); return; }
+    const rowsHTML = filteredPayments.map((p) => `
+      <tr>
+        <td>${p.payment_date ? formatDate(p.payment_date) : ""}</td>
+        <td>${escapeHtml(p.vendor?.name || "")}<div class="muted">${escapeHtml(p.vendor?.type || "")}</div></td>
+        <td>${escapeHtml(p.project?.project_name || "—")}</td>
+        <td>${escapeHtml(p.note || "—")}</td>
+        <td class="right mono">${formatINR(p.amount)}</td>
+      </tr>`).join("");
+    const breakdownHTML = projectBreakdown.map((b) => `
+      <tr><td>${escapeHtml(b.name)}</td><td class="right">${b.count}</td><td class="right mono">${formatINR(b.total)}</td></tr>
+    `).join("");
+    const filterChips = [
+      pmtProjectFilter !== "all" && `Project: ${pmtProjectFilter === "none" ? "(No Project)" : (projects.find((x)=>x.id===pmtProjectFilter)?.project_name || "—")}`,
+      pmtVendorFilter !== "all" && `Vendor: ${vendors.find((x)=>x.id===pmtVendorFilter)?.name || "—"}`,
+      pmtFrom && `From: ${formatDate(pmtFrom)}`,
+      pmtTo && `To: ${formatDate(pmtTo)}`,
+      pmtSearch && `Search: "${pmtSearch}"`,
+    ].filter(Boolean).map((s) => `<span class="chip">${escapeHtml(s)}</span>`).join("");
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Vendor Payment Report</title>
+      <style>
+        *{box-sizing:border-box}
+        body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:#0f172a;margin:32px;font-size:12px}
+        h1{font-size:22px;margin:0 0 4px;color:#1e3a8a}
+        .sub{color:#64748b;font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:16px}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e3a8a;padding-bottom:12px;margin-bottom:18px}
+        .brand{font-size:18px;font-weight:700;color:#1e3a8a}
+        .chip{display:inline-block;background:#fef9e7;border:1px solid #d4a017;color:#a87d0a;padding:2px 8px;border-radius:99px;font-size:10px;margin:2px 4px 2px 0;font-weight:600}
+        .kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0 22px}
+        .kpi{border:1px solid #cbd5e1;padding:12px;background:#f8fafc}
+        .kpi .lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700}
+        .kpi .val{font-size:20px;font-weight:800;color:#1e3a8a;margin-top:4px;font-family:'JetBrains Mono',monospace}
+        table{width:100%;border-collapse:collapse;margin-top:6px}
+        th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top}
+        th{background:#1e3a8a;color:#fff;text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:700}
+        tr:nth-child(even) td{background:#f8fafc}
+        .right{text-align:right}
+        .mono{font-family:'JetBrains Mono',monospace;font-weight:700}
+        .muted{color:#64748b;font-size:10px}
+        h3{margin:22px 0 6px;font-size:13px;color:#1e3a8a;text-transform:uppercase;letter-spacing:.14em}
+        .totals-row td{background:#1e3a8a;color:#fff;font-weight:800}
+        .footer{margin-top:26px;font-size:10px;color:#64748b;border-top:1px solid #cbd5e1;padding-top:10px;display:flex;justify-content:space-between}
+        @media print{ .noprint{display:none} }
+        button{padding:8px 14px;background:#1e3a8a;color:#fff;border:0;cursor:pointer;font-weight:600}
+      </style>
+      </head><body>
+      <div class="noprint" style="margin-bottom:14px"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+      <div class="head">
+        <div>
+          <div class="brand">Sankalp Group · Business Solutions</div>
+          <h1>Vendor Payment Report</h1>
+          <div class="sub">Generated ${new Date().toLocaleString('en-IN')}</div>
+        </div>
+        <div style="text-align:right">${filterChips || '<span class="chip">All Payments</span>'}</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="lbl">Entries</div><div class="val">${filteredPayments.length}</div></div>
+        <div class="kpi"><div class="lbl">Projects Covered</div><div class="val">${projectBreakdown.length}</div></div>
+        <div class="kpi"><div class="lbl">Total Paid</div><div class="val">${formatINR(filteredTotal)}</div></div>
+      </div>
+      <h3>Project-wise Breakdown</h3>
+      <table><thead><tr><th>Project</th><th class="right">Payments</th><th class="right">Total</th></tr></thead>
+        <tbody>${breakdownHTML}</tbody></table>
+      <h3>Payment Details</h3>
+      <table><thead><tr><th>Date</th><th>Vendor</th><th>Project</th><th>Note</th><th class="right">Amount</th></tr></thead>
+        <tbody>${rowsHTML}
+          <tr class="totals-row"><td colspan="4" class="right">TOTAL</td><td class="right mono">${formatINR(filteredTotal)}</td></tr>
+        </tbody></table>
+      <div class="footer">
+        <div>Sankalp Group · Business Solutions</div>
+        <div>© ${new Date().getFullYear()} — Confidential internal document</div>
+      </div>
+      </body></html>`);
+    win.document.close();
+    setTimeout(() => { try { win.focus(); win.print(); } catch(_){ /* noop */ } }, 400);
+  };
+
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
   const handleDelete = async (vendor) => {
     if (!window.confirm(`Permanently delete "${vendor.name}"? This will also delete all their payment history.`)) return;
@@ -199,13 +351,96 @@ export default function VendorsPage() {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-4">
-            <div className="bg-white border border-stone-200 px-4 py-3 flex items-center gap-2 flex-wrap">
-              <Chip>Entries: {payments.length}</Chip>
-              <Chip className="bg-stone-900 text-white border-stone-900">Total: {formatINR(totalPaid)}</Chip>
+            {/* Filter bar */}
+            <div className="bg-white border border-stone-200 grid grid-cols-1 md:grid-cols-6 gap-0 grid-divider-x">
+              <div className="px-4 py-3 md:col-span-2 flex items-center gap-2">
+                <Search className="w-4 h-4 text-stone-400" />
+                <Input
+                  value={pmtSearch}
+                  onChange={(e) => setPmtSearch(e.target.value)}
+                  placeholder="Search vendor / project / note…"
+                  className="border-0 shadow-none focus-visible:ring-0 px-0 rounded-none h-8"
+                  data-testid="pmt-search"
+                />
+                {hasPmtFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearPmtFilters} className="rounded-none text-xs text-stone-500 hover:text-stone-900 h-7" data-testid="pmt-clear">
+                    <X className="w-3 h-3 mr-1" /> Clear
+                  </Button>
+                )}
+              </div>
+              <div className="px-4 py-2">
+                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Project</div>
+                <Select value={pmtProjectFilter} onValueChange={setPmtProjectFilter}>
+                  <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-8 px-0 bg-transparent" data-testid="pmt-project-filter"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-none max-h-[300px]">
+                    <SelectItem value="all" className="rounded-none">All Projects</SelectItem>
+                    <SelectItem value="none" className="rounded-none">— No Project —</SelectItem>
+                    {projects.map((pr) => (
+                      <SelectItem key={pr.id} value={pr.id} className="rounded-none">{pr.project_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="px-4 py-2">
+                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Vendor</div>
+                <Select value={pmtVendorFilter} onValueChange={setPmtVendorFilter}>
+                  <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-8 px-0 bg-transparent" data-testid="pmt-vendor-filter"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-none max-h-[300px]">
+                    <SelectItem value="all" className="rounded-none">All Vendors</SelectItem>
+                    {vendors.map((vv) => (
+                      <SelectItem key={vv.id} value={vv.id} className="rounded-none">{vv.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="px-4 py-2">
+                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">From</div>
+                <Input type="date" value={pmtFrom} onChange={(e) => setPmtFrom(e.target.value)} className="rounded-none border-0 shadow-none focus-visible:ring-0 px-0 h-8" data-testid="pmt-from" />
+              </div>
+              <div className="px-4 py-2">
+                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">To</div>
+                <Input type="date" value={pmtTo} onChange={(e) => setPmtTo(e.target.value)} className="rounded-none border-0 shadow-none focus-visible:ring-0 px-0 h-8" data-testid="pmt-to" />
+              </div>
             </div>
+
+            {/* KPI + Export bar */}
+            <div className="bg-white border border-stone-200 border-t-0 px-4 py-3 flex items-center gap-2 flex-wrap">
+              <Chip data-testid="pmt-count-chip">Showing: {filteredPayments.length} of {payments.length}</Chip>
+              <Chip className="bg-stone-900 text-white border-stone-900" data-testid="pmt-total-chip">Filtered Total: {formatINR(filteredTotal)}</Chip>
+              <Chip>All-time Total: {formatINR(totalPaid)}</Chip>
+              <div className="ml-auto flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={exportPaymentsCSV} className="rounded-none border-stone-300 hover:bg-stone-100 h-8 text-xs font-semibold" data-testid="pmt-export-csv">
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export Excel/CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportPaymentsPDF} className="rounded-none border-stone-300 hover:bg-stone-100 h-8 text-xs font-semibold" data-testid="pmt-export-pdf">
+                  <Printer className="w-3.5 h-3.5 mr-1" /> Print / PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Project-wise breakdown card (only visible when >1 project) */}
+            {projectBreakdown.length > 1 && (
+              <div className="bg-white border border-stone-200 border-t-0 px-4 py-3">
+                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500 mb-2">Project-wise Breakdown</div>
+                <div className="flex flex-wrap gap-2">
+                  {projectBreakdown.map((b, i) => (
+                    <div key={i} className="inline-flex items-center gap-2 px-3 py-1.5 border border-stone-300 bg-stone-50 text-xs">
+                      <span className="font-medium text-stone-900">{b.name}</span>
+                      <span className="text-stone-500">·</span>
+                      <span className="text-stone-600">{b.count} pmt</span>
+                      <span className="text-stone-500">·</span>
+                      <span className="font-semibold text-orange-700 tabular-nums">{formatINR(b.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-4">
-              {payments.length === 0 ? (
-                <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500" data-testid="vendor-payments-empty">No vendor payments recorded.</div>
+              {filteredPayments.length === 0 ? (
+                <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500" data-testid="vendor-payments-empty">
+                  {payments.length === 0 ? "No vendor payments recorded." : "No payments match your filters."}
+                </div>
               ) : (
                 <div className="bg-white border border-stone-200 overflow-x-auto">
                   <table className="w-full text-sm" data-testid="vendor-payments-table">
@@ -220,7 +455,7 @@ export default function VendorsPage() {
                       </tr>
                     </thead>
                     <tbody className="grid-divider-y">
-                      {payments.map((p) => (
+                      {filteredPayments.map((p) => (
                         <tr key={p.id} className="hover:bg-stone-50" data-testid={`payment-row-${p.id}`}>
                           <td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDate(p.payment_date)}</td>
                           <td className="px-4 py-3">
@@ -239,6 +474,11 @@ export default function VendorsPage() {
                           </td>
                         </tr>
                       ))}
+                      <tr className="bg-stone-900 text-white">
+                        <td colSpan={4} className="px-4 py-3 text-right label-uppercase">Filtered Total</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-bold">{formatINR(filteredTotal)}</td>
+                        <td></td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>

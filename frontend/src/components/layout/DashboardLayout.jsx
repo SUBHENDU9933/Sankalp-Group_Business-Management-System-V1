@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, UserCheck, ReceiptText, Hammer,
   Truck, ShieldCheck, LogOut, UsersRound, Settings, Calculator,
+  FileCheck2, Trash2, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
@@ -16,6 +17,7 @@ const NAV = [
   { to: "/projects", label: "Projects", icon: Hammer, testid: "nav-projects" },
   { to: "/receipts", label: "Receipts", icon: ReceiptText, testid: "nav-receipts" },
   { to: "/vendors", label: "Vendors", icon: Truck, testid: "nav-vendors" },
+  { to: "/digital-approvals", label: "Digital Approvals", icon: FileCheck2, testid: "nav-digital-approvals" },
 ];
 
 export default function DashboardLayout() {
@@ -75,7 +77,29 @@ export default function DashboardLayout() {
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
                     isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
-                <ShieldCheck className="w-4 h-4" /><span className="flex-1 font-medium">Approvals</span>
+                <ShieldCheck className="w-4 h-4" /><span className="flex-1 font-medium">Delete Approvals</span>
+              </NavLink>
+              <NavLink to="/audit-log" data-testid="nav-audit-log"
+                className={({ isActive }) =>
+                  cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                <Activity className="w-4 h-4" /><span className="flex-1 font-medium">Audit Log</span>
+              </NavLink>
+              <NavLink to="/trash" data-testid="nav-trash"
+                className={({ isActive }) =>
+                  cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                <Trash2 className="w-4 h-4" /><span className="flex-1 font-medium">Trash</span>
+              </NavLink>
+            </div>
+          )}
+          {!isAdmin && (
+            <div className="pt-3 mt-3 border-t border-slate-100 space-y-0.5">
+              <NavLink to="/trash" data-testid="nav-trash-user"
+                className={({ isActive }) =>
+                  cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                <Trash2 className="w-4 h-4" /><span className="flex-1 font-medium">Trash</span>
               </NavLink>
             </div>
           )}

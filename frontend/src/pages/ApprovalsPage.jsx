@@ -8,8 +8,10 @@ import { adminDeleteCustomer, cancelDeleteCustomer } from "@/services/customerSe
 import { formatDateTime } from "@/utils/format";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ApprovalsPage() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,15 +33,15 @@ export default function ApprovalsPage() {
   useEffect(() => { load(); }, []);
 
   const approveLead = async (id) => {
-    if (!window.confirm("Permanently delete this lead?")) return;
-    try { await adminDeleteLead(id); toast.success("Lead deleted"); load(); } catch (e) { toast.error(e.message); }
+    if (!window.confirm("Move this lead to Trash? (You can restore within 30 days from the Trash page.)")) return;
+    try { await adminDeleteLead(id, user?.id); toast.success("Moved to Trash"); load(); } catch (e) { toast.error(e.message); }
   };
   const rejectLead = async (id) => {
     try { await cancelDeleteRequest(id); toast.success("Request rejected"); load(); } catch (e) { toast.error(e.message); }
   };
   const approveCustomer = async (id) => {
     if (!window.confirm("Permanently delete this customer?")) return;
-    try { await adminDeleteCustomer(id); toast.success("Customer deleted"); load(); } catch (e) { toast.error(e.message); }
+    try { await adminDeleteCustomer(id, user?.id); toast.success("Moved to Trash"); load(); } catch (e) { toast.error(e.message); }
   };
   const rejectCustomer = async (id) => {
     try { await cancelDeleteCustomer(id); toast.success("Request rejected"); load(); } catch (e) { toast.error(e.message); }

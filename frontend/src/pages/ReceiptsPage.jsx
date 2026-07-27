@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Chip } from "@/components/shared/StatusBadge";
 import { Plus, Search, Printer, ReceiptText } from "lucide-react";
-import { fetchReceipts, createReceipt } from "@/services/receiptService";
+import { fetchReceipts, createReceipt, addReceiptAttachment } from "@/services/receiptService";
+import { uploadFile } from "@/services/attachmentService";
 import { fetchCustomers } from "@/services/customerService";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, PAYMENT_MODES } from "@/utils/format";
@@ -134,10 +135,13 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [attachments, setAttachments] = useState([]);   // {url, name, type, size}
+  const [uploadingAttach, setUploadingAttach] = useState(false);
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
 
   useEffect(() => {
     if (!open) return;
+    setAttachments([]);
     reset({
       customer_id: defaultCustomerId || "",
       project_id: "",
@@ -148,6 +152,23 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
       note: "",
     });
   }, [open, defaultCustomerId, reset]);
+
+  const handleAttachUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingAttach(true);
+    try {
+      const results = [];
+      for (const f of files) {
+        const r = await uploadFile(f, "receipts");
+        results.push(r);
+      }
+      setAttachments((prev) => [...prev, ...results]);
+      toast.success(`Attached ${results.length} file(s)`);
+    } catch (err) { toast.error(err.message); }
+    finally { setUploadingAttach(false); e.target.value = ""; }
+  };
+  const removeAttachment = (idx) => setAttachments((prev) => prev.filter((_, i) => i !== idx));
 
   // load projects for selected customer
   const cid = watch("customer_id");
@@ -174,6 +195,11 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
         transaction_ref: values.transaction_ref || null,
         note: values.note || null,
       }, user.id);
+      // Persist attachments (non-blocking on error)
+      for (const a of attachments) {
+        try { await addReceiptAttachment({ receiptId: r.id, url: a.url, name: a.name, type: a.type, size: a.size, userId: user.id }); }
+        catch (attachErr) { console.warn("Attachment save failed:", attachErr); }
+      }
       toast.success(`Receipt ${r.receipt_no} created`);
       onSaved?.();
       onOpenChange(false);
@@ -249,6 +275,24 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
           <div>
             <Label className="label-uppercase">Note</Label>
             <Textarea className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("note")} data-testid="receipt-input-note" />
+          </div>
+          <div>
+            <Label className="label-uppercase">Payment Proof / Attachments</Label>
+            <div className="text-[11px] text-slate-500 mb-2">UPI screenshot, cheque photo, bank statement, PDF etc. Will print on page 2 of the receipt.</div>
+            <label className="cursor-pointer border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg block p-4 text-center text-xs text-slate-600" data-testid="receipt-attach-picker">
+              {uploadingAttach ? "Uploading…" : "Click to attach files (photos or PDF)"}
+              <input type="file" multiple accept="image/*,.pdf" onChange={handleAttachUpload} className="hidden" />
+            </label>
+            {attachments.length > 0 && (
+              <div className="mt-2 space-y-1" data-testid="receipt-attach-list">
+                {attachments.map((a, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-200 px-2 py-1 rounded">
+                    <span className="flex-1 truncate">{a.name} <span className="text-slate-400">({Math.round((a.size || 0) / 1024)} KB)</span></span>
+                    <button type="button" onClick={() => removeAttachment(i)} className="text-rose-600 hover:text-rose-700 text-xs">Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <DialogFooter className="-mx-6 -mb-6 px-6 py-4 border-t border-slate-200 bg-slate-50">
             <Button type="button" variant="outline" className="rounded-lg" onClick={() => onOpenChange(false)}>Cancel</Button>

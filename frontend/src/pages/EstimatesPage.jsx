@@ -78,7 +78,7 @@ export default function EstimatesPage() {
   };
   const handleDelete = async (e) => {
     if (!window.confirm(`Delete estimate ${e.estimate_no}? This cannot be undone.`)) return;
-    try { await deleteEstimate(e.id); toast.success("Estimate deleted"); load(); }
+    try { await deleteEstimate(e.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (err) { toast.error(err.message); }
   };
   const handleDuplicate = async (e) => {

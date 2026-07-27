@@ -5,7 +5,14 @@ export const fetchCustomers = async () => {
   const { data, error } = await supabase
     .from("customers")
     .select("*, creator:profiles!customers_created_by_fkey(id,full_name,email)")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
+  if (error && /deleted_at/i.test(error.message)) {
+    const r = await supabase.from("customers")
+      .select("*, creator:profiles!customers_created_by_fkey(id,full_name,email)")
+      .order("created_at", { ascending: false });
+    if (r.error) throw r.error; return r.data || [];
+  }
   if (error) throw error;
   return data || [];
 };
@@ -48,8 +55,10 @@ export const cancelDeleteCustomer = async (id) => {
   if (error) throw error;
 };
 
-export const adminDeleteCustomer = async (id) => {
-  const { error } = await supabase.from("customers").delete().eq("id", id);
+export const adminDeleteCustomer = async (id, userId) => {
+  const { error } = await supabase.from("customers")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };
 

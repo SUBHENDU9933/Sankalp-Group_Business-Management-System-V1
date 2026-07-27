@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function VendorsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [vendors, setVendors] = useState([]);
   const [payments, setPayments] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -215,12 +215,12 @@ export default function VendorsPage() {
 
   const handleDelete = async (vendor) => {
     if (!window.confirm(`Permanently delete "${vendor.name}"? This will also delete all their payment history.`)) return;
-    try { await deleteVendor(vendor.id); toast.success("Vendor deleted"); load(); }
+    try { await deleteVendor(vendor.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
   const handleDeletePayment = async (p) => {
     if (!window.confirm(`Delete this payment of ${formatINR(p.amount)}?`)) return;
-    try { await deleteVendorPayment(p.id); toast.success("Payment deleted"); load(); }
+    try { await deleteVendorPayment(p.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
 

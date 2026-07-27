@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 export default function VendorDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [vendor, setVendor] = useState(null);
   const [payments, setPayments] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -71,12 +71,12 @@ export default function VendorDetailPage() {
 
   const handleDelete = async () => {
     if (!window.confirm(`Permanently delete "${vendor.name}"? This will also delete all their payment history. This cannot be undone.`)) return;
-    try { await deleteVendor(vendor.id); toast.success("Vendor deleted"); nav("/vendors"); }
+    try { await deleteVendor(vendor.id, user?.id); toast.success("Moved to Trash"); nav("/vendors"); }
     catch (e) { toast.error(e.message); }
   };
   const handleDeletePayment = async (p) => {
     if (!window.confirm(`Delete payment of ${formatINR(p.amount)} dated ${formatDate(p.payment_date)}?`)) return;
-    try { await deleteVendorPayment(p.id); toast.success("Payment deleted"); load(); }
+    try { await deleteVendorPayment(p.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
   const openPayWith = (projectId) => { setDefaultProjectId(projectId || null); setPayOpen(true); };

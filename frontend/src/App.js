@@ -18,6 +18,10 @@ import TeamPage from "@/pages/TeamPage";
 import EstimatesPage from "@/pages/EstimatesPage";
 import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 import VendorDetailPage from "@/pages/VendorDetailPage";
+import TrashPage from "@/pages/TrashPage";
+import AuditLogPage from "@/pages/AuditLogPage";
+import DigitalApprovalsPage from "@/pages/DigitalApprovalsPage";
+import PublicApprovePage from "@/pages/PublicApprovePage";
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -61,6 +65,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/verify/:uid" element={<VerifyReceiptPage />} />
+            <Route path="/approve/:token" element={<PublicApprovePage />} />
 
             <Route element={<PublicOnly />}>
               <Route path="/login" element={<LoginPage />} />
@@ -81,6 +86,9 @@ function App() {
                 <Route path="/vendors/:id" element={<VendorDetailPage />} />
                 <Route path="/team" element={<AdminOnly><TeamPage /></AdminOnly>} />
                 <Route path="/approvals" element={<AdminOnly><ApprovalsPage /></AdminOnly>} />
+                <Route path="/digital-approvals" element={<DigitalApprovalsPage />} />
+                <Route path="/trash" element={<TrashPage />} />
+                <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
               </Route>
             </Route>
 

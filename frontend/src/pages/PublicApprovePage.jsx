@@ -195,9 +195,12 @@ export default function PublicApprovePage() {
       let photoUrl = null;
       if (selfie?.blob) {
         setSelfieUploading(true);
-        const up = await uploadPublicResponsePhoto(selfie.blob);
-        photoUrl = up.url;
-        setSelfieUploading(false);
+        try {
+          const up = await uploadPublicResponsePhoto(selfie.blob);
+          photoUrl = up.url;
+        } finally {
+          setSelfieUploading(false);
+        }
       }
       // Get IP (best-effort, non-blocking)
       let ip = null;

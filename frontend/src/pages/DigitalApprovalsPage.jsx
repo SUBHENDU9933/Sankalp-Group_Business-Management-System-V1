@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, FileCheck2, Search, X, Copy, Send, ExternalLink, MapPin, Image as ImageIcon, User, Calendar, Trash2, MessageCircle, Mail, ClipboardCheck } from "lucide-react";
+import { Plus, FileCheck2, Search, X, Copy, Send, ExternalLink, MapPin, Image as ImageIcon, User, Calendar, Trash2, MessageCircle, Mail, ClipboardCheck, Printer } from "lucide-react";
 import { fetchApprovals, createApproval, softDeleteApproval, APPROVAL_STATUSES } from "@/services/digitalApprovalService";
 import { fetchCustomers } from "@/services/customerService";
 import { fetchProjects } from "@/services/projectService";
@@ -437,7 +437,10 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
             </div>
           )}
 
-          <div className="pt-4 border-t border-stone-200">
+          <div className="pt-4 border-t border-stone-200 flex items-center gap-2">
+            <Button variant="outline" onClick={() => printApprovalRecord(approval)} className="rounded-none border-stone-300 hover:bg-stone-100 h-8 text-xs" data-testid="da-print">
+              <Printer className="w-3.5 h-3.5 mr-1" /> Print / Save PDF
+            </Button>
             <Button variant="outline" onClick={() => onDelete(approval)} className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs" data-testid="da-delete">
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Move to Trash
             </Button>
@@ -455,4 +458,95 @@ function Field({ label, value }) {
       <div className="text-sm text-stone-900 mt-0.5 break-words">{value || <span className="text-stone-400">—</span>}</div>
     </div>
   );
+}
+
+// -- Print-ready evidence document (opens in new window, auto-prints) --
+function printApprovalRecord(approval) {
+  const w = window.open("", "_blank", "width=900,height=1200");
+  if (!w) { alert("Popup blocked — allow popups to print"); return; }
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const fmt = (d) => d ? new Date(d).toLocaleString('en-IN') : "—";
+  const status = (approval.status || "pending").toUpperCase();
+  const statusColor = approval.status === "approved" ? "#059669" : approval.status === "rejected" ? "#dc2626" : "#6b7280";
+  const photos = (approval.photo_urls || []).map((p, i) => `<div class="a-photo"><img src="${esc(p.url)}" alt=""/><div class="cap">Attachment #${i + 1}</div></div>`).join("");
+  const files = (approval.file_urls || []).map((f) => `<li>${esc(f.name || "file")} — <span class="u">${esc(f.url)}</span></li>`).join("");
+  const mapUrl = approval.response_lat && approval.response_lng ? `https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}` : "";
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Digital Approval — ${esc(approval.subject)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:#0f172a;margin:24px;font-size:12px;line-height:1.5}
+      .head{border-bottom:3px solid #1e3a8a;padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+      .brand{font-size:20px;font-weight:800;color:#1e3a8a}
+      .brand small{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#64748b;font-weight:600;margin-top:2px}
+      h1{font-size:26px;margin:0 0 4px;color:#0c1c3e;font-family:Georgia,'Times New Roman',serif}
+      .status{display:inline-block;padding:5px 14px;color:#fff;background:${statusColor};font-weight:800;font-size:11px;letter-spacing:.2em;border-radius:2px}
+      .sub{color:#64748b;font-size:10px;letter-spacing:.15em;text-transform:uppercase;margin-top:6px}
+      section{background:#f8fafc;border:1px solid #cbd5e1;padding:14px;margin:14px 0}
+      section h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#1e3a8a;font-weight:800;margin:0 0 8px;border-bottom:1px solid #cbd5e1;padding-bottom:6px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .field label{display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700}
+      .field span{font-size:13px;color:#0f172a;font-weight:600;word-break:break-word}
+      .mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+      .a-photos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+      .a-photo{border:1px solid #cbd5e1;background:#fff;padding:4px;text-align:center}
+      .a-photo img{width:100%;max-height:200px;object-fit:contain}
+      .a-photo .cap{font-size:9px;color:#64748b;margin-top:2px}
+      .selfie{max-width:220px;border:2px solid #cbd5e1;padding:4px;background:#fff;margin-top:6px}
+      .footer{border-top:2px solid #1e3a8a;margin-top:22px;padding-top:10px;font-size:9px;color:#64748b;text-align:center;letter-spacing:.1em;text-transform:uppercase}
+      .box{white-space:pre-wrap;background:#fff;border:1px solid #cbd5e1;padding:8px;font-size:12px}
+      .u{color:#1d4ed8;word-break:break-all;text-decoration:underline}
+      .no-print{margin-bottom:12px}
+      .no-print button{padding:8px 16px;background:#1e3a8a;color:#fff;border:0;font-weight:700;cursor:pointer;font-size:12px}
+      @media print{.no-print{display:none}}
+      @page{size:A4;margin:14mm}
+    </style></head><body>
+    <div class="no-print"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+    <div class="head">
+      <div>
+        <div class="brand">SANKALP GROUP · BUSINESS SOLUTIONS<small>Interior & Infra Solutions</small></div>
+        <h1>Digital Approval Record</h1>
+        <div class="sub">Legally-binding electronic acceptance · Generated ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+      <span class="status">${status}</span>
+    </div>
+    <section>
+      <h3>Approval Subject</h3>
+      <div style="font-size:16px;font-weight:700;color:#0c1c3e;font-family:Georgia,serif">${esc(approval.subject)}</div>
+      ${approval.description ? `<div class="box" style="margin-top:8px">${esc(approval.description)}</div>` : ""}
+    </section>
+    <section>
+      <h3>Request Details</h3>
+      <div class="grid">
+        <div class="field"><label>Customer</label><span>${esc(approval.customer_name || approval.customer?.name || "—")}</span></div>
+        <div class="field"><label>Project</label><span>${esc(approval.project_name || approval.project?.project_name || "—")}</span></div>
+        <div class="field"><label>Created By</label><span>${esc(approval.creator?.full_name || approval.creator?.email || "—")}</span></div>
+        <div class="field"><label>Created At</label><span>${fmt(approval.created_at)}</span></div>
+        <div class="field"><label>Expires At</label><span>${fmt(approval.expires_at)}</span></div>
+        <div class="field"><label>Token</label><span class="mono">${esc(approval.token?.slice(0, 24))}…</span></div>
+      </div>
+    </section>
+    ${photos ? `<section><h3>Attached Photos (${approval.photo_urls.length})</h3><div class="a-photos">${photos}</div></section>` : ""}
+    ${files ? `<section><h3>Attached Files</h3><ul>${files}</ul></section>` : ""}
+    ${approval.response_at ? `
+    <section style="background:${approval.status === "approved" ? "#ecfdf5" : "#fef2f2"};border-color:${statusColor}">
+      <h3 style="color:${statusColor}">Customer Response — Evidence</h3>
+      <div class="grid">
+        <div class="field"><label>Decision</label><span style="color:${statusColor};font-weight:800">${status}</span></div>
+        <div class="field"><label>Responded By (Typed Name)</label><span>${esc(approval.response_by_name || "—")}</span></div>
+        <div class="field"><label>Response Time</label><span>${fmt(approval.response_at)}</span></div>
+        <div class="field"><label>IP Address</label><span class="mono">${esc(approval.response_ip || "—")}</span></div>
+        ${approval.response_lat ? `
+          <div class="field"><label>Latitude</label><span class="mono">${approval.response_lat.toFixed(6)}</span></div>
+          <div class="field"><label>Longitude</label><span class="mono">${approval.response_lng.toFixed(6)}</span></div>
+          <div class="field" style="grid-column:span 2"><label>Google Maps</label><span class="u">${mapUrl}</span></div>
+        ` : ""}
+      </div>
+      ${approval.response_comment ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Comment / Change Request</label><div class="box">${esc(approval.response_comment)}</div></div>` : ""}
+      ${approval.response_photo_url ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie</label><img src="${esc(approval.response_photo_url)}" class="selfie" alt="Customer selfie"/></div>` : ""}
+      ${approval.response_user_agent ? `<div style="margin-top:10px;font-size:9px;color:#64748b">Device: ${esc(approval.response_user_agent)}</div>` : ""}
+    </section>` : `<section><h3>Response Status</h3><div style="text-align:center;color:${statusColor};font-size:14px;font-weight:700;padding:12px">Awaiting customer response · Link expires ${fmt(approval.expires_at)}</div></section>`}
+    <div class="footer">This is a system-generated digital record. Sankalp Group · Business Solutions · © ${new Date().getFullYear()}</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch(_){ /* noop */ } }, 500);
 }

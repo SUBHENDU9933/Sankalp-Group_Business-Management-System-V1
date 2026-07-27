@@ -2,10 +2,106 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchApprovalByToken, submitApprovalResponse, uploadPublicResponsePhoto } from "@/services/digitalApprovalService";
 import { toast, Toaster } from "sonner";
-import { CheckCircle2, XCircle, AlertTriangle, MapPin, Camera, ShieldCheck, ExternalLink, User, Calendar, Phone } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, MapPin, Camera, ShieldCheck, ExternalLink, User, Calendar, Phone, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Public-facing magic-link approval page. NO app auth.
+
+// -- Print-ready evidence document (opens in new window, auto-prints) --
+function printApprovalEvidence(approval) {
+  const w = window.open("", "_blank", "width=900,height=1200");
+  if (!w) { alert("Popup blocked — allow popups to print"); return; }
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const fmt = (d) => d ? new Date(d).toLocaleString('en-IN') : "—";
+  const status = (approval.status || "pending").toUpperCase();
+  const statusColor = approval.status === "approved" ? "#059669" : approval.status === "rejected" ? "#dc2626" : "#6b7280";
+  const photos = (approval.photo_urls || []).map((p, i) => `<div class="a-photo"><img src="${esc(p.url)}" alt=""/><div class="cap">Attachment #${i + 1}</div></div>`).join("");
+  const files = (approval.file_urls || []).map((f) => `<li>${esc(f.name || "file")} — <span class="u">${esc(f.url)}</span></li>`).join("");
+  const mapUrl = approval.response_lat && approval.response_lng ? `https://maps.google.com/?q=${approval.response_lat},${approval.response_lng}` : "";
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Digital Approval — ${esc(approval.subject)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:#0f172a;margin:24px;font-size:12px;line-height:1.5}
+      .head{border-bottom:3px solid #1e3a8a;padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+      .brand{font-size:20px;font-weight:800;color:#1e3a8a}
+      .brand small{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#64748b;font-weight:600;margin-top:2px}
+      h1{font-size:26px;margin:0 0 4px;color:#0c1c3e;font-family:Georgia,'Times New Roman',serif}
+      .status{display:inline-block;padding:5px 14px;color:#fff;background:${statusColor};font-weight:800;font-size:11px;letter-spacing:.2em;border-radius:2px}
+      .sub{color:#64748b;font-size:10px;letter-spacing:.15em;text-transform:uppercase;margin-top:6px}
+      section{background:#f8fafc;border:1px solid #cbd5e1;padding:14px;margin:14px 0}
+      section h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#1e3a8a;font-weight:800;margin:0 0 8px;border-bottom:1px solid #cbd5e1;padding-bottom:6px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .field label{display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700}
+      .field span{font-size:13px;color:#0f172a;font-weight:600;word-break:break-word}
+      .mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+      .a-photos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+      .a-photo{border:1px solid #cbd5e1;background:#fff;padding:4px;text-align:center}
+      .a-photo img{width:100%;max-height:200px;object-fit:contain}
+      .a-photo .cap{font-size:9px;color:#64748b;margin-top:2px}
+      .selfie{max-width:220px;border:2px solid #cbd5e1;padding:4px;background:#fff;margin-top:6px}
+      .footer{border-top:2px solid #1e3a8a;margin-top:22px;padding-top:10px;font-size:9px;color:#64748b;text-align:center;letter-spacing:.1em;text-transform:uppercase}
+      .box{white-space:pre-wrap;background:#fff;border:1px solid #cbd5e1;padding:8px;font-size:12px}
+      .u{color:#1d4ed8;word-break:break-all;text-decoration:underline}
+      .no-print{margin-bottom:12px}
+      .no-print button{padding:8px 16px;background:#1e3a8a;color:#fff;border:0;font-weight:700;cursor:pointer;font-size:12px}
+      @media print{.no-print{display:none}}
+      @page{size:A4;margin:14mm}
+    </style></head><body>
+    <div class="no-print"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+    <div class="head">
+      <div>
+        <div class="brand">SANKALP GROUP · BUSINESS SOLUTIONS<small>Interior & Infra Solutions</small></div>
+        <h1>Digital Approval Record</h1>
+        <div class="sub">Legally-binding electronic acceptance · Generated ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+      <span class="status">${status}</span>
+    </div>
+
+    <section>
+      <h3>Approval Subject</h3>
+      <div style="font-size:16px;font-weight:700;color:#0c1c3e;font-family:Georgia,serif">${esc(approval.subject)}</div>
+      ${approval.description ? `<div class="box" style="margin-top:8px">${esc(approval.description)}</div>` : ""}
+    </section>
+
+    <section>
+      <h3>Request Details</h3>
+      <div class="grid">
+        <div class="field"><label>Customer</label><span>${esc(approval.customer_name || "—")}</span></div>
+        <div class="field"><label>Project</label><span>${esc(approval.project_name || "—")}</span></div>
+        <div class="field"><label>Created At</label><span>${fmt(approval.created_at)}</span></div>
+        <div class="field"><label>Expires At</label><span>${fmt(approval.expires_at)}</span></div>
+        <div class="field"><label>Token</label><span class="mono">${esc(approval.token?.slice(0, 24))}…</span></div>
+      </div>
+    </section>
+
+    ${photos ? `<section><h3>Attached Photos (${approval.photo_urls.length})</h3><div class="a-photos">${photos}</div></section>` : ""}
+    ${files ? `<section><h3>Attached Files</h3><ul>${files}</ul></section>` : ""}
+
+    ${approval.response_at ? `
+    <section style="background:${approval.status === "approved" ? "#ecfdf5" : "#fef2f2"};border-color:${statusColor}">
+      <h3 style="color:${statusColor}">Customer Response — Evidence</h3>
+      <div class="grid">
+        <div class="field"><label>Decision</label><span style="color:${statusColor};font-weight:800">${status}</span></div>
+        <div class="field"><label>Responded By (Typed Name)</label><span>${esc(approval.response_by_name || "—")}</span></div>
+        <div class="field"><label>Response Time</label><span>${fmt(approval.response_at)}</span></div>
+        <div class="field"><label>IP Address</label><span class="mono">${esc(approval.response_ip || "—")}</span></div>
+        ${approval.response_lat ? `
+          <div class="field"><label>Latitude</label><span class="mono">${approval.response_lat.toFixed(6)}</span></div>
+          <div class="field"><label>Longitude</label><span class="mono">${approval.response_lng.toFixed(6)}</span></div>
+          <div class="field" style="grid-column:span 2"><label>Google Maps</label><span class="u">${mapUrl}</span></div>
+        ` : ""}
+      </div>
+      ${approval.response_comment ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Comment / Change Request</label><div class="box">${esc(approval.response_comment)}</div></div>` : ""}
+      ${approval.response_photo_url ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie</label><img src="${esc(approval.response_photo_url)}" class="selfie" alt="Customer selfie"/></div>` : ""}
+      ${approval.response_user_agent ? `<div style="margin-top:10px;font-size:9px;color:#64748b">Device: ${esc(approval.response_user_agent)}</div>` : ""}
+    </section>` : `<section><h3>Response Status</h3><div style="text-align:center;color:${statusColor};font-size:14px;font-weight:700;padding:12px">Awaiting customer response · Link expires ${fmt(approval.expires_at)}</div></section>`}
+
+    <div class="footer">This is a system-generated digital record. Sankalp Group · Business Solutions · © ${new Date().getFullYear()}</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch(_){ /* noop */ } }, 500);
+}
+
 export default function PublicApprovePage() {
   const { token } = useParams();
   const [approval, setApproval] = useState(null);
@@ -53,14 +149,27 @@ export default function PublicApprovePage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      setCameraOn(true);
-    } catch (e) { toast.error("Camera permission denied"); }
+      setCameraOn(true);   // renders the <video> element first
+    } catch (e) {
+      toast.error("Camera permission denied — please allow camera access and try again");
+      console.warn("getUserMedia failed", e);
+    }
   };
   const stopCamera = () => {
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
     setCameraOn(false);
   };
+  // Attach stream to <video> AFTER the element is in the DOM
+  useEffect(() => {
+    if (cameraOn && videoRef.current && streamRef.current) {
+      const v = videoRef.current;
+      v.srcObject = streamRef.current;
+      v.setAttribute("playsinline", "true");
+      v.muted = true;
+      const p = v.play();
+      if (p && typeof p.catch === "function") p.catch((err) => console.warn("video play failed", err));
+    }
+  }, [cameraOn]);
   useEffect(() => () => stopCamera(), []);
 
   const capturePhoto = async () => {
@@ -86,9 +195,12 @@ export default function PublicApprovePage() {
       let photoUrl = null;
       if (selfie?.blob) {
         setSelfieUploading(true);
-        const up = await uploadPublicResponsePhoto(selfie.blob);
-        photoUrl = up.url;
-        setSelfieUploading(false);
+        try {
+          const up = await uploadPublicResponsePhoto(selfie.blob);
+          photoUrl = up.url;
+        } finally {
+          setSelfieUploading(false);
+        }
       }
       // Get IP (best-effort, non-blocking)
       let ip = null;
@@ -122,6 +234,11 @@ export default function PublicApprovePage() {
     const isExpired = approval.status === "expired";
     return (
       <Shell>
+        <div className="print-hide flex justify-end mb-3">
+          <button onClick={() => printApprovalEvidence(approval)} className="inline-flex items-center gap-2 bg-stone-900 text-white px-4 py-2 text-sm font-bold hover:bg-stone-800" data-testid="pa-print-evidence">
+            <Printer className="w-4 h-4" /> Print / Save as PDF
+          </button>
+        </div>
         <div className={cn("rounded-none border-2 p-6 mb-4", isApproved && "border-emerald-300 bg-emerald-50", isRejected && "border-rose-300 bg-rose-50", isExpired && "border-stone-300 bg-stone-50")}>
           <div className="flex items-center gap-3">
             {isApproved && <CheckCircle2 className="w-10 h-10 text-emerald-600" />}
@@ -156,8 +273,8 @@ export default function PublicApprovePage() {
             )}
             {approval.response_photo_url && (
               <div className="mt-3">
-                <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 mb-1">Customer Selfie</div>
-                <img src={approval.response_photo_url} alt="Customer" className="max-w-[280px] border border-stone-300" />
+                <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 mb-1">Customer Selfie / Photo</div>
+                <img src={approval.response_photo_url} alt="Customer" className="w-full max-w-md border-2 border-stone-300 shadow" data-testid="pa-response-selfie" />
               </div>
             )}
             {approval.response_lat && approval.response_lng && (
@@ -224,15 +341,21 @@ export default function PublicApprovePage() {
             <div>
               <label className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 flex items-center gap-1"><Camera className="w-3 h-3" /> Selfie (recommended)</label>
               {selfie ? (
-                <div className="mt-2 flex items-center gap-2">
-                  <img src={selfie.url} alt="Selfie" className="w-32 h-32 object-cover border border-stone-300" />
-                  <button onClick={retakePhoto} className="text-xs text-blue-700 underline">Retake</button>
+                <div className="mt-2 border-2 border-emerald-400 bg-emerald-50 p-3">
+                  <div className="text-[11px] text-emerald-800 font-bold mb-2 tracking-wider">✓ SELFIE CAPTURED</div>
+                  <img src={selfie.url} alt="Selfie" className="w-full max-w-sm object-contain border-2 border-white shadow" data-testid="pa-selfie-preview" />
+                  <button onClick={retakePhoto} className="mt-2 text-xs text-blue-700 underline">Retake photo</button>
                 </div>
               ) : cameraOn ? (
-                <div className="mt-2">
-                  <video ref={videoRef} className="w-full max-w-xs border border-stone-300" playsInline />
-                  <button onClick={capturePhoto} className="mt-2 px-4 py-2 bg-stone-900 text-white text-sm hover:bg-stone-800" data-testid="pa-capture-selfie">Capture</button>
-                  <button onClick={stopCamera} className="mt-2 ml-2 px-4 py-2 border border-stone-300 text-sm hover:bg-stone-100">Cancel</button>
+                <div className="mt-2 border-2 border-blue-400 bg-blue-50 p-3">
+                  <div className="text-[11px] text-blue-800 font-bold mb-2 tracking-wider">CAMERA LIVE — Position your face in frame</div>
+                  <video ref={videoRef} className="w-full max-w-sm bg-black" playsInline muted autoPlay data-testid="pa-video" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={capturePhoto} className="px-4 py-2 bg-emerald-600 text-white text-sm hover:bg-emerald-700 inline-flex items-center gap-1" data-testid="pa-capture-selfie">
+                      <Camera className="w-4 h-4" /> Capture
+                    </button>
+                    <button onClick={stopCamera} className="px-4 py-2 border-2 border-stone-300 bg-white text-sm hover:bg-stone-100">Cancel</button>
+                  </div>
                 </div>
               ) : (
                 <button onClick={startCamera} className="mt-1 px-4 py-2 border-2 border-stone-300 text-sm hover:bg-stone-100 inline-flex items-center gap-2" data-testid="pa-selfie-open">
@@ -268,6 +391,7 @@ export default function PublicApprovePage() {
 function Shell({ children }) {
   return (
     <div className="min-h-screen bg-stone-100 py-6 px-4 md:py-12">
+      <style>{`@media print { .print-hide { display: none !important; } body { background: #fff !important; } }`}</style>
       <div className="max-w-2xl mx-auto">
         {/* Brand header */}
         <div className="bg-white border-2 border-stone-900 p-4 mb-4 flex items-center gap-3">

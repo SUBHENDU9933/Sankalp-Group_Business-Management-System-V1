@@ -1,0 +1,73 @@
+import json
+from pathlib import Path
+
+report = {
+  "verdict": "not_fixed",
+  "user_reported_bug": "digital approval section-- front camera preview not working, after capture photo not show on same page for evidence, need a print the whole after approval or final submission from both side admin or customer",
+  "summary": "No relevant testing skill found. Focused UI verification on the Digital Approvals flow: created real approvals through /digital-approvals, opened real /approve/:token links, simulated a granted front camera in the browser, verified pa-video renders and pa-selfie-preview displays a large captured image in a green evidence box, and verified customer/admin print popups for a completed no-selfie approval. The reported flow is still not fixed end-to-end because submitting after capturing a selfie remains stuck on 'Uploading photo…' due to Supabase Storage upload returning HTTP 400, so the customer cannot complete final submission with captured evidence.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "Supabase Storage: storage/v1/object/attachments/approvals/responses/*.jpg",
+        "issue": "Public approval selfie upload fails with HTTP 400 after capture. The UI remains on 'Uploading photo…' and never reaches final submission/evidence state. Code review shows storage policy in supabase_schema_v14.sql only allows attachments_insert to authenticated, but uploadPublicResponsePhoto is called by an anon public magic-link customer.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "PublicApprovePage.handleSubmit / uploadPublicResponsePhoto",
+        "issue": "After a captured selfie, clicking CONFIRM APPROVAL gets stuck showing 'Uploading photo…'. No final evidence page or print button is reached for the captured-selfie flow.",
+        "selector": "[data-testid='pa-submit']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Public approval with captured selfie evidence",
+        "issue": "Camera preview and local selfie preview work, but anon storage upload fails; therefore the complete customer response with selfie evidence is not persisted and cannot be printed by customer/admin.",
+        "affected_selectors": ["[data-testid='pa-selfie-open']", "[data-testid='pa-video']", "[data-testid='pa-selfie-preview']", "[data-testid='pa-submit']", "[data-testid='pa-print-evidence']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/bug_verification_iteration19/test_plan.md",
+    "/app/tests/bug_verification_iteration19/digital_approvals_camera_print_test.py",
+    "/app/tests/bug_verification_iteration19/digital_approvals_public_admin_continuation_test.py",
+    "/app/tests/bug_verification_iteration19/digital_approvals_print_no_selfie_control_test.py",
+    "/root/.emergent/automation_output/20260727_221049/console_20260727_221049.log",
+    "/root/.emergent/automation_output/20260727_221303/console_20260727_221303.log"
+  ],
+  "action_items": [
+    "Allow anon public response photo uploads to the intended storage path/bucket, or proxy upload through a secure backend/Supabase RPC/service-role path before calling submit_approval_response.",
+    "Add error handling that resets selfieUploading on upload failure and shows a clear toast instead of leaving the button stuck on 'Uploading photo…'.",
+    "Retest the exact captured-selfie flow through final submission, then verify pa-print-evidence and da-print include the persisted Customer Selfie photo."
+  ],
+  "critical_code_review_comments": [
+    "PublicApprovePage.jsx captures the image and calls uploadPublicResponsePhoto(selfie.blob) before submitApprovalResponse. digitalApprovalService.js uploads to Supabase storage bucket 'attachments' as an unauthenticated public user. supabase_schema_v14.sql lines 374-376 create attachments_insert only for authenticated, so public customer uploads are denied. Supabase Storage docs confirm upload requires an INSERT policy on storage.objects for the caller role. Also, handleSubmit sets selfieUploading(true) inside the try block but does not reset it in the catch path if uploadPublicResponsePhoto throws."
+  ],
+  "updated_files": [
+    "/app/tests/bug_verification_iteration19/test_plan.md",
+    "/app/tests/bug_verification_iteration19/digital_approvals_camera_print_test.py",
+    "/app/tests/bug_verification_iteration19/digital_approvals_public_admin_continuation_test.py",
+    "/app/tests/bug_verification_iteration19/digital_approvals_print_no_selfie_control_test.py",
+    "/app/tests/bug_verification_iteration19/write_report.py",
+    "/app/test_reports/bug_verification_19.json",
+    "/app/test_reports/iteration_19.json"
+  ],
+  "success_rate": {"backend": "50%", "frontend": "70%"},
+  "seed_data_creation": "Created real UI approvals: 'QA Camera Print Approval Iter19 Retry' (pending but selfie upload failed/stuck after captured preview) and 'QA Print Control No Selfie Iter19' (approved no-selfie control used to verify customer/admin print popups).",
+  "retest_needed": True,
+  "should_main_agent_self_test": True,
+  "context_for_next_testing_agent": "Start by retesting a new public approval with captured selfie. In this run, pa-video rendered and pa-selfie-preview showed a 384px wide blob image in a green box, but submit stuck on Uploading photo because Supabase Storage returned 400 for attachments/approvals/responses/*.jpg. Print buttons worked for a no-selfie completed approval on both public and admin sides.",
+  "rca_of_the_issue": "The camera timing/UI patch appears effective for preview and local capture, and print helpers render correct reports. The end-to-end customer approval with captured photo fails at persistence: anonymous public users cannot insert into the 'attachments' bucket under the current storage policy (authenticated-only insert), causing uploadPublicResponsePhoto to throw HTTP 400 and preventing final submission."
+}
+
+for path in [Path('/app/test_reports/bug_verification_19.json'), Path('/app/test_reports/iteration_19.json')]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2), encoding='utf-8')
+
+print(json.dumps(report, indent=2))

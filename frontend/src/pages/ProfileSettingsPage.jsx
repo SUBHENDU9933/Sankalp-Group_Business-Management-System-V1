@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile, uploadSignature, sendPasswordReset } from "@/services/profileService";
-import { Upload, Save, KeyRound, UserCircle2 } from "lucide-react";
+import { exportAllToZip } from "@/services/exportService";
+import { Upload, Save, KeyRound, UserCircle2, Download, Archive } from "lucide-react";
 import { toast } from "sonner";
 
 const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0";
@@ -19,7 +20,21 @@ export default function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(null);
   const fileRef = useRef(null);
+
+  const handleExportZip = async () => {
+    if (!isAdmin) { toast.error("Only admin can export all data"); return; }
+    if (!window.confirm("Export ALL data as a ZIP (one CSV per table)? This may take 15-30 seconds.")) return;
+    setExporting(true);
+    try {
+      const res = await exportAllToZip((p) => setExportProgress(p));
+      if (res.errors.length) toast.warning(`Downloaded with ${res.errors.length} table error(s) — see _errors.txt inside ZIP`);
+      else toast.success(`ZIP downloaded — ${res.tables} tables backed up`);
+    } catch (e) { toast.error(e.message); }
+    finally { setExporting(false); setExportProgress(null); }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -128,6 +143,25 @@ export default function ProfileSettingsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Full Data Backup (admin only) */}
+        {isAdmin && (
+          <div className="bg-white border border-stone-200 p-6 mt-6" data-testid="data-backup-section">
+            <div className="label-uppercase mb-3"><Archive className="w-3 h-3 inline mr-1" />Full Data Backup</div>
+            <div className="text-xs text-stone-600 mb-4">
+              Downloads a ZIP file containing every table as CSV — Leads, Customers, Projects, Vendors, Estimates, Receipts, Expenses, Payments, Audit Log, and more.
+              Save it to your Google Drive / hard drive for permanent safekeeping.
+            </div>
+            {exporting && exportProgress && (
+              <div className="mb-3 text-xs text-stone-600 bg-stone-50 border border-stone-200 p-3">
+                Exporting <b>{exportProgress.current}</b> ({exportProgress.done + 1}/{exportProgress.total})…
+              </div>
+            )}
+            <Button onClick={handleExportZip} disabled={exporting} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="profile-export-zip">
+              <Download className="w-4 h-4 mr-1.5" />{exporting ? "Exporting…" : "Download Full Backup ZIP"}
+            </Button>
+          </div>
+        )}
       </PageBody>
     </div>
   );

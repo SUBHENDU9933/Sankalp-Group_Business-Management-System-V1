@@ -16,6 +16,12 @@ export const buildEstimatorUrl = ({ leadId, estimateId } = {}) => {
 };
 
 export const fetchEstimates = async () => {
+  const withFilter = await supabase
+    .from("estimates")
+    .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name)")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  if (!withFilter.error) return withFilter.data || [];
   const { data, error } = await supabase
     .from("estimates")
     .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name)")
@@ -39,8 +45,10 @@ export const updateEstimateStatus = async (id, status) => {
   if (error) throw error;
 };
 
-export const deleteEstimate = async (id) => {
-  const { error } = await supabase.from("estimates").delete().eq("id", id);
+export const deleteEstimate = async (id, userId) => {
+  const { error } = await supabase.from("estimates")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };
 

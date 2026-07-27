@@ -100,6 +100,49 @@ See `/app/memory/test_credentials.md`
 - User must push to GitHub via "Save to GitHub" so Vercel redeploys
 
 
+## Iteration 19 (Feb 2026) — MEGA UPGRADE: Audit Log + Trash + Attachments + Digital Approvals + ZIP Backup
+
+**Massive infrastructure phase — 5 features shipped in one build.**
+
+### Schema `/app/supabase_schema_v14.sql` (must be applied)
+- `audit_log` table — append-only, immutable (no UPDATE/DELETE policies)
+- `audit_trigger_fn()` + triggers on 9 entities capturing every create/update/soft_delete/restore with actor identity + JSON diff
+- Soft-delete columns (`deleted_at`, `deleted_by`) on: leads, customers, projects, vendors, estimates, receipts, expenses, vendor_payments
+- `digital_approvals` table with 64-char random `token`, expires 7d, response evidence fields (name, comment, lat/lng, IP, user_agent, selfie URL)
+- `get_approval_by_token()` + `submit_approval_response()` SECURITY DEFINER RPCs (public/anon accessible)
+- `mark_approval_expired_if_due()` RPC — auto-expire pending links past due date
+- `receipt_attachments` table + RLS for admin & receipt creator
+- `get_receipt_attachments_by_receipt()` public RPC (needed by verify page)
+- Public Storage bucket `attachments` + INSERT/UPDATE/DELETE policies
+
+### New services
+- `services/auditService.js` — fetchAuditLog with filters (user/entity/action/date/search)
+- `services/trashService.js` — 9-entity list/restore/purge (single + bulk)
+- `services/attachmentService.js` — Supabase Storage upload/delete
+- `services/digitalApprovalService.js` — CRUD + public magic-link + response submit + selfie upload
+- `services/exportService.js` — ZIP-of-CSVs of 22 tables (uses `jszip` — installed via yarn)
+
+### Existing services patched
+- leadService/customerService/projectService/vendorService/estimateService/receiptService now: (a) filter `deleted_at is null` in fetches with graceful fallback if v14 not applied, (b) soft-delete instead of hard-delete
+- receiptService now exposes `fetchReceiptAttachments`, `fetchReceiptAttachmentsPublic`, `addReceiptAttachment`, `removeReceiptAttachment`
+
+### New pages
+- `pages/TrashPage.jsx` — 9 tabs (one per entity), search + bulk restore/purge, admin sees all, RM sees own
+- `pages/AuditLogPage.jsx` — filters (user, entity, action, date), expandable JSON diff, CSV export
+- `pages/DigitalApprovalsPage.jsx` — card grid with status chips + New Approval dialog (photos/files upload) + Detail sheet (magic link + WhatsApp/SMS/Email share + response evidence view: selfie, geo map link, IP, user-agent)
+- `pages/PublicApprovePage.jsx` — public magic-link (no auth), 3 states: view/choose → form (name, comment, camera-based selfie, geolocation request) → done (read-only evidence view). Auto-expires + IP fetched via ipify
+
+### Pages updated
+- Sidebar (DashboardLayout) — added Digital Approvals (main), Audit Log + Delete Approvals + Trash (admin), Trash for RMs
+- App.js — 3 protected routes + 1 public `/approve/:token`
+- ProfileSettingsPage — new "Full Data Backup" section with progress-tracked ZIP download (admin only)
+- ReceiptsPage — attachment picker in form; each uploaded file becomes a `receipt_attachments` row
+- ReceiptPrintPage — page 2 (`page-break-before: always`) renders each attachment: images inline, PDFs as verification-link block
+- ApprovalsPage/ProjectsPage/ProjectDetailPage/VendorsPage/VendorDetailPage/EstimatesPage — all delete calls updated to soft-delete with user.id + confirm text changed to "Move to Trash"
+
+### Dependencies
+- `jszip` (added via yarn)
+
 ## Iteration 18 (Feb 2026) — Estimate Presets Data-Loss Fix + Excel Bulk Import
 **Critical bug**: The "Save & Apply Changes" button in Estimate Settings used a destructive "delete-all-then-reinsert" strategy that wiped the DB if the user clicked save before async cloud load completed. Reports of full Items & Rates deletion.
 

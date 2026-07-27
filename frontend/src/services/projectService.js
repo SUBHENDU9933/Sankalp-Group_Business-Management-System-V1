@@ -5,6 +5,7 @@ export const fetchProjects = async () => {
   const withMembers = await supabase
     .from("projects")
     .select("*, customer:customers(id,name,phone), members:project_members(user_id,role,profile:profiles!project_members_user_id_fkey(id,full_name,email,designation))")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (!withMembers.error) return withMembers.data || [];
   const { data, error } = await supabase
@@ -46,8 +47,10 @@ export const updateProject = async (id, payload) => {
   return data;
 };
 
-export const deleteProject = async (id) => {
-  const { error } = await supabase.from("projects").delete().eq("id", id);
+export const deleteProject = async (id, userId) => {
+  const { error } = await supabase.from("projects")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };
 
@@ -86,7 +89,15 @@ export const fetchExpensesByProject = async (projectId) => {
     .from("expenses")
     .select("*, creator:profiles!expenses_created_by_fkey(id,full_name,email)")
     .eq("project_id", projectId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
+  if (error && /deleted_at/i.test(error.message)) {
+    const r = await supabase.from("expenses")
+      .select("*, creator:profiles!expenses_created_by_fkey(id,full_name,email)")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+    if (r.error) throw r.error; return r.data || [];
+  }
   if (error) throw error;
   return data || [];
 };
@@ -101,7 +112,9 @@ export const createExpense = async (payload, userId) => {
   return data;
 };
 
-export const deleteExpense = async (id) => {
-  const { error } = await supabase.from("expenses").delete().eq("id", id);
+export const deleteExpense = async (id, userId) => {
+  const { error } = await supabase.from("expenses")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };

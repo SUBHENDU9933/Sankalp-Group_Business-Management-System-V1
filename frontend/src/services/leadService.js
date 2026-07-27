@@ -7,6 +7,7 @@ export const fetchLeads = async (filters = {}) => {
     .select(
       "*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email), assignees:lead_assignees(user_id, added_at, profile:profiles!lead_assignees_user_id_fkey(id,full_name,email))"
     )
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.includeDeleteRequested === false) q = q.eq("delete_request", false);
@@ -17,9 +18,19 @@ export const fetchLeads = async (filters = {}) => {
       const fallback = await supabase
         .from("leads")
         .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (fallback.error) throw fallback.error;
       return (fallback.data || []).map((l) => ({ ...l, assignees: [] }));
+    }
+    // Graceful degrade if v14 not yet applied (deleted_at column missing)
+    if (/deleted_at/i.test(error.message)) {
+      const retry = await supabase
+        .from("leads")
+        .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
+        .order("created_at", { ascending: false });
+      if (retry.error) throw retry.error;
+      return (retry.data || []).map((l) => ({ ...l, assignees: [] }));
     }
     throw error;
   }
@@ -155,8 +166,11 @@ export const cancelDeleteRequest = async (id) => {
   if (error) throw error;
 };
 
-export const adminDeleteLead = async (id) => {
-  const { error } = await supabase.from("leads").delete().eq("id", id);
+export const adminDeleteLead = async (id, userId) => {
+  // Soft-delete: goes to Trash instead of hard delete
+  const { error } = await supabase.from("leads")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };
 

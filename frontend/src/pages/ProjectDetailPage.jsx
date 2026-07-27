@@ -37,7 +37,7 @@ const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focu
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [project, setProject] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [receipts, setReceipts] = useState([]);
@@ -79,14 +79,14 @@ export default function ProjectDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Permanently delete "${project.project_name}" and all its expenses? This cannot be undone.`)) return;
-    try { await deleteProject(project.id); toast.success("Project deleted"); nav("/projects"); }
+    if (!window.confirm(`Move "${project.project_name}" to Trash? (Restore within 30 days from the Trash page.)`)) return;
+    try { await deleteProject(project.id, user?.id); toast.success("Moved to Trash"); nav("/projects"); }
     catch (e) { toast.error(e.message); }
   };
 
   const handleDeleteExpense = async (e) => {
-    if (!window.confirm(`Delete this ${EXPENSE_CATEGORIES.find((x) => x.key === e.category)?.label || e.category} expense of ${formatINR(e.amount)}?`)) return;
-    try { await deleteExpense(e.id); toast.success("Expense deleted"); load(); }
+    if (!window.confirm(`Move this ${EXPENSE_CATEGORIES.find((x) => x.key === e.category)?.label || e.category} expense of ${formatINR(e.amount)} to Trash?`)) return;
+    try { await deleteExpense(e.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (err) { toast.error(err.message); }
   };
 

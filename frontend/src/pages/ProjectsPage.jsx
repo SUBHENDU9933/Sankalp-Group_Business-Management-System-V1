@@ -30,7 +30,7 @@ const statusColor = (s) => ({
 }[s] || "bg-stone-100 text-stone-900 border-stone-300");
 
 export default function ProjectsPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [list, setList] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ export default function ProjectsPage() {
 
   const handleDelete = async (project) => {
     if (!window.confirm(`Permanently delete "${project.project_name}"? This will also delete all related expenses. This cannot be undone.`)) return;
-    try { await deleteProject(project.id); toast.success("Project deleted"); load(); }
+    try { await deleteProject(project.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
 

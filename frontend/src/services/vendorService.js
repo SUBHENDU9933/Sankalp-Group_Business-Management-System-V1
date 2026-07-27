@@ -20,10 +20,14 @@ const tryFullElseBase = async (action) => {
 
 export const fetchVendors = async () => {
   return tryFullElseBase(async (sel) => {
-    const { data, error } = await supabase
+    let q = supabase
       .from("vendors")
       .select(sel)
       .order("created_at", { ascending: false });
+    // Try with deleted_at filter first; fall back if column missing
+    const withFilter = await q.is("deleted_at", null);
+    if (!withFilter.error) return withFilter.data || [];
+    const { data, error } = await supabase.from("vendors").select(sel).order("created_at", { ascending: false });
     if (error) throw error;
     return data || [];
   });
@@ -62,8 +66,10 @@ export const updateVendor = async (id, payload) => {
   return data;
 };
 
-export const deleteVendor = async (id) => {
-  const { error } = await supabase.from("vendors").delete().eq("id", id);
+export const deleteVendor = async (id, userId) => {
+  const { error } = await supabase.from("vendors")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };
 
@@ -96,6 +102,9 @@ export const fetchVendorPayments = async (vendorId) => {
     .select("*, vendor:vendors(id,name,type,phone), project:projects(id,project_name)")
     .order("payment_date", { ascending: false });
   if (vendorId) q = q.eq("vendor_id", vendorId);
+  // Try with deleted_at filter first
+  const withFilter = await q.is("deleted_at", null);
+  if (!withFilter.error) return withFilter.data || [];
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
@@ -111,7 +120,9 @@ export const createVendorPayment = async (payload, userId) => {
   return data;
 };
 
-export const deleteVendorPayment = async (id) => {
-  const { error } = await supabase.from("vendor_payments").delete().eq("id", id);
+export const deleteVendorPayment = async (id, userId) => {
+  const { error } = await supabase.from("vendor_payments")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
   if (error) throw error;
 };

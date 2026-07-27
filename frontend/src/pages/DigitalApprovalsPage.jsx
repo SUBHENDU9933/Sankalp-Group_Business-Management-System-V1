@@ -315,11 +315,17 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
     toast.success("Link copied");
   };
   const share = (channel) => {
-    const msg = encodeURIComponent(`Hi ${approval.customer_name || ""},\n\nPlease review & approve:\n${approval.subject}\n\n${link}\n\n— Sankalp Group`);
+    const title = `Approval Info : ${approval.subject}${approval.customer_name ? ` (${approval.customer_name})` : ""}`;
+    const msg = encodeURIComponent(
+      `*${title}*\n\n` +
+      (approval.project_name ? `Project: ${approval.project_name}\n` : "") +
+      (approval.description ? `\n${approval.description}\n` : "") +
+      `\nPlease review & respond:\n${link}\n\n— Sankalp Group · Business Solutions`
+    );
     const urls = {
       whatsapp: `https://wa.me/?text=${msg}`,
       sms: `sms:?&body=${msg}`,
-      email: `mailto:?subject=${encodeURIComponent(approval.subject)}&body=${msg}`,
+      email: `mailto:?subject=${encodeURIComponent(title)}&body=${msg}`,
     };
     window.open(urls[channel], "_blank");
   };
@@ -542,7 +548,12 @@ function printApprovalRecord(approval) {
         ` : ""}
       </div>
       ${approval.response_comment ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Comment / Change Request</label><div class="box">${esc(approval.response_comment)}</div></div>` : ""}
-      ${approval.response_photo_url ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie</label><img src="${esc(approval.response_photo_url)}" class="selfie" alt="Customer selfie"/></div>` : ""}
+      ${approval.response_photo_url || (approval.response_lat && approval.response_lng) ? `<div style="margin-top:10px"><label style="display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;font-weight:700">Customer Selfie &amp; Location</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          ${approval.response_photo_url ? `<img src="${esc(approval.response_photo_url)}" style="width:100%;border:2px solid #cbd5e1;background:#000" alt="Selfie"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">Selfie not captured</div>`}
+          ${approval.response_lat && approval.response_lng ? `<img src="https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin" style="width:100%;border:2px solid #cbd5e1;background:#f1f5f9" alt="Location map"/>` : `<div style="background:#f1f5f9;border:2px solid #cbd5e1;padding:20px;text-align:center;font-size:10px;color:#64748b">GPS not captured</div>`}
+        </div>
+      </div>` : ""}
       ${approval.response_user_agent ? `<div style="margin-top:10px;font-size:9px;color:#64748b">Device: ${esc(approval.response_user_agent)}</div>` : ""}
     </section>` : `<section><h3>Response Status</h3><div style="text-align:center;color:${statusColor};font-size:14px;font-weight:700;padding:12px">Awaiting customer response · Link expires ${fmt(approval.expires_at)}</div></section>`}
     <div class="footer">This is a system-generated digital record. Sankalp Group · Business Solutions · © ${new Date().getFullYear()}</div>

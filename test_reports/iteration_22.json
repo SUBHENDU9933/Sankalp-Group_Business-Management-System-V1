@@ -1,0 +1,51 @@
+{
+  "verdict": "fixed",
+  "user_reported_bug": "submited photo/selfy add watermark geo tag and add a map PHOTO/screenshot side by side of that capture location. link should shorter. link title should be Approval or Info : SUBJECT (CUSTOMER NAME)",
+  "summary": "No relevant testing skill found. Focused Iteration 22 retest confirmed the admin Digital Approvals on-screen detail sheet now shows the customer selfie and location map/fallback side-by-side in the same 2-column grid. Used real admin login, target approval 42a5a757-81dc-4745-81df-da34171fa6eb, and verified [data-testid='da-detail-selfie'] + [data-testid='da-detail-map'] share one CSS grid parent; map click opened Google Maps. OSM static map was unreachable in headless and correctly showed the acceptable 'Static map unavailable · Open in Google Maps' fallback. Watermark/public evidence/prints were skipped per scope. Short-token DB migration and Vercel OG deployment remain external follow-ups, not part of this frontend patch.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Supabase digital_approvals token default / get_approval_meta_by_token",
+        "issue": "Not retested in this narrow frontend pass; per handoff, link shortening still requires applying /app/supabase_schema_v15.sql, and OG preview needs actual Vercel deployment for end-to-end validation."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/bug_verification_iteration22_db_prep.js",
+    "/app/tests/bug_verification_iteration22_playwright.py",
+    "/app/test_reports/bug_verification_22.json",
+    "/app/test_reports/iteration_22.json"
+  ],
+  "action_items": [
+    "Apply /app/supabase_schema_v15.sql in Supabase to complete the already-known short-link/OG DB requirement.",
+    "After Vercel deployment, verify crawler preview title resolves to 'Approval Info : SUBJECT (CUSTOMER NAME)' end-to-end."
+  ],
+  "critical_code_review_comments": [
+    "DigitalApprovalsPage.jsx now renders response evidence with [data-testid='da-detail-selfie'] and [data-testid='da-detail-map'] inside the same parent class 'grid grid-cols-1 sm:grid-cols-2 gap-2'.",
+    "Runtime layout evidence: parent display='grid', gridTemplateColumns='242.5px 242.5px', childCount=2, sameParent=true, sideBySide=true.",
+    "Map anchor href was https://maps.google.com/?q=22.572646,88.363895 and opened https://www.google.com/maps?q=22.572646,88.363895 in a new tab.",
+    "No APIs were MOCKED. The existing QA approval already had response_photo_url and response_lat/lng, so no DB patch was needed."
+  ],
+  "updated_files": [
+    "/app/tests/bug_verification_iteration22.js",
+    "/app/tests/bug_verification_iteration22_db_prep.js",
+    "/app/tests/bug_verification_iteration22_playwright.py",
+    "/app/test_reports/bug_verification_22.json",
+    "/app/test_reports/iteration_22.json"
+  ],
+  "success_rate": {
+    "backend": "100% scoped DB precheck",
+    "frontend": "100% scoped UI verification"
+  },
+  "seed_data_creation": "No new seed data created. Existing approval 42a5a757-81dc-4745-81df-da34171fa6eb ('Watermark & Map Test ogmf86') already had response_photo_url, response_lat=22.572646, and response_lng=88.363895 populated.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "For this scoped gap, use admin info.subhendu@gmail.com / Subhendu8958@, search 'Watermark & Map Test ogmf86' on /digital-approvals, open approval 42a5a757-81dc-4745-81df-da34171fa6eb, and verify the two test IDs remain in one side-by-side grid. OSM may fail in headless; fallback text is acceptable. Separately retest token length only after v15 SQL is applied.",
+  "rca_of_the_issue": "Previous iteration showed the admin on-screen detail sheet only had a selfie plus a separate Google Maps text link. The frontend patch replaced that section with a two-column evidence grid containing the selfie and a clickable static-map/fallback slot, matching the requested on-screen side-by-side location evidence."
+}

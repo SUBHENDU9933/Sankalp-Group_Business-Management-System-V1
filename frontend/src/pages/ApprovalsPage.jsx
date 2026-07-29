@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { PageHeader, PageBody } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Trash2, Undo2, Phone } from "lucide-react";
+import { ShieldCheck, Trash2, Undo2, Phone, ReceiptText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { adminDeleteLead, cancelDeleteRequest } from "@/services/leadService";
 import { adminDeleteCustomer, cancelDeleteCustomer } from "@/services/customerService";
-import { formatDateTime } from "@/utils/format";
+import { adminDeleteReceipt, cancelDeleteReceipt } from "@/services/receiptService";
+import { formatDateTime, formatINR } from "@/utils/format";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,17 +15,27 @@ export default function ApprovalsPage() {
   const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [l, c] = await Promise.all([
+      const [l, c, r] = await Promise.all([
         supabase.from("leads").select("*, requested_by:profiles!leads_delete_requested_by_fkey(full_name,email)").eq("delete_request", true).order("delete_requested_at", { ascending: false }),
         supabase.from("customers").select("*, requested_by:profiles!customers_delete_requested_by_fkey(full_name,email)").eq("delete_request", true).order("delete_requested_at", { ascending: false }),
+        supabase.from("receipts").select("*, customer:customers(id,name,phone), requested_by:profiles!receipts_delete_requested_by_fkey(full_name,email)").eq("delete_request", true).is("deleted_at", null).order("delete_requested_at", { ascending: false }),
       ]);
       if (l.error) throw l.error;
       if (c.error) throw c.error;
+      // Gracefully degrade if v16 not yet applied
+      if (r.error && /delete_request|delete_requested|column|schema cache/i.test(r.error.message)) {
+        setReceipts([]);
+      } else if (r.error) {
+        throw r.error;
+      } else {
+        setReceipts(r.data || []);
+      }
       setLeads(l.data || []);
       setCustomers(c.data || []);
     } catch (e) { toast.error(e.message); }
@@ -46,6 +57,13 @@ export default function ApprovalsPage() {
   const rejectCustomer = async (id) => {
     try { await cancelDeleteCustomer(id); toast.success("Request rejected"); load(); } catch (e) { toast.error(e.message); }
   };
+  const approveReceipt = async (id) => {
+    if (!window.confirm("Move this receipt to Trash? (You can restore or permanently delete it from the Trash page.)")) return;
+    try { await adminDeleteReceipt(id, user?.id); toast.success("Receipt moved to Trash"); load(); } catch (e) { toast.error(e.message); }
+  };
+  const rejectReceipt = async (id) => {
+    try { await cancelDeleteReceipt(id); toast.success("Request rejected"); load(); } catch (e) { toast.error(e.message); }
+  };
 
   return (
     <div data-testid="approvals-page">
@@ -53,7 +71,7 @@ export default function ApprovalsPage() {
       <PageBody>
         {loading ? (
           <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading…</div>
-        ) : leads.length === 0 && customers.length === 0 ? (
+        ) : leads.length === 0 && customers.length === 0 && receipts.length === 0 ? (
           <div className="bg-white border border-stone-200 p-12 text-center" data-testid="approvals-empty">
             <ShieldCheck className="w-10 h-10 mx-auto text-emerald-500" />
             <div className="font-display text-xl font-bold tracking-tight mt-3">All clear</div>
@@ -125,6 +143,50 @@ export default function ApprovalsPage() {
                             <div className="inline-flex items-center gap-2">
                               <Button variant="outline" size="sm" className="rounded-none border-stone-300 hover:bg-stone-100" onClick={() => rejectCustomer(c.id)} data-testid={`approval-customer-reject-${c.id}`}><Undo2 className="w-3.5 h-3.5 mr-1" />Reject</Button>
                               <Button size="sm" className="rounded-none bg-rose-600 hover:bg-rose-700 text-white" onClick={() => approveCustomer(c.id)} data-testid={`approval-customer-approve-${c.id}`}><Trash2 className="w-3.5 h-3.5 mr-1" />Delete</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {receipts.length > 0 && (
+              <div>
+                <div className="label-uppercase mb-3 inline-flex items-center gap-1.5">
+                  <ReceiptText className="w-3.5 h-3.5" /> Receipts — Delete Requests ({receipts.length})
+                </div>
+                <div className="bg-white border border-stone-200 overflow-x-auto">
+                  <table className="w-full text-sm" data-testid="approvals-receipts-table">
+                    <thead className="bg-stone-50 border-b border-stone-200">
+                      <tr className="text-left">
+                        <th className="px-4 py-3 label-uppercase">Receipt #</th>
+                        <th className="px-4 py-3 label-uppercase">Customer</th>
+                        <th className="px-4 py-3 label-uppercase">Mode</th>
+                        <th className="px-4 py-3 label-uppercase text-right">Amount</th>
+                        <th className="px-4 py-3 label-uppercase">Requested By</th>
+                        <th className="px-4 py-3 label-uppercase">Requested At</th>
+                        <th className="px-4 py-3 label-uppercase text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="grid-divider-y">
+                      {receipts.map((r) => (
+                        <tr key={r.id} className="hover:bg-stone-50" data-testid={`approval-receipt-${r.id}`}>
+                          <td className="px-4 py-3 font-mono font-medium">{r.receipt_no}</td>
+                          <td className="px-4 py-3">
+                            {r.customer?.name || "—"}
+                            <div className="text-xs text-stone-500">{r.customer?.phone}</div>
+                          </td>
+                          <td className="px-4 py-3 capitalize text-stone-700">{r.payment_mode}</td>
+                          <td className="px-4 py-3 text-right tabular-nums font-semibold">{formatINR(r.amount)}</td>
+                          <td className="px-4 py-3 text-stone-700">{r.requested_by?.full_name || r.requested_by?.email || "—"}</td>
+                          <td className="px-4 py-3 text-stone-600">{formatDateTime(r.delete_requested_at)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <Button variant="outline" size="sm" className="rounded-none border-stone-300 hover:bg-stone-100" onClick={() => rejectReceipt(r.id)} data-testid={`approval-receipt-reject-${r.id}`}><Undo2 className="w-3.5 h-3.5 mr-1" />Reject</Button>
+                              <Button size="sm" className="rounded-none bg-rose-600 hover:bg-rose-700 text-white" onClick={() => approveReceipt(r.id)} data-testid={`approval-receipt-approve-${r.id}`}><Trash2 className="w-3.5 h-3.5 mr-1" />Delete</Button>
                             </div>
                           </td>
                         </tr>

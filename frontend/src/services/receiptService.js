@@ -1,12 +1,15 @@
 import { supabase } from "@/lib/supabase";
+import { pushToAllAdmins } from "@/services/notificationService";
 
 export const fetchReceipts = async () => {
+  const rich = "*, customer:customers(id,name,phone,address), requested_by:profiles!receipts_delete_requested_by_fkey(id,full_name,email)";
   const withFilter = await supabase
     .from("receipts")
-    .select("*, customer:customers(id,name,phone,address)")
+    .select(rich)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (!withFilter.error) return withFilter.data || [];
+  // Fallback if v14/v16 not yet applied
   const { data, error } = await supabase
     .from("receipts")
     .select("*, customer:customers(id,name,phone,address)")
@@ -15,12 +18,46 @@ export const fetchReceipts = async () => {
   return data || [];
 };
 
-export const deleteReceipt = async (id, userId) => {
+// Direct update (allowed for creator + admin via RLS)
+export const updateReceipt = async (id, payload) => {
+  const { data, error } = await supabase
+    .from("receipts")
+    .update(payload)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// RM/user requests admin to delete
+export const requestDeleteReceipt = async (id) => {
+  const { error } = await supabase.rpc("request_delete_receipt", { p_id: id });
+  if (error) throw error;
+  const { data: r } = await supabase.from("receipts").select("receipt_no,amount").eq("id", id).maybeSingle();
+  await pushToAllAdmins({
+    type: "delete_request",
+    title: `Receipt delete request: ${r?.receipt_no || ""}`,
+    body: "Awaiting your approval in /approvals",
+    link: "/approvals",
+  });
+};
+
+export const cancelDeleteReceipt = async (id) => {
+  const { error } = await supabase.rpc("cancel_delete_receipt", { p_id: id });
+  if (error) throw error;
+};
+
+// Admin approves the delete request — soft-delete to Trash
+export const adminDeleteReceipt = async (id, userId) => {
   const { error } = await supabase.from("receipts")
-    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId, delete_request: false })
     .eq("id", id);
   if (error) throw error;
 };
+
+// (kept for backward-compat callers)
+export const deleteReceipt = adminDeleteReceipt;
 
 // ---------- Receipt Attachments (v14+) ----------
 export const fetchReceiptAttachments = async (receiptId) => {

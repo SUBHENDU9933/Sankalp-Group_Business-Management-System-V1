@@ -11,17 +11,25 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Chip } from "@/components/shared/StatusBadge";
-import { Plus, Search, Printer, ReceiptText } from "lucide-react";
-import { fetchReceipts, createReceipt, addReceiptAttachment } from "@/services/receiptService";
+import { Plus, Search, Printer, ReceiptText, MoreVertical, Pencil, Trash2, X } from "lucide-react";
+import {
+  fetchReceipts, createReceipt, updateReceipt, addReceiptAttachment,
+  requestDeleteReceipt, cancelDeleteReceipt,
+} from "@/services/receiptService";
 import { uploadFile } from "@/services/attachmentService";
 import { fetchCustomers } from "@/services/customerService";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, PAYMENT_MODES } from "@/utils/format";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function ReceiptsPage() {
+  const { user, isAdmin } = useAuth();
   const [searchParams] = useSearchParams();
   const preselectCustomer = searchParams.get("customer");
   const [list, setList] = useState([]);
@@ -29,6 +37,7 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editReceipt, setEditReceipt] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -53,6 +62,20 @@ export default function ReceiptsPage() {
   }), [list, search]);
 
   const total = filtered.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const pendingDeletes = list.filter((r) => r.delete_request).length;
+
+  const handleRequestDelete = async (r) => {
+    if (!window.confirm(`Request admin to delete receipt ${r.receipt_no}?`)) return;
+    try { await requestDeleteReceipt(r.id); toast.success("Delete request sent for admin approval"); load(); }
+    catch (e) { toast.error(e.message); }
+  };
+  const handleCancelDelete = async (r) => {
+    try { await cancelDeleteReceipt(r.id); toast.success("Delete request cancelled"); load(); }
+    catch (e) { toast.error(e.message); }
+  };
+
+  const openNew = () => { setEditReceipt(null); setOpen(true); };
+  const openEdit = (r) => { setEditReceipt(r); setOpen(true); };
 
   return (
     <div data-testid="receipts-page">
@@ -60,7 +83,7 @@ export default function ReceiptsPage() {
         subtitle="Phase 4"
         title="Receipts &amp; Payments"
         actions={
-          <Button onClick={() => setOpen(true)} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="receipt-add-button">
+          <Button onClick={openNew} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="receipt-add-button">
             <Plus className="w-4 h-4" /> New Receipt
           </Button>
         }
@@ -70,6 +93,13 @@ export default function ReceiptsPage() {
           <Search className="w-4 h-4 text-stone-400" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search receipt no, customer…" className="border-0 shadow-none focus-visible:ring-0 px-0 rounded-none h-8 max-w-md" data-testid="receipts-search" />
           <div className="flex-1" />
+          {pendingDeletes > 0 && (
+            <Link to="/approvals" data-testid="receipts-pending-chip">
+              <Chip className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 cursor-pointer">
+                {pendingDeletes} delete request{pendingDeletes > 1 ? "s" : ""} pending
+              </Chip>
+            </Link>
+          )}
           <Chip>Receipts: {filtered.length}</Chip>
           <Chip className="bg-stone-900 text-white border-stone-900">Total: {formatINR(total)}</Chip>
         </div>
@@ -99,17 +129,58 @@ export default function ReceiptsPage() {
                 </thead>
                 <tbody className="grid-divider-y">
                   {filtered.map((r) => (
-                    <tr key={r.id} className="hover:bg-stone-50" data-testid={`receipt-row-${r.id}`}>
-                      <td className="px-4 py-3 font-mono font-medium">{r.receipt_no}</td>
+                    <tr
+                      key={r.id}
+                      className={cn("hover:bg-stone-50", r.delete_request && "bg-rose-50/40")}
+                      data-testid={`receipt-row-${r.id}`}
+                    >
+                      <td className="px-4 py-3 font-mono font-medium">
+                        {r.receipt_no}
+                        {r.delete_request && (
+                          <div className="text-[10px] tracking-widest uppercase text-rose-600 mt-1 font-semibold" data-testid={`receipt-pending-${r.id}`}>
+                            Delete pending
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">{r.customer?.name || "—"}<div className="text-xs text-stone-500">{r.customer?.phone}</div></td>
                       <td className="px-4 py-3 capitalize text-stone-700">{r.payment_mode}</td>
                       <td className="px-4 py-3 text-stone-700 max-w-[260px] truncate">{r.note || "—"}</td>
                       <td className="px-4 py-3 text-stone-600">{formatDate(r.created_at)}</td>
                       <td className="px-4 py-3 text-right tabular-nums font-medium">{formatINR(r.amount)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link to={`/receipts/${r.id}/print`} target="_blank" rel="noreferrer" data-testid={`receipt-print-${r.id}`}>
-                          <Button variant="outline" size="sm" className="rounded-none border-stone-300 hover:bg-stone-100"><Printer className="w-3.5 h-3.5 mr-1" />Print</Button>
-                        </Link>
+                        <div className="inline-flex items-center gap-1">
+                          <Link to={`/receipts/${r.id}/print`} target="_blank" rel="noreferrer" data-testid={`receipt-print-${r.id}`}>
+                            <Button variant="outline" size="sm" className="rounded-none border-stone-300 hover:bg-stone-100"><Printer className="w-3.5 h-3.5 mr-1" />Print</Button>
+                          </Link>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-none h-8 w-8" data-testid={`receipt-actions-${r.id}`}>
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-none border-stone-300">
+                              <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => openEdit(r)} data-testid={`receipt-edit-${r.id}`}>
+                                <Pencil className="w-4 h-4 mr-2" />Edit
+                              </DropdownMenuItem>
+                              {r.delete_request ? (
+                                <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => handleCancelDelete(r)} data-testid={`receipt-cancel-delete-${r.id}`}>
+                                  <X className="w-4 h-4 mr-2" />Cancel Delete Request
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleRequestDelete(r)} data-testid={`receipt-request-delete-${r.id}`}>
+                                  <Trash2 className="w-4 h-4 mr-2" />Request Delete
+                                </DropdownMenuItem>
+                              )}
+                              {isAdmin && r.delete_request && (
+                                <DropdownMenuItem asChild className="rounded-none cursor-pointer text-rose-700">
+                                  <Link to="/approvals" data-testid={`receipt-goto-approvals-${r.id}`}>
+                                    <Trash2 className="w-4 h-4 mr-2" />Approve in /approvals
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -122,17 +193,19 @@ export default function ReceiptsPage() {
 
       <ReceiptFormDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(v) => { setOpen(v); if (!v) setEditReceipt(null); }}
         customers={customers}
         defaultCustomerId={preselectCustomer || ""}
+        receipt={editReceipt}
         onSaved={load}
       />
     </div>
   );
 }
 
-function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, onSaved }) {
+function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, receipt, onSaved }) {
   const { user } = useAuth();
+  const isEdit = Boolean(receipt?.id);
   const [submitting, setSubmitting] = useState(false);
   const [projects, setProjects] = useState([]);
   const [attachments, setAttachments] = useState([]);   // {url, name, type, size}
@@ -143,15 +216,15 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
     if (!open) return;
     setAttachments([]);
     reset({
-      customer_id: defaultCustomerId || "",
-      project_id: "",
-      amount: "",
-      payment_mode: "cash",
-      payment_purpose: "advance",
-      transaction_ref: "",
-      note: "",
+      customer_id: receipt?.customer_id || defaultCustomerId || "",
+      project_id: receipt?.project_id || "",
+      amount: receipt?.amount ?? "",
+      payment_mode: receipt?.payment_mode || "cash",
+      payment_purpose: receipt?.payment_purpose || "advance",
+      transaction_ref: receipt?.transaction_ref || "",
+      note: receipt?.note || "",
     });
-  }, [open, defaultCustomerId, reset]);
+  }, [open, defaultCustomerId, receipt, reset]);
 
   const handleAttachUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -184,28 +257,44 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
   const onSubmit = async (values) => {
     if (!values.customer_id) { toast.error("Select a customer"); return; }
     setSubmitting(true);
-    const printWindow = window.open("", "_blank");
+    const payload = {
+      customer_id: values.customer_id,
+      project_id: values.project_id || null,
+      amount: Number(values.amount),
+      payment_mode: values.payment_mode,
+      payment_purpose: values.payment_purpose || null,
+      transaction_ref: values.transaction_ref || null,
+      note: values.note || null,
+    };
     try {
-      const r = await createReceipt({
-        customer_id: values.customer_id,
-        project_id: values.project_id || null,
-        amount: Number(values.amount),
-        payment_mode: values.payment_mode,
-        payment_purpose: values.payment_purpose || null,
-        transaction_ref: values.transaction_ref || null,
-        note: values.note || null,
-      }, user.id);
-      // Persist attachments (non-blocking on error)
-      for (const a of attachments) {
-        try { await addReceiptAttachment({ receiptId: r.id, url: a.url, name: a.name, type: a.type, size: a.size, userId: user.id }); }
-        catch (attachErr) { console.warn("Attachment save failed:", attachErr); }
+      if (isEdit) {
+        await updateReceipt(receipt.id, payload);
+        // add new attachments (if any)
+        for (const a of attachments) {
+          try { await addReceiptAttachment({ receiptId: receipt.id, url: a.url, name: a.name, type: a.type, size: a.size, userId: user.id }); }
+          catch (attachErr) { console.warn("Attachment save failed:", attachErr); }
+        }
+        toast.success(`Receipt ${receipt.receipt_no} updated`);
+        onSaved?.();
+        onOpenChange(false);
+      } else {
+        const printWindow = window.open("", "_blank");
+        try {
+          const r = await createReceipt(payload, user.id);
+          for (const a of attachments) {
+            try { await addReceiptAttachment({ receiptId: r.id, url: a.url, name: a.name, type: a.type, size: a.size, userId: user.id }); }
+            catch (attachErr) { console.warn("Attachment save failed:", attachErr); }
+          }
+          toast.success(`Receipt ${r.receipt_no} created`);
+          onSaved?.();
+          onOpenChange(false);
+          if (printWindow) printWindow.location.href = `/receipts/${r.id}/print`;
+        } catch (createErr) {
+          if (printWindow) printWindow.close();
+          throw createErr;
+        }
       }
-      toast.success(`Receipt ${r.receipt_no} created`);
-      onSaved?.();
-      onOpenChange(false);
-      if (printWindow) printWindow.location.href = `/receipts/${r.id}/print`;
     } catch (e) {
-      if (printWindow) printWindow.close();
       toast.error(e.message);
     }
     finally { setSubmitting(false); }
@@ -215,9 +304,13 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-xl border-slate-200 max-w-xl p-0" data-testid="receipt-form-dialog">
         <DialogHeader className="px-6 py-5 border-b border-slate-200">
-          <div className="label-uppercase">New Receipt</div>
-          <DialogTitle className="font-display text-2xl tracking-tight">Generate Payment Receipt</DialogTitle>
-          <DialogDescription className="sr-only">Record a customer payment. Receipt number generated automatically.</DialogDescription>
+          <div className="label-uppercase">{isEdit ? `Edit Receipt · ${receipt.receipt_no}` : "New Receipt"}</div>
+          <DialogTitle className="font-display text-2xl tracking-tight">
+            {isEdit ? "Update Payment Receipt" : "Generate Payment Receipt"}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? "Edit the details of an existing receipt." : "Record a customer payment. Receipt number generated automatically."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
@@ -277,8 +370,14 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
             <Textarea className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("note")} data-testid="receipt-input-note" />
           </div>
           <div>
-            <Label className="label-uppercase">Payment Proof / Attachments</Label>
-            <div className="text-[11px] text-slate-500 mb-2">UPI screenshot, cheque photo, bank statement, PDF etc. Will print on page 2 of the receipt.</div>
+            <Label className="label-uppercase">
+              {isEdit ? "Add New Attachments" : "Payment Proof / Attachments"}
+            </Label>
+            <div className="text-[11px] text-slate-500 mb-2">
+              {isEdit
+                ? "Any files added here will be appended to the existing receipt. Existing files can be managed from the Print view."
+                : "UPI screenshot, cheque photo, bank statement, PDF etc. Will print on page 2 of the receipt."}
+            </div>
             <label className="cursor-pointer border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg block p-4 text-center text-xs text-slate-600" data-testid="receipt-attach-picker">
               {uploadingAttach ? "Uploading…" : "Click to attach files (photos or PDF)"}
               <input type="file" multiple accept="image/*,.pdf" onChange={handleAttachUpload} className="hidden" />
@@ -296,7 +395,9 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, o
           </div>
           <DialogFooter className="-mx-6 -mb-6 px-6 py-4 border-t border-slate-200 bg-slate-50">
             <Button type="button" variant="outline" className="rounded-lg" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting} className="rounded-lg bg-blue-700 hover:bg-blue-800 text-white" data-testid="receipt-form-submit">{submitting ? "Saving…" : "Generate Receipt"}</Button>
+            <Button type="submit" disabled={submitting} className="rounded-lg bg-blue-700 hover:bg-blue-800 text-white" data-testid="receipt-form-submit">
+              {submitting ? "Saving…" : isEdit ? "Save Changes" : "Generate Receipt"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

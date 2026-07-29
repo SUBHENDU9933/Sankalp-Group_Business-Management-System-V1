@@ -481,3 +481,22 @@ Goal: surprise the user with a professional, sober, animated dashboard that surf
 - `LeadDetailsSheet` — right drawer with tabs (Overview/Timeline/Follow-ups/Files), header quick actions, note + call-log creation writes to lead_activities
 - `leadActivityService.js` — timeline service
 - Renamed "Quotation Given" label → "Estimate Given"; added LEAD_PRIORITIES and PROPERTY_TYPES constants
+
+
+## Iteration 15 (Feb 2026) — Receipts: Edit + Delete-Approval Workflow ✅
+**Schema migration** `/app/supabase_schema_v16.sql` (must be applied in Supabase):
+- Adds `delete_request` / `delete_requested_by` / `delete_requested_at` columns to `public.receipts`
+- RPCs `request_delete_receipt(uuid)` and `cancel_delete_receipt(uuid)` (SECURITY DEFINER, bypass RLS)
+- Extends `notify_admins_delete_request` trigger to fire for receipts too — pushes admin notification with receipt no + amount
+- Trigger `trg_notify_receipt_delete` on `public.receipts` (after update)
+
+**Frontend**:
+- `receiptService.js` — new functions `updateReceipt`, `requestDeleteReceipt`, `cancelDeleteReceipt`, `adminDeleteReceipt` (soft-delete). `fetchReceipts` now joins `profiles!receipts_delete_requested_by_fkey` for the "Requested By" column with graceful fallback if v16 not yet applied.
+- `ReceiptsPage.jsx` — refactored dialog to support both **create** and **edit** modes. Added per-row 3-dot menu with **Edit**, **Request Delete**, **Cancel Delete Request**, and (for admins) shortcut to /approvals. Rows with pending delete are highlighted rose + "Delete pending" badge. New header chip shows count of pending deletes with quick link to /approvals.
+- `ApprovalsPage.jsx` — new **Receipts — Delete Requests** section with Approve (→ moves to Trash) and Reject actions. Graceful degrade if v16 not applied.
+- `DashboardPage.jsx` — Pending Approvals banner now includes receipts delete requests count.
+
+**Workflow now uniform for Leads / Customers / Receipts**:
+1. RM (or admin) clicks Request Delete → row flagged, admin notified.
+2. Admin opens /approvals → Approve moves item to Trash (soft-delete), Reject clears flag.
+3. From /trash, admin can Restore or Permanently Delete (RLS DELETE policies from v14_fix3).

@@ -69,7 +69,7 @@ export default function DashboardPage() {
           custCnt, vendCnt, teamCnt, projAll, projActive,
           receiptsAll, receiptsMtd, expensesAll, expensesMtd, estPipeline,
           todayList, overdueList, recentLeads, recentRcpts, recentExp,
-          pendingLeads, pendingCustomers,
+          pendingLeads, pendingCustomers, pendingReceipts,
           topProjectsRaw, topVendorPays,
         ] = await Promise.all([
           supabase.from("leads").select("status,priority,created_at"),
@@ -92,6 +92,7 @@ export default function DashboardPage() {
           supabase.from("expenses").select("id,category,amount,created_at,project:projects(project_name)").order("created_at", { ascending: false }).limit(5),
           supabase.from("leads").select("id", { count: "exact", head: true }).eq("delete_request", true),
           supabase.from("customers").select("id", { count: "exact", head: true }).eq("delete_request", true),
+          supabase.from("receipts").select("id", { count: "exact", head: true }).eq("delete_request", true).is("deleted_at", null),
           supabase.from("projects").select("id,project_name,total_value,status,start_date,customer:customers(name)").order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_payments").select("amount,vendor:vendors(id,name,type,photo_url)").order("payment_date", { ascending: false }).limit(150),
         ]);
@@ -147,7 +148,7 @@ export default function DashboardPage() {
           todayFups: todayList.data || [],
           overdue: overdueList.data || [],
           activities: acts,
-          pendingApprovals: (pendingLeads.count || 0) + (pendingCustomers.count || 0),
+          pendingApprovals: (pendingLeads.count || 0) + (pendingCustomers.count || 0) + (pendingReceipts?.count || 0),
           topProjects: (topProjectsRaw.data || []).filter((p) => p.status === "in_progress").slice(0, 3),
           topVendors,
         });

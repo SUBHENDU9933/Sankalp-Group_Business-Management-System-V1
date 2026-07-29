@@ -40,24 +40,48 @@ export const listTrash = async (entityKey) => {
 
 export const restoreItem = async (entityKey, id) => {
   const ent = TRASH_ENTITIES.find((e) => e.key === entityKey);
-  const { error } = await supabase.from(ent.table).update({ deleted_at: null, deleted_by: null }).eq("id", id);
+  const { data, error } = await supabase.from(ent.table)
+    .update({ deleted_at: null, deleted_by: null })
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Restore denied — the row is not visible to you or RLS blocked the update. Ensure v14_fix3.sql is applied.");
+  }
 };
 
 export const restoreMany = async (entityKey, ids) => {
   const ent = TRASH_ENTITIES.find((e) => e.key === entityKey);
-  const { error } = await supabase.from(ent.table).update({ deleted_at: null, deleted_by: null }).in("id", ids);
+  const { data, error } = await supabase.from(ent.table)
+    .update({ deleted_at: null, deleted_by: null })
+    .in("id", ids)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Bulk restore returned 0 rows — RLS blocked. Ensure v14_fix3.sql is applied.");
+  }
 };
 
 export const purgeItem = async (entityKey, id) => {
   const ent = TRASH_ENTITIES.find((e) => e.key === entityKey);
-  const { error } = await supabase.from(ent.table).delete().eq("id", id);
+  const { data, error } = await supabase.from(ent.table)
+    .delete()
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Purge returned 0 rows — RLS DELETE policy missing. Apply /app/supabase_schema_v14_fix3.sql.");
+  }
 };
 
 export const purgeMany = async (entityKey, ids) => {
   const ent = TRASH_ENTITIES.find((e) => e.key === entityKey);
-  const { error } = await supabase.from(ent.table).delete().in("id", ids);
+  const { data, error } = await supabase.from(ent.table)
+    .delete()
+    .in("id", ids)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Bulk purge returned 0 rows — RLS DELETE policy missing. Apply /app/supabase_schema_v14_fix3.sql.");
+  }
 };

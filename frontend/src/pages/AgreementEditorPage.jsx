@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/shared/SearchableSelect";
 import { ArrowLeft, Save, Eye, Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +44,11 @@ export default function AgreementEditorPage() {
   const [paymentSchedule, setPaymentSchedule] = useState([]);
 
   const selectedTemplate = useMemo(() => templates.find((t) => t.id === templateId), [templates, templateId]);
+
+  const customerOptions = useMemo(() => customers.map((c) => ({ value: c.id, label: c.name, sublabel: c.phone })), [customers]);
+  const leadOptions = useMemo(() => leads.map((l) => ({ value: l.id, label: l.name, sublabel: l.phone })), [leads]);
+  const projectOptions = useMemo(() => projects.map((p) => ({ value: p.id, label: p.project_name, sublabel: p.location })), [projects]);
+  const estimateOptions = useMemo(() => estimates.map((e) => ({ value: e.id, label: `${e.estimate_no} · ${e.customer_name || ""}`, sublabel: formatINR(e.final_amount) })), [estimates]);
 
   useEffect(() => {
     (async () => {
@@ -206,31 +212,55 @@ export default function AgreementEditorPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-slate-500">Customer</Label>
-                <Select value={customerId} onValueChange={handlePickCustomer}>
-                  <SelectTrigger className="rounded-lg mt-1" data-testid="agreement-customer-select"><SelectValue placeholder="Select customer" /></SelectTrigger>
-                  <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} · {c.phone}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1">
+                  <SearchableSelect
+                    options={customerOptions}
+                    value={customerId}
+                    onChange={handlePickCustomer}
+                    placeholder="Select customer"
+                    searchPlaceholder="Search customers…"
+                    testId="agreement-customer-select"
+                  />
+                </div>
               </div>
               <div>
                 <Label className="text-xs text-slate-500">…or Lead (not yet converted)</Label>
-                <Select value={leadId} onValueChange={handlePickLead}>
-                  <SelectTrigger className="rounded-lg mt-1" data-testid="agreement-lead-select"><SelectValue placeholder="Select lead" /></SelectTrigger>
-                  <SelectContent>{leads.map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.phone}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1">
+                  <SearchableSelect
+                    options={leadOptions}
+                    value={leadId}
+                    onChange={handlePickLead}
+                    placeholder="Select lead"
+                    searchPlaceholder="Search leads…"
+                    testId="agreement-lead-select"
+                  />
+                </div>
               </div>
               <div>
                 <Label className="text-xs text-slate-500">Project</Label>
-                <Select value={projectId} onValueChange={handlePickProject}>
-                  <SelectTrigger className="rounded-lg mt-1" data-testid="agreement-project-select"><SelectValue placeholder="Select project" /></SelectTrigger>
-                  <SelectContent>{projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1">
+                  <SearchableSelect
+                    options={projectOptions}
+                    value={projectId}
+                    onChange={handlePickProject}
+                    placeholder="Select project"
+                    searchPlaceholder="Search projects…"
+                    testId="agreement-project-select"
+                  />
+                </div>
               </div>
               <div>
                 <Label className="text-xs text-slate-500">Estimate</Label>
-                <Select value={estimateId} onValueChange={handlePickEstimate}>
-                  <SelectTrigger className="rounded-lg mt-1" data-testid="agreement-estimate-select"><SelectValue placeholder="Select estimate" /></SelectTrigger>
-                  <SelectContent>{estimates.map((e) => <SelectItem key={e.id} value={e.id}>{e.estimate_no} · {e.customer_name} · {formatINR(e.final_amount)}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1">
+                  <SearchableSelect
+                    options={estimateOptions}
+                    value={estimateId}
+                    onChange={handlePickEstimate}
+                    placeholder="Select estimate"
+                    searchPlaceholder="Search estimates…"
+                    testId="agreement-estimate-select"
+                  />
+                </div>
               </div>
             </div>
             <p className="text-xs text-slate-400 mt-3">Picking any of these auto-fills the fields below — everything stays fully editable after.</p>

@@ -6,7 +6,42 @@ import { toast } from "sonner";
 import { fetchAgreementById, renderClauseBody, sendForDigitalSignature, markSignedPhysical } from "@/services/agreementService";
 import { fetchTemplateById } from "@/services/agreementTemplateService";
 import { uploadFile } from "@/services/attachmentService";
-import { formatDateTime } from "@/utils/format";
+import { formatDateTime, formatINR } from "@/utils/format";
+
+// Auto-calculated payment breakup table — stage / % / amount, from the
+// agreement's own payment_schedule + contract value.
+function PaymentScheduleTable({ schedule, contractValue }) {
+  if (!schedule?.length) return null;
+  const cv = Number(contractValue) || 0;
+  const totalPct = schedule.reduce((s, r) => s + (Number(r.percent) || 0), 0);
+  return (
+    <table className="agreement-table w-full mt-2 mb-1" data-testid="agreement-payment-table">
+      <thead>
+        <tr>
+          <th style={{ width: "8%" }}>Stage</th>
+          <th>Payment Stage</th>
+          <th style={{ width: "15%" }}>%</th>
+          <th style={{ width: "25%" }}>Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {schedule.map((row, i) => (
+          <tr key={i}>
+            <td className="text-center">{i + 1}</td>
+            <td>{row.stage}</td>
+            <td className="text-center">{row.percent}%</td>
+            <td className="text-right">{formatINR(Math.round((cv * (Number(row.percent) || 0)) / 100))}</td>
+          </tr>
+        ))}
+        <tr className="font-bold">
+          <td colSpan={2} className="text-right">Total</td>
+          <td className="text-center">{totalPct}%</td>
+          <td className="text-right">{formatINR(cv)}</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
 
 export default function AgreementPrintPage() {
   const { id } = useParams();
@@ -62,7 +97,6 @@ export default function AgreementPrintPage() {
     .filter((c) => !c.is_optional || (agreement.enabled_clause_ids || []).includes(c.id))
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const md = agreement.merge_data || {};
-  const opts = { paymentSchedule: agreement.payment_schedule, categorySpecs: template?.category_specs };
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white">
@@ -95,10 +129,13 @@ export default function AgreementPrintPage() {
         </div>
       </div>
 
-      <div className="agreement-a4 mx-auto bg-white print-page shadow-xl print:shadow-none relative" data-testid="agreement-print-document">
-        <div className="relative z-10 px-16 text-[12.5px] leading-relaxed text-slate-900" style={{ paddingTop: "42mm", paddingBottom: "36mm" }}>
-          <h1 className="text-center font-display font-extrabold text-xl tracking-tight mb-1">{agreement.title}</h1>
-          <p className="text-center text-[10px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
+      <div className="agreement-a4 agreement-doc mx-auto bg-white print-page shadow-xl print:shadow-none relative" data-testid="agreement-print-document">
+        {/* Letterhead — shown once at the top of the document, like a printed letterhead sheet */}
+        <img src="/sankalp-letterhead.jpg" alt="Sankalp Interior Solution" className="w-full block" />
+
+        <div className="agreement-body relative z-10">
+          <h1 className="text-center font-bold text-[16px] tracking-tight mb-1">{agreement.title}</h1>
+          <p className="text-center text-[9px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
 
           <p className="mb-3">
             This {agreement.title} ("Agreement") is made and executed between <b>SANKALP INTERIOR SOLUTION</b>, having its registered office at GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, VIP Road, Kolkata – 700059 (hereinafter the "Contractor"), AND
@@ -108,63 +145,89 @@ export default function AgreementPrintPage() {
           </p>
 
           {clauses.map((c) => (
-            <div key={c.id} className="mb-4">
-              <h3 className="font-bold text-[13px] mb-1">{c.title}</h3>
-              <p className="whitespace-pre-line">{renderClauseBody(c.body, md, opts)}</p>
+            <div key={c.id} className="mb-4 avoid-break">
+              <h3 className="font-bold text-[12px] mb-1">{c.title}</h3>
+              <p className="whitespace-pre-line">{renderClauseBody(c.body, md)}</p>
+              {c.id === "payment_terms" && (
+                <PaymentScheduleTable schedule={agreement.payment_schedule} contractValue={md.contract_value} />
+              )}
             </div>
           ))}
 
           {/* Signature block */}
-          <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t border-slate-300">
+          <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t border-slate-300 avoid-break">
             <div>
-              <div className="font-bold text-[11px] uppercase tracking-widest mb-3">Client Acceptance</div>
-              <div className="text-sm">Client Name: {md.client_name}</div>
+              <div className="font-bold text-[10px] uppercase tracking-widest mb-3">Client Acceptance</div>
+              <div>Client Name: {md.client_name}</div>
               {agreement.status === "signed_digital" ? (
                 <div className="mt-3 border border-emerald-300 bg-emerald-50 rounded p-3">
-                  <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Digitally Signed</div>
-                  <div className="text-xs text-slate-600 mt-1">By: {agreement.signer_name}</div>
-                  <div className="text-xs text-slate-600">At: {formatDateTime(agreement.signed_at)}</div>
+                  <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Digitally Signed</div>
+                  <div className="text-[10px] text-slate-600 mt-1">By: {agreement.signer_name}</div>
+                  <div className="text-[10px] text-slate-600">At: {formatDateTime(agreement.signed_at)}</div>
                   {agreement.signature_url && <img src={agreement.signature_url} alt="signature evidence" className="mt-2 h-20 rounded border border-slate-200 object-cover" />}
                 </div>
               ) : agreement.status === "signed_physical" ? (
                 <div className="mt-3 border border-blue-300 bg-blue-50 rounded p-3">
-                  <div className="text-blue-700 text-xs font-semibold">Signed physically — scanned copy on file</div>
-                  {agreement.signed_file_url && <a href={agreement.signed_file_url} target="_blank" rel="noreferrer" className="text-xs text-blue-700 underline">View scanned copy</a>}
+                  <div className="text-blue-700 text-[10px] font-semibold">Signed physically — scanned copy on file</div>
+                  {agreement.signed_file_url && <a href={agreement.signed_file_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-700 underline">View scanned copy</a>}
                 </div>
               ) : (
                 <>
                   <div className="mt-8 border-b border-slate-500 w-56" />
-                  <div className="text-[10px] text-slate-500 mt-1">Signature</div>
+                  <div className="text-[9px] text-slate-500 mt-1">Signature</div>
                   <div className="mt-4 border-b border-slate-500 w-40" />
-                  <div className="text-[10px] text-slate-500 mt-1">Date / Place</div>
+                  <div className="text-[9px] text-slate-500 mt-1">Date / Place</div>
                 </>
               )}
             </div>
             <div>
-              <div className="font-bold text-[11px] uppercase tracking-widest mb-3">For Sankalp Interior Solution</div>
-              <div className="text-sm">Authorized Signatory: Subhendu Biswas</div>
-              <div className="text-sm">Designation: Director</div>
+              <div className="font-bold text-[10px] uppercase tracking-widest mb-3">For Sankalp Interior Solution</div>
+              <div>Authorized Signatory: Subhendu Biswas</div>
+              <div>Designation: Director</div>
               <div className="mt-8 border-b border-slate-500 w-56" />
-              <div className="text-[10px] text-slate-500 mt-1">Signature &amp; Company Seal</div>
+              <div className="text-[9px] text-slate-500 mt-1">Signature &amp; Company Seal</div>
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
+        @font-face {
+          font-family: 'Bookman Old Style';
+          src: url('/fonts/bookmanoldstyle.ttf') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Bookman Old Style';
+          src: url('/fonts/bookmanoldstyle_bold.ttf') format('truetype');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
+        }
         .agreement-a4 {
           width: 210mm;
           min-height: 297mm;
           max-width: 210mm;
-          background-image: url('/sankalp-letterhead.jpg');
-          background-repeat: repeat-y;
-          background-size: 210mm 297mm;
-          background-position: top center;
         }
+        .agreement-doc {
+          font-family: 'Bookman Old Style', 'Georgia', serif;
+          font-size: 11pt;
+          line-height: 1.5;
+          color: #1a1a1a;
+        }
+        .agreement-doc h1, .agreement-doc h3 { font-family: 'Bookman Old Style', 'Georgia', serif; font-weight: 700; }
+        .agreement-body { padding: 0.4in 1in; }
+        .agreement-table { border-collapse: collapse; font-size: 10.5pt; }
+        .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
+        .agreement-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          html, body { width: 210mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .agreement-a4 { width: 210mm; }
+          @page { size: A4 portrait; margin: 1.5in 1in; }
+          html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .agreement-a4 { width: auto; min-height: 0; box-shadow: none; }
+          .agreement-body { padding: 0; }
+          .avoid-break { page-break-inside: avoid; }
         }
       `}</style>
     </div>

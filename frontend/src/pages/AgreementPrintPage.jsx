@@ -291,7 +291,16 @@ export default function AgreementPrintPage() {
             <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Digitally Signed</div>
             <div className="text-[10px] text-slate-600 mt-1">By: {agreement.signer_name}</div>
             <div className="text-[10px] text-slate-600">At: {formatDateTime(agreement.signed_at)}</div>
-            {agreement.signature_url && <img src={agreement.signature_url} alt="signature evidence" className="mt-2 h-20 rounded border border-slate-200 object-cover" />}
+            {agreement.response_ip && <div className="text-[10px] text-slate-600 mt-1">IP Address – {agreement.response_ip}</div>}
+            {agreement.response_lat && agreement.response_lng && (
+              <div className="text-[10px] text-slate-600">Location: {agreement.response_lat.toFixed(5)}, {agreement.response_lng.toFixed(5)}</div>
+            )}
+            {agreement.signature_pad_url && (
+              <div className="mt-2 bg-white rounded border border-slate-200 p-2">
+                <img src={agreement.signature_pad_url} alt="Client signature" className="h-16 mx-auto object-contain" />
+                <div className="text-center text-[8px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Signature Pad</div>
+              </div>
+            )}
           </div>
         ) : agreement.status === "signed_physical" ? (
           <div className="mt-3 border border-blue-300 bg-blue-50 rounded p-3">

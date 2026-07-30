@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
-import { CheckCircle2, ShieldCheck, Camera, MapPin, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Camera, MapPin, AlertTriangle, RotateCcw } from "lucide-react";
 import { fetchAgreementByToken, submitAgreementSignature, uploadPublicSignaturePhoto } from "@/services/agreementService";
 import { formatDateTime } from "@/utils/format";
 
@@ -19,8 +19,12 @@ export default function PublicSignAgreementPage() {
   const [accuracy, setAccuracy] = useState(null);
   const [locStatus, setLocStatus] = useState("idle");
   const [cameraOn, setCameraOn] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const padCanvasRef = useRef(null);
+  const drawingRef = useRef(false);
+  const lastPtRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -69,6 +73,43 @@ export default function PublicSignAgreementPage() {
   }, [cameraOn]);
   useEffect(() => () => stopCamera(), []);
 
+  const getPoint = (e) => {
+    const c = padCanvasRef.current;
+    const rect = c.getBoundingClientRect();
+    const scaleX = c.width / rect.width;
+    const scaleY = c.height / rect.height;
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  };
+  const padPointerDown = (e) => {
+    e.preventDefault();
+    const c = padCanvasRef.current;
+    c.setPointerCapture?.(e.pointerId);
+    drawingRef.current = true;
+    lastPtRef.current = getPoint(e);
+  };
+  const padPointerMove = (e) => {
+    if (!drawingRef.current) return;
+    e.preventDefault();
+    const ctx = padCanvasRef.current.getContext("2d");
+    const pt = getPoint(e);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(lastPtRef.current.x, lastPtRef.current.y);
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+    lastPtRef.current = pt;
+    setHasSignature(true);
+  };
+  const padPointerUp = () => { drawingRef.current = false; };
+  const clearSignaturePad = () => {
+    const c = padCanvasRef.current;
+    c?.getContext("2d").clearRect(0, 0, c.width, c.height);
+    setHasSignature(false);
+  };
+
   const capturePhoto = () => {
     if (!videoRef.current) return;
     const v = videoRef.current;
@@ -115,6 +156,7 @@ export default function PublicSignAgreementPage() {
 
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Please type your full name"); return; }
+    if (!hasSignature) { toast.error("Please sign in the signature box"); return; }
     setStep("submitting");
     try {
       let signatureUrl = null;
@@ -122,10 +164,16 @@ export default function PublicSignAgreementPage() {
         const up = await uploadPublicSignaturePhoto(selfie.blob);
         signatureUrl = up.url;
       }
+      let signaturePadUrl = null;
+      const padBlob = await new Promise((resolve) => padCanvasRef.current.toBlob(resolve, "image/png"));
+      if (padBlob) {
+        const up = await uploadPublicSignaturePhoto(padBlob, "agreements/signature-pads", "png", "image/png");
+        signaturePadUrl = up.url;
+      }
       let ip = null;
       try { const r = await fetch("https://api.ipify.org?format=json"); ip = (await r.json()).ip; } catch {}
       const updated = await submitAgreementSignature({
-        token, signerName: name.trim(), signatureUrl, lat, lng, accuracy, ip, userAgent: navigator.userAgent,
+        token, signerName: name.trim(), signatureUrl, signaturePadUrl, lat, lng, accuracy, ip, userAgent: navigator.userAgent,
       });
       setAgreement(updated);
       setStep("done");
@@ -175,7 +223,7 @@ export default function PublicSignAgreementPage() {
               <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500 mb-2" />
               <div className="font-semibold text-slate-900">Signed successfully</div>
               <div className="text-sm text-slate-500 mt-1">By {agreement.signer_name} on {formatDateTime(agreement.signed_at)}</div>
-              {agreement.signature_url && <img src={agreement.signature_url} alt="" className="mt-3 h-24 mx-auto rounded border border-slate-200 object-cover" />}
+              {agreement.signature_pad_url && <img src={agreement.signature_pad_url} alt="" className="mt-3 h-20 mx-auto border border-slate-200 rounded bg-white object-contain px-4" />}
               <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-3"><ShieldCheck className="w-3.5 h-3.5" /> This record is securely stored by Sankalp Interior Solution</div>
             </div>
           ) : step === "view" ? (
@@ -205,6 +253,34 @@ export default function PublicSignAgreementPage() {
                 <button onClick={requestLocation} className="text-xs inline-flex items-center gap-1.5 text-blue-700 hover:underline">
                   <MapPin className="w-3.5 h-3.5" /> {locStatus === "ok" ? "Location captured ✓" : locStatus === "error" ? "Location unavailable — continuing without it" : "Share location (optional, strengthens evidence)"}
                 </button>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-500 font-medium mb-1 block">Sign here with your finger or mouse</label>
+                <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-white">
+                  <canvas
+                    ref={padCanvasRef}
+                    width={600}
+                    height={180}
+                    className="w-full touch-none"
+                    style={{ height: 140 }}
+                    onPointerDown={padPointerDown}
+                    onPointerMove={padPointerMove}
+                    onPointerUp={padPointerUp}
+                    onPointerLeave={padPointerUp}
+                    data-testid="signature-pad-canvas"
+                  />
+                  {!hasSignature && (
+                    <div className="absolute inset-0 grid place-items-center pointer-events-none text-slate-300 text-sm">
+                      Draw your signature here
+                    </div>
+                  )}
+                </div>
+                {hasSignature && (
+                  <button onClick={clearSignaturePad} className="mt-1.5 text-xs text-slate-500 hover:underline inline-flex items-center gap-1">
+                    <RotateCcw className="w-3 h-3" /> Clear and redo
+                  </button>
+                )}
               </div>
 
               <div>

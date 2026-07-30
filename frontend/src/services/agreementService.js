@@ -147,7 +147,7 @@ export const fetchAgreementByToken = async (token) => {
   return row || null;
 };
 
-export const submitAgreementSignature = async ({ token, signerName, signatureUrl, lat, lng, accuracy, ip, userAgent }) => {
+export const submitAgreementSignature = async ({ token, signerName, signatureUrl, signaturePadUrl, lat, lng, accuracy, ip, userAgent }) => {
   const { data, error } = await supabase.rpc("submit_agreement_signature", {
     p_token: token,
     p_signer_name: signerName,
@@ -157,6 +157,7 @@ export const submitAgreementSignature = async ({ token, signerName, signatureUrl
     p_accuracy: accuracy ?? null,
     p_ip: ip || null,
     p_user_agent: userAgent || null,
+    p_signature_pad_url: signaturePadUrl || null,
   });
   if (error) throw error;
   return data;
@@ -175,12 +176,12 @@ export const setIdProofUrls = async (id, idProofUrls) => {
   return data;
 };
 
-export const uploadPublicSignaturePhoto = async (blob) => {
-  const path = `agreements/signatures/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.jpg`;
+export const uploadPublicSignaturePhoto = async (blob, folder = "agreements/signatures", ext = "jpg", contentType = "image/jpeg") => {
+  const path = `${folder}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
   const { error } = await supabase.storage.from("attachments").upload(path, blob, {
     cacheControl: "3600",
     upsert: false,
-    contentType: "image/jpeg",
+    contentType,
   });
   if (error) throw error;
   const { data } = supabase.storage.from("attachments").getPublicUrl(path);

@@ -8,7 +8,8 @@ import {
   Users, UserCheck, ReceiptText, Wallet, AlertTriangle, Calculator,
   ArrowUpRight, CalendarClock, Activity, Hammer, Truck, Flame, Phone,
   TrendingUp, TrendingDown, IndianRupee, Sparkles, ArrowRight, Sun,
-  ChevronRight, MessageCircle, MapPin, Plus,
+  ChevronRight, MessageCircle, MapPin, Plus, Zap, PieChart, BarChart3,
+  Banknote, Landmark, Smartphone, FileSignature, CircleDollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,14 @@ const fmtTime = (d) => {
   return formatDate(d);
 };
 
+const PAYMENT_MODE_META = {
+  cash: { label: "Cash", icon: Banknote, color: "#2563EB", bg: "bg-blue-50", text: "text-blue-600" },
+  bank: { label: "Bank Transfer", icon: Landmark, color: "#0D9488", bg: "bg-teal-50", text: "text-teal-600" },
+  upi: { label: "UPI", icon: Smartphone, color: "#F97316", bg: "bg-orange-50", text: "text-orange-600" },
+  cheque: { label: "Cheque", icon: FileSignature, color: "#7C3AED", bg: "bg-violet-50", text: "text-violet-600" },
+  other: { label: "Other", icon: CircleDollarSign, color: "#64748B", bg: "bg-slate-100", text: "text-slate-600" },
+};
+
 /* ---------------------------------------------------------------- main */
 export default function DashboardPage() {
   const { profile, isAdmin } = useAuth();
@@ -54,6 +63,7 @@ export default function DashboardPage() {
     estimatesPipeline: 0, estimatesCount: 0,
     todayFups: [], overdue: [], activities: [],
     pendingApprovals: 0, topProjects: [], topVendors: [],
+    paymentModeBreakdown: {}, monthlyTrend: [], receiptsTrendPct: null, expensesTrendPct: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -80,9 +90,9 @@ export default function DashboardPage() {
           supabase.from("profiles").select("id", { count: "exact", head: true }),
           supabase.from("projects").select("id", { count: "exact", head: true }),
           supabase.from("projects").select("id", { count: "exact", head: true }).eq("status", "in_progress"),
-          supabase.from("receipts").select("amount"),
+          supabase.from("receipts").select("amount,created_at,payment_mode"),
           supabase.from("receipts").select("amount,created_at").gte("created_at", monthIso),
-          supabase.from("expenses").select("amount"),
+          supabase.from("expenses").select("amount,created_at"),
           supabase.from("expenses").select("amount,created_at").gte("created_at", monthIso),
           supabase.from("estimates").select("final_amount,status"),
           supabase.from("leads").select("id,name,phone,status,priority,next_followup_date,reminder_note").eq("next_followup_date", today).limit(20),
@@ -93,7 +103,7 @@ export default function DashboardPage() {
           supabase.from("leads").select("id", { count: "exact", head: true }).eq("delete_request", true),
           supabase.from("customers").select("id", { count: "exact", head: true }).eq("delete_request", true),
           supabase.from("receipts").select("id", { count: "exact", head: true }).eq("delete_request", true).is("deleted_at", null),
-          supabase.from("projects").select("id,project_name,total_value,status,start_date,customer:customers(name)").order("created_at", { ascending: false }).limit(20),
+          supabase.from("projects").select("id,project_name,total_value,status,start_date,end_date,customer:customers(name)").order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_payments").select("amount,vendor:vendors(id,name,type,photo_url)").order("payment_date", { ascending: false }).limit(150),
         ]);
         if (!active) return;
@@ -129,6 +139,32 @@ export default function DashboardPage() {
 
         const sum = (arr) => (arr || []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
+        // Payment mode breakdown (real, from receipts.payment_mode)
+        const modeAgg = {};
+        (receiptsAll.data || []).forEach((r) => {
+          const m = r.payment_mode || "other";
+          modeAgg[m] = (modeAgg[m] || 0) + Number(r.amount || 0);
+        });
+
+        // Monthly trend — last 6 months, real receipts vs expenses
+        const monthBuckets = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+          monthBuckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString("en-IN", { month: "short" }), receipts: 0, expenses: 0 });
+        }
+        const bucketKey = (dateStr) => { const d = new Date(dateStr); return `${d.getFullYear()}-${d.getMonth()}`; };
+        (receiptsAll.data || []).forEach((r) => {
+          const b = monthBuckets.find((x) => x.key === bucketKey(r.created_at));
+          if (b) b.receipts += Number(r.amount || 0);
+        });
+        (expensesAll.data || []).forEach((e) => {
+          const b = monthBuckets.find((x) => x.key === bucketKey(e.created_at));
+          if (b) b.expenses += Number(e.amount || 0);
+        });
+        const prevM = monthBuckets[monthBuckets.length - 2];
+        const curM = monthBuckets[monthBuckets.length - 1];
+        const pctChange = (curr, prev) => (prev > 0 ? Math.round(((curr - prev) / prev) * 100) : null);
+
         setData({
           leadsTotal: (leadAll.data || []).length,
           leadsHot: leadHot.count || 0,
@@ -151,6 +187,10 @@ export default function DashboardPage() {
           pendingApprovals: (pendingLeads.count || 0) + (pendingCustomers.count || 0) + (pendingReceipts?.count || 0),
           topProjects: (topProjectsRaw.data || []).filter((p) => p.status === "in_progress").slice(0, 3),
           topVendors,
+          paymentModeBreakdown: modeAgg,
+          monthlyTrend: monthBuckets,
+          receiptsTrendPct: pctChange(curM.receipts, prevM.receipts),
+          expensesTrendPct: pctChange(curM.expenses, prevM.expenses),
         });
       } finally { if (active) setLoading(false); }
     })();
@@ -166,11 +206,14 @@ export default function DashboardPage() {
       <HeroBanner profile={profile} loading={loading} pendingApprovals={data.pendingApprovals} isAdmin={isAdmin} />
 
       <PageBody>
+        {/* QUICK ACTIONS */}
+        <ShortcutsRow />
+
         {/* MONEY ROW */}
         <SectionLabel title="Money snapshot" subtitle="Cash flowing through the business" icon={<IndianRupee className="w-3 h-3" />} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
-          <MoneyCard tone="emerald" label="Total Receipts" value={data.receiptsAll} sub={`This month · ${formatINR(data.receiptsMtd)}`} icon={TrendingUp} link="/receipts" loading={loading} />
-          <MoneyCard tone="rose" label="Total Expenses" value={data.expensesAll} sub={`This month · ${formatINR(data.expensesMtd)}`} icon={TrendingDown} link="/projects" loading={loading} />
+          <MoneyCard tone="emerald" label="Total Receipts" value={data.receiptsAll} sub={`This month · ${formatINR(data.receiptsMtd)}`} icon={TrendingUp} link="/receipts" loading={loading} trendPct={data.receiptsTrendPct} />
+          <MoneyCard tone="rose" label="Total Expenses" value={data.expensesAll} sub={`This month · ${formatINR(data.expensesMtd)}`} icon={TrendingDown} link="/projects" loading={loading} trendPct={data.expensesTrendPct} invertTrend />
           <PLCard pl={netPL} loading={loading} />
           <PipelineCard amount={data.estimatesPipeline} count={data.estimatesCount} loading={loading} />
         </div>
@@ -184,6 +227,17 @@ export default function DashboardPage() {
           <OpsTile to="/customers" tone="violet" icon={UserCheck} label="Customers" value={data.customers} sub="Active accounts" loading={loading} testid="ops-cust" />
           <OpsTile to="/projects" tone="amber" icon={Hammer} label="Projects" value={data.projectsTotal} sub={`${data.projectsActive} in progress`} loading={loading} testid="ops-proj" />
           <OpsTile to="/vendors" tone="teal" icon={Truck} label="Vendors" value={data.vendors} sub={`${data.team} team`} loading={loading} testid="ops-vend" />
+        </div>
+
+        {/* INSIGHTS — revenue trend + payment mode split */}
+        <SectionLabel title="Insights" subtitle="Revenue trend and how collections come in" icon={<BarChart3 className="w-3 h-3" />} className="mt-8" />
+        <div className="grid lg:grid-cols-3 gap-6 mt-3">
+          <div className="lg:col-span-2">
+            <RevenueTrendPanel data={data.monthlyTrend} loading={loading} />
+          </div>
+          <div>
+            <PaymentModePanel breakdown={data.paymentModeBreakdown} loading={loading} />
+          </div>
         </div>
 
         {/* PIPELINE FUNNEL */}
@@ -210,6 +264,7 @@ export default function DashboardPage() {
       <style>{`
         .dash-bg { background: linear-gradient(180deg, #f5f4ef 0%, #ecebe5 100%); min-height: 100vh; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.96) } to { opacity: 1; transform: translateY(0) scale(1) } }
         .anim-fade-up { animation: fadeUp 600ms cubic-bezier(.2,.7,.2,1) both; }
         .anim-stagger > * { animation: fadeUp 600ms cubic-bezier(.2,.7,.2,1) both; }
         .anim-stagger > *:nth-child(1) { animation-delay: 40ms; }
@@ -218,6 +273,10 @@ export default function DashboardPage() {
         .anim-stagger > *:nth-child(4) { animation-delay: 160ms; }
         .anim-stagger > *:nth-child(5) { animation-delay: 200ms; }
         .anim-stagger > *:nth-child(6) { animation-delay: 240ms; }
+        .anim-pop > * { animation: popIn 480ms cubic-bezier(.2,.7,.2,1) both; }
+        .anim-pop > *:nth-child(1) { animation-delay: 20ms; } .anim-pop > *:nth-child(2) { animation-delay: 60ms; }
+        .anim-pop > *:nth-child(3) { animation-delay: 100ms; } .anim-pop > *:nth-child(4) { animation-delay: 140ms; }
+        .anim-pop > *:nth-child(5) { animation-delay: 180ms; } .anim-pop > *:nth-child(6) { animation-delay: 220ms; }
         .grain::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.04;
           background-image: radial-gradient(rgba(255,255,255,.8) 1px, transparent 1px); background-size: 4px 4px; }
       `}</style>
@@ -246,19 +305,10 @@ function HeroBanner({ profile, loading, pendingApprovals, isAdmin }) {
           Here's the live pulse of <span className="font-semibold text-white">Sankalp Group</span> — leads, money, projects, and your team's progress today.
         </p>
 
-        {/* Quick action chips */}
-        <div className="flex flex-wrap gap-2 mt-6">
-          <QuickChip to="/leads" icon={<Plus className="w-3.5 h-3.5" />} label="New Lead" />
-          <QuickChip to="/estimates" icon={<Calculator className="w-3.5 h-3.5" />} label="New Estimate" />
-          <QuickChip to="/receipts" icon={<ReceiptText className="w-3.5 h-3.5" />} label="Issue Receipt" />
-          <QuickChip to="/projects" icon={<Hammer className="w-3.5 h-3.5" />} label="New Project" />
-          <QuickChip to="/vendors" icon={<Wallet className="w-3.5 h-3.5" />} label="Pay Vendor" />
-        </div>
-
         {/* Approvals banner inside hero */}
         {isAdmin && !loading && pendingApprovals > 0 && (
           <Link to="/approvals" data-testid="pending-approvals-banner"
-            className="mt-6 inline-flex items-center gap-3 bg-orange-500 hover:bg-orange-400 text-white px-5 py-3 transition-colors group">
+            className="mt-6 inline-flex items-center gap-3 bg-orange-500 hover:bg-orange-400 text-white px-5 py-3 transition-colors group rounded-xl">
             <AlertTriangle className="w-4 h-4" />
             <div className="flex-1">
               <div className="text-[10px] tracking-[0.18em] uppercase font-bold text-orange-100">Action required</div>
@@ -272,32 +322,62 @@ function HeroBanner({ profile, loading, pendingApprovals, isAdmin }) {
   );
 }
 
-function QuickChip({ to, icon, label }) {
+/* ============================================================ SHORTCUTS */
+function ShortcutsRow() {
+  const items = [
+    { to: "/leads", icon: Plus, label: "New Lead", tone: "blue" },
+    { to: "/estimates", icon: Calculator, label: "New Estimate", tone: "violet" },
+    { to: "/receipts", icon: ReceiptText, label: "Issue Receipt", tone: "orange" },
+    { to: "/projects", icon: Hammer, label: "New Project", tone: "teal" },
+    { to: "/customers", icon: UserCheck, label: "Add Customer", tone: "emerald" },
+    { to: "/vendors", icon: Wallet, label: "Pay Vendor", tone: "rose" },
+  ];
+  const tones = {
+    blue: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
+    violet: "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white",
+    orange: "bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white",
+    teal: "bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white",
+    emerald: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white",
+    rose: "bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white",
+  };
   return (
-    <Link to={to} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/15 text-white text-xs tracking-widest uppercase font-semibold transition-all hover:-translate-y-0.5"
-      data-testid={`quick-${label.toLowerCase().replace(/ /g, "-")}`}>
-      {icon}{label}
-    </Link>
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-6 anim-pop" data-testid="dashboard-shortcuts">
+      {items.map((it) => (
+        <Link key={it.label} to={it.to}
+          className="group bg-white border border-stone-200/70 hover:border-transparent rounded-2xl p-4 flex flex-col items-center gap-2.5 text-center transition-all hover:shadow-xl hover:-translate-y-1"
+          data-testid={`shortcut-${it.label.toLowerCase().replace(/ /g, "-")}`}>
+          <div className={cn("w-10 h-10 rounded-xl grid place-items-center transition-colors duration-200 group-hover:rotate-[-6deg] group-hover:scale-110", tones[it.tone])}>
+            <it.icon className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+          </div>
+          <div className="text-[11px] font-bold text-stone-600 group-hover:text-stone-900">{it.label}</div>
+        </Link>
+      ))}
+    </div>
   );
 }
 
 /* ============================================================ MONEY CARDS */
-function MoneyCard({ tone, label, value, sub, icon: Icon, link, loading }) {
+function MoneyCard({ tone, label, value, sub, icon: Icon, link, loading, trendPct, invertTrend }) {
   const animated = useCountUp(value || 0);
   const tones = {
-    emerald: { bg: "bg-emerald-700", text: "text-emerald-700", strip: "bg-emerald-100", icon: "bg-emerald-100 text-emerald-700" },
-    rose: { bg: "bg-rose-700", text: "text-rose-700", strip: "bg-rose-100", icon: "bg-rose-100 text-rose-700" },
+    emerald: { icon: "bg-emerald-50 text-emerald-600", strip: "bg-emerald-100", text: "text-emerald-700" },
+    rose: { icon: "bg-rose-50 text-rose-600", strip: "bg-rose-100", text: "text-rose-700" },
   }[tone] || {};
   const Wrap = link ? Link : "div";
+  const good = invertTrend ? trendPct <= 0 : trendPct >= 0;
   return (
-    <Wrap to={link} className="block bg-white border border-stone-200/70 hover:border-stone-300 transition-all hover:shadow-lg hover:-translate-y-0.5 group anim-fade-up">
-      <div className="px-5 pt-4 flex items-start justify-between gap-2">
-        <div className={cn("w-10 h-10 grid place-items-center", tones.icon)}>
+    <Wrap to={link} className="block bg-white border border-stone-200/70 hover:border-transparent rounded-2xl transition-all hover:shadow-xl hover:-translate-y-1 group anim-fade-up overflow-hidden">
+      <div className="px-5 pt-5 flex items-start justify-between gap-2">
+        <div className={cn("w-11 h-11 rounded-xl grid place-items-center", tones.icon)}>
           <Icon className="w-5 h-5" />
         </div>
-        {link && <ArrowUpRight className="w-4 h-4 text-stone-300 group-hover:text-stone-700 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all" />}
+        {trendPct !== null && trendPct !== undefined && !loading && (
+          <div className={cn("text-[10.5px] font-bold px-2 py-1 rounded-full", good ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
+            {trendPct >= 0 ? "↑" : "↓"} {Math.abs(trendPct)}%
+          </div>
+        )}
       </div>
-      <div className="px-5 pb-4 pt-3">
+      <div className="px-5 pb-5 pt-3">
         <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500">{label}</div>
         <div className={cn("font-display text-3xl font-bold tabular-nums mt-0.5 truncate", tones.text)}>
           {loading ? "—" : formatINR(animated)}
@@ -314,18 +394,18 @@ function PLCard({ pl, loading }) {
   const animated = useCountUp(Math.abs(pl) || 0);
   return (
     <div className={cn(
-      "block border transition-all hover:shadow-lg hover:-translate-y-0.5 anim-fade-up",
+      "block border transition-all hover:shadow-xl hover:-translate-y-1 anim-fade-up rounded-2xl overflow-hidden",
       positive ? "bg-[#0c1c3e] text-white border-[#0c1c3e]" : "bg-rose-700 text-white border-rose-700",
     )}>
-      <div className="px-5 pt-4 flex items-start justify-between gap-2">
-        <div className={cn("w-10 h-10 grid place-items-center", positive ? "bg-orange-500/20 text-orange-300" : "bg-white/15 text-white")}>
+      <div className="px-5 pt-5 flex items-start justify-between gap-2">
+        <div className={cn("w-11 h-11 rounded-xl grid place-items-center", positive ? "bg-orange-500/20 text-orange-300" : "bg-white/15 text-white")}>
           <Sparkles className="w-5 h-5" />
         </div>
-        <div className={cn("text-[10px] tracking-widest uppercase font-bold px-2 py-1", positive ? "bg-orange-500 text-white" : "bg-white/20 text-white")}>
+        <div className={cn("text-[10px] tracking-widest uppercase font-bold px-2.5 py-1 rounded-full", positive ? "bg-orange-500 text-white" : "bg-white/20 text-white")}>
           {positive ? "Profit" : "Loss"}
         </div>
       </div>
-      <div className="px-5 pb-4 pt-3">
+      <div className="px-5 pb-5 pt-3">
         <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-300">Net P/L (overall)</div>
         <div className="font-display text-3xl font-bold tabular-nums mt-0.5 truncate">
           {loading ? "—" : (positive ? "" : "−") + formatINR(animated)}
@@ -340,14 +420,14 @@ function PLCard({ pl, loading }) {
 function PipelineCard({ amount, count, loading }) {
   const animated = useCountUp(amount || 0);
   return (
-    <Link to="/estimates" className="block bg-white border border-stone-200/70 hover:border-stone-300 transition-all hover:shadow-lg hover:-translate-y-0.5 group anim-fade-up">
-      <div className="px-5 pt-4 flex items-start justify-between gap-2">
-        <div className="w-10 h-10 grid place-items-center bg-blue-100 text-blue-700">
+    <Link to="/estimates" className="block bg-white border border-stone-200/70 hover:border-transparent rounded-2xl transition-all hover:shadow-xl hover:-translate-y-1 group anim-fade-up overflow-hidden">
+      <div className="px-5 pt-5 flex items-start justify-between gap-2">
+        <div className="w-11 h-11 rounded-xl grid place-items-center bg-blue-50 text-blue-600">
           <Calculator className="w-5 h-5" />
         </div>
         <ArrowUpRight className="w-4 h-4 text-stone-300 group-hover:text-stone-700 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all" />
       </div>
-      <div className="px-5 pb-4 pt-3">
+      <div className="px-5 pb-5 pt-3">
         <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500">Estimate Pipeline</div>
         <div className="font-display text-3xl font-bold tabular-nums mt-0.5 truncate text-blue-700">
           {loading ? "—" : formatINR(animated)}
@@ -363,21 +443,20 @@ function PipelineCard({ amount, count, loading }) {
 function OpsTile({ to, tone, icon: Icon, label, value, sub, loading, testid }) {
   const animated = useCountUp(typeof value === "number" ? value : 0, 700);
   const tones = {
-    orange: "from-orange-500 to-orange-600",
-    blue: "from-blue-600 to-blue-700",
-    indigo: "from-indigo-600 to-indigo-700",
-    violet: "from-violet-600 to-violet-700",
-    amber: "from-amber-500 to-amber-600",
-    teal: "from-teal-600 to-teal-700",
+    orange: "bg-orange-50 text-orange-600",
+    blue: "bg-blue-50 text-blue-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    violet: "bg-violet-50 text-violet-600",
+    amber: "bg-amber-50 text-amber-600",
+    teal: "bg-teal-50 text-teal-600",
   };
   return (
     <Link to={to} data-testid={testid}
-      className="group bg-white border border-stone-200/70 hover:border-stone-300 transition-all hover:shadow-lg hover:-translate-y-0.5 anim-fade-up overflow-hidden relative">
-      <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", tones[tone])} />
+      className="group bg-white border border-stone-200/70 hover:border-transparent rounded-2xl transition-all hover:shadow-xl hover:-translate-y-1 anim-fade-up overflow-hidden relative">
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className={cn("w-9 h-9 grid place-items-center bg-gradient-to-br text-white", tones[tone])}>
-            <Icon className="w-4 h-4" />
+          <div className={cn("w-10 h-10 rounded-xl grid place-items-center transition-transform group-hover:scale-110 group-hover:-rotate-6", tones[tone])}>
+            <Icon className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
           </div>
           <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-700 group-hover:translate-x-0.5 transition-all" />
         </div>
@@ -391,12 +470,120 @@ function OpsTile({ to, tone, icon: Icon, label, value, sub, loading, testid }) {
   );
 }
 
+/* ============================================================ REVENUE TREND */
+function RevenueTrendPanel({ data, loading }) {
+  const max = Math.max(1, ...data.flatMap((d) => [d.receipts, d.expenses]));
+  return (
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-blue-600" />
+          <div>
+            <div className="text-[10px] tracking-[0.18em] uppercase font-bold text-stone-500">Last 6 months</div>
+            <div className="font-display text-lg tracking-tight">Revenue trend</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 text-stone-600"><span className="w-2.5 h-2.5 rounded-sm bg-blue-600 inline-block" />Receipts</span>
+          <span className="inline-flex items-center gap-1.5 text-stone-600"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" />Expenses</span>
+        </div>
+      </div>
+      <div className="p-5">
+        {loading ? (
+          <div className="h-40 grid place-items-center text-sm text-stone-500">Loading…</div>
+        ) : (
+          <div className="flex items-end gap-3 h-40">
+            {data.map((m, i) => (
+              <div key={m.key} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                <div className="w-full flex items-end justify-center gap-1 h-full">
+                  <div className="w-full max-w-[16px] rounded-t-md bg-gradient-to-t from-blue-700 to-blue-500 transition-all duration-700 ease-out"
+                    style={{ height: `${(m.receipts / max) * 100}%`, transitionDelay: `${i * 70}ms` }} />
+                  <div className="w-full max-w-[16px] rounded-t-md bg-gradient-to-t from-orange-500 to-orange-300 transition-all duration-700 ease-out"
+                    style={{ height: `${(m.expenses / max) * 100}%`, transitionDelay: `${i * 70 + 40}ms` }} />
+                </div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">{m.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================ PAYMENT MODE DONUT */
+function PaymentModePanel({ breakdown, loading }) {
+  const entries = Object.entries(breakdown || {}).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  const C = 2 * Math.PI * 52;
+  let offsetAcc = 0;
+
+  return (
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden h-full">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
+        <PieChart className="w-4 h-4 text-orange-600" />
+        <div>
+          <div className="text-[10px] tracking-[0.18em] uppercase font-bold text-stone-500">All time</div>
+          <div className="font-display text-lg tracking-tight">Collection by mode</div>
+        </div>
+      </div>
+      <div className="p-5">
+        {loading ? (
+          <div className="h-40 grid place-items-center text-sm text-stone-500">Loading…</div>
+        ) : total === 0 ? (
+          <div className="h-40 grid place-items-center text-sm text-stone-500 text-center px-4">No receipts recorded yet.</div>
+        ) : (
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative w-[132px] h-[132px]">
+              <svg width="132" height="132" viewBox="0 0 132 132">
+                <circle cx="66" cy="66" r="52" fill="none" stroke="#F1F0EB" strokeWidth="16" />
+                {entries.map(([mode, val], i) => {
+                  const meta = PAYMENT_MODE_META[mode] || PAYMENT_MODE_META.other;
+                  const pct = val / total;
+                  const len = C * pct;
+                  const el = (
+                    <circle key={mode} cx="66" cy="66" r="52" fill="none" stroke={meta.color} strokeWidth="16"
+                      strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offsetAcc}
+                      transform="rotate(-90 66 66)" strokeLinecap="butt"
+                      style={{ transition: "stroke-dasharray 900ms cubic-bezier(.2,.7,.2,1)", transitionDelay: `${i * 100}ms` }} />
+                  );
+                  offsetAcc += len;
+                  return el;
+                })}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="font-display text-base font-extrabold">{formatINR(total)}</div>
+                <div className="text-[9px] uppercase tracking-widest font-bold text-stone-400">Total</div>
+              </div>
+            </div>
+            <div className="w-full flex flex-col gap-2">
+              {entries.map(([mode, val]) => {
+                const meta = PAYMENT_MODE_META[mode] || PAYMENT_MODE_META.other;
+                const pct = Math.round((val / total) * 100);
+                return (
+                  <div key={mode} className="flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-2 font-semibold text-stone-600">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: meta.color }} />
+                      {meta.label}
+                    </span>
+                    <span className="font-bold text-stone-900">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ============================================================ PIPELINE FUNNEL */
 function PipelineFunnel({ byStatus, total, loading }) {
   const stages = LEAD_STATUSES.filter((s) => s.key !== "lost");
   const max = Math.max(1, ...stages.map((s) => byStatus[s.key] || 0));
   return (
-    <div className="bg-white border border-stone-200 p-5 mt-3 anim-fade-up">
+    <div className="bg-white border border-stone-200/70 rounded-2xl p-5 mt-3 anim-fade-up overflow-hidden">
       {loading ? (
         <div className="text-sm text-stone-500 py-8 text-center">Loading pipeline…</div>
       ) : total === 0 ? (
@@ -407,14 +594,14 @@ function PipelineFunnel({ byStatus, total, loading }) {
             const count = byStatus[s.key] || 0;
             const pct = (count / max) * 100;
             return (
-              <Link to="/leads" key={s.key} className="group px-3 py-3 hover:bg-stone-50 transition-colors">
+              <Link to="/leads" key={s.key} className="group px-3 py-3 hover:bg-stone-50 transition-colors rounded-xl">
                 <div className="flex items-center gap-1.5">
                   <span className={cn("w-1.5 h-1.5 rounded-full", s.dot)} />
                   <div className="text-[10px] tracking-[0.12em] uppercase font-bold text-stone-500 truncate">{s.label}</div>
                 </div>
                 <div className="font-display text-2xl font-bold mt-1 tabular-nums">{count}</div>
-                <div className="mt-2 h-1.5 bg-stone-100 overflow-hidden">
-                  <div className={cn("h-full transition-all duration-700", s.dot)} style={{ width: `${pct}%` }} />
+                <div className="mt-2 h-1.5 bg-stone-100 overflow-hidden rounded-full">
+                  <div className={cn("h-full transition-all duration-700 rounded-full", s.dot)} style={{ width: `${pct}%` }} />
                 </div>
               </Link>
             );
@@ -432,8 +619,8 @@ function FollowupsPanel({ today, overdue, loading }) {
     ...today.map((l) => ({ ...l, _kind: "today" })),
   ];
   return (
-    <div className="bg-white border border-stone-200 anim-fade-up">
-      <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarClock className="w-4 h-4 text-orange-500" />
           <div>
@@ -442,8 +629,8 @@ function FollowupsPanel({ today, overdue, loading }) {
           </div>
         </div>
         <div className="flex gap-2">
-          {overdue.length > 0 && <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-widest uppercase font-bold bg-rose-50 text-rose-700 border border-rose-200">{overdue.length} overdue</span>}
-          {today.length > 0 && <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-widest uppercase font-bold bg-orange-50 text-orange-700 border border-orange-200">{today.length} today</span>}
+          {overdue.length > 0 && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] tracking-widest uppercase font-bold bg-rose-50 text-rose-700 border border-rose-200">{overdue.length} overdue</span>}
+          {today.length > 0 && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] tracking-widest uppercase font-bold bg-orange-50 text-orange-700 border border-orange-200">{today.length} today</span>}
         </div>
       </div>
       {loading ? (
@@ -460,7 +647,7 @@ function FollowupsPanel({ today, overdue, loading }) {
             const phoneClean = (l.phone || "").replace(/\D/g, "");
             return (
               <li key={l.id} className={cn(
-                "px-5 py-3 flex items-center gap-3 hover:bg-stone-50 transition-colors",
+                "px-5 py-3 flex items-center gap-3 hover:bg-stone-50 transition-all hover:pl-6",
                 l._kind === "overdue" && "border-l-2 border-rose-500",
               )} data-testid={`followup-${l._kind}-${l.id}`}>
                 <div className={cn(
@@ -472,12 +659,12 @@ function FollowupsPanel({ today, overdue, loading }) {
                   <div className="text-xs text-stone-500 truncate">{l.phone}{l.reminder_note ? ` · ${l.reminder_note}` : ""}</div>
                 </Link>
                 <span className={cn(
-                  "text-[10px] tracking-widest uppercase font-bold px-2 py-0.5 border whitespace-nowrap",
+                  "text-[10px] tracking-widest uppercase font-bold px-2 py-0.5 rounded-full border whitespace-nowrap",
                   l._kind === "overdue" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-orange-50 text-orange-700 border-orange-200",
                 )}>{l._kind === "overdue" ? `Overdue · ${formatDate(l.next_followup_date)}` : "Today"}</span>
                 <div className="flex gap-1">
-                  {phoneClean && <a href={`tel:${phoneClean}`} className="p-1.5 hover:bg-stone-100 text-stone-500 hover:text-stone-900"><Phone className="w-3.5 h-3.5" /></a>}
-                  {phoneClean && <a href={`https://wa.me/${phoneClean}`} target="_blank" rel="noreferrer" className="p-1.5 hover:bg-emerald-50 text-stone-500 hover:text-emerald-700"><MessageCircle className="w-3.5 h-3.5" /></a>}
+                  {phoneClean && <a href={`tel:${phoneClean}`} className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-900"><Phone className="w-3.5 h-3.5" /></a>}
+                  {phoneClean && <a href={`https://wa.me/${phoneClean}`} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg hover:bg-emerald-50 text-stone-500 hover:text-emerald-700"><MessageCircle className="w-3.5 h-3.5" /></a>}
                 </div>
               </li>
             );
@@ -491,8 +678,8 @@ function FollowupsPanel({ today, overdue, loading }) {
 /* ============================================================ ACTIVITY */
 function ActivityFeed({ items, loading }) {
   return (
-    <div className="bg-white border border-stone-200 anim-fade-up">
-      <div className="px-5 py-4 border-b border-stone-200 flex items-center gap-2">
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
         <Activity className="w-4 h-4 text-stone-700" />
         <div>
           <div className="text-[10px] tracking-[0.18em] uppercase font-bold text-stone-500">What's happening</div>
@@ -513,7 +700,7 @@ function ActivityFeed({ items, loading }) {
             return (
               <li key={`${a.type}-${a.id}-${i}`}>
                 <Link to={a.link || "/"} className="px-5 py-3 flex items-start gap-3 hover:bg-stone-50 transition-colors">
-                  <div className={cn("w-8 h-8 grid place-items-center shrink-0", tone)}>
+                  <div className={cn("w-8 h-8 rounded-lg grid place-items-center shrink-0", tone)}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -534,8 +721,8 @@ function ActivityFeed({ items, loading }) {
 /* ============================================================ ACTIVE PROJECTS */
 function ActiveProjectsPanel({ projects, loading }) {
   return (
-    <div className="bg-white border border-stone-200 anim-fade-up">
-      <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Hammer className="w-4 h-4 text-amber-600" />
           <div>
@@ -551,25 +738,44 @@ function ActiveProjectsPanel({ projects, loading }) {
         <div className="p-10 text-center text-sm text-stone-500">No active projects right now.</div>
       ) : (
         <ul className="grid-divider-y anim-stagger">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <Link to={`/projects/${p.id}`} className="block px-5 py-4 hover:bg-stone-50 transition-colors group">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-base font-semibold tracking-tight truncate group-hover:text-orange-600">{p.project_name}</div>
-                    <div className="text-xs text-stone-500 mt-0.5 inline-flex items-center gap-1">
-                      <UserCheck className="w-3 h-3" />{p.customer?.name || "—"}
-                      {p.start_date && <><span className="mx-1">·</span><MapPin className="w-3 h-3" />{formatDate(p.start_date)}</>}
+          {projects.map((p) => {
+            let pct = null;
+            if (p.start_date && p.end_date) {
+              const start = new Date(p.start_date).getTime();
+              const end = new Date(p.end_date).getTime();
+              const now = Date.now();
+              if (end > start) pct = Math.max(2, Math.min(100, Math.round(((now - start) / (end - start)) * 100)));
+            }
+            return (
+              <li key={p.id}>
+                <Link to={`/projects/${p.id}`} className="block px-5 py-4 hover:bg-stone-50 transition-colors group">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-base font-semibold tracking-tight truncate group-hover:text-orange-600">{p.project_name}</div>
+                      <div className="text-xs text-stone-500 mt-0.5 inline-flex items-center gap-1">
+                        <UserCheck className="w-3 h-3" />{p.customer?.name || "—"}
+                        {p.start_date && <><span className="mx-1">·</span><MapPin className="w-3 h-3" />{formatDate(p.start_date)}</>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[10px] tracking-widest uppercase font-bold text-stone-400">Value</div>
+                      <div className="font-display text-base font-bold tabular-nums">{formatINR(p.total_value)}</div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[10px] tracking-widest uppercase font-bold text-stone-400">Value</div>
-                    <div className="font-display text-base font-bold tabular-nums">{formatINR(p.total_value)}</div>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
+                  {pct !== null && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1">
+                        <span>Est. timeline progress</span><span className="text-stone-600">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -579,8 +785,8 @@ function ActiveProjectsPanel({ projects, loading }) {
 /* ============================================================ TOP VENDORS */
 function TopVendorsPanel({ vendors, loading }) {
   return (
-    <div className="bg-white border border-stone-200 anim-fade-up">
-      <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+    <div className="bg-white border border-stone-200/70 rounded-2xl anim-fade-up overflow-hidden">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Truck className="w-4 h-4 text-teal-700" />
           <div>
@@ -600,7 +806,7 @@ function TopVendorsPanel({ vendors, loading }) {
             <li key={v.id}>
               <Link to={`/vendors/${v.id}`} className="block px-5 py-3 hover:bg-stone-50 transition-colors group">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-stone-100 border border-stone-200 grid place-items-center overflow-hidden shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-stone-100 border border-stone-200 grid place-items-center overflow-hidden shrink-0">
                     {v.photo_url ? (
                       <img src={v.photo_url} alt={v.name} className="w-full h-full object-cover" />
                     ) : (

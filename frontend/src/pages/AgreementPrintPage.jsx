@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, Send, Upload, CheckCircle2, Copy } from "lucide-react";
+import { ArrowLeft, Printer, Send, Upload, CheckCircle2, Copy, Globe, Phone, Mail, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { fetchAgreementById, renderClauseBody, sendForDigitalSignature, markSignedPhysical } from "@/services/agreementService";
 import { fetchTemplateById } from "@/services/agreementTemplateService";
 import { uploadFile } from "@/services/attachmentService";
 import { formatDateTime, formatINR } from "@/utils/format";
+import { SANKALP_LOGO, SANKALP_CONTACT } from "@/lib/brand";
 
 // Auto-calculated payment breakup table — stage / % / amount, from the
 // agreement's own payment_schedule + contract value.
@@ -41,6 +42,54 @@ function PaymentScheduleTable({ schedule, contractValue }) {
       </tbody>
     </table>
   );
+}
+
+// Simple, reliable header/footer bands rendered in NORMAL document flow —
+// duplicated once per manually-chunked page block below, so they always
+// appear on every page regardless of how the browser paginates print output.
+function HeaderBand() {
+  return (
+    <div className="doc-header">
+      <img src={SANKALP_LOGO} alt="Sankalp Interior Solution" />
+      <div>
+        <div className="doc-header-name">SANKALP INTERIOR SOLUTION</div>
+        <div className="doc-header-tagline">"Innovation for a Better Tomorrow"</div>
+      </div>
+    </div>
+  );
+}
+function FooterBand() {
+  return (
+    <div className="doc-footer">
+      <div className="doc-footer-row">
+        <span><Globe size={10} /> {SANKALP_CONTACT.website}</span>
+        <span><Phone size={10} /> {SANKALP_CONTACT.phone}</span>
+        <span><Mail size={10} /> info.sankalpgrp@gmail.com</span>
+      </div>
+      <div className="doc-footer-row doc-footer-address">
+        <MapPin size={10} /> {SANKALP_CONTACT.address}
+      </div>
+    </div>
+  );
+}
+
+// Splits title/intro + clauses + signature block into page-sized chunks so
+// every physical page gets its own header/footer band, deterministically —
+// no reliance on browser print engines correctly repeating fixed elements.
+const FIRST_PAGE_CLAUSES = 2;
+const CLAUSES_PER_PAGE = 3;
+
+function chunkIntoPages(clauses) {
+  const pages = [];
+  let i = 0;
+  pages.push(clauses.slice(0, FIRST_PAGE_CLAUSES));
+  i = FIRST_PAGE_CLAUSES;
+  while (i < clauses.length) {
+    pages.push(clauses.slice(i, i + CLAUSES_PER_PAGE));
+    i += CLAUSES_PER_PAGE;
+  }
+  if (pages.length === 0) pages.push([]);
+  return pages;
 }
 
 export default function AgreementPrintPage() {
@@ -97,13 +146,56 @@ export default function AgreementPrintPage() {
     .filter((c) => !c.is_optional || (agreement.enabled_clause_ids || []).includes(c.id))
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const md = agreement.merge_data || {};
+  const pages = chunkIntoPages(clauses);
+
+  const renderClause = (c) => (
+    <div key={c.id} className="mb-4 avoid-break">
+      <h3 className="font-bold text-[12px] mb-1">{c.title}</h3>
+      <p className="whitespace-pre-line">{renderClauseBody(c.body, md)}</p>
+      {c.id === "payment_terms" && (
+        <PaymentScheduleTable schedule={agreement.payment_schedule} contractValue={md.contract_value} />
+      )}
+    </div>
+  );
+
+  const signatureBlock = (
+    <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t border-slate-300 avoid-break">
+      <div>
+        <div className="font-bold text-[10px] uppercase tracking-widest mb-3">Client Acceptance</div>
+        <div>Client Name: {md.client_name}</div>
+        {agreement.status === "signed_digital" ? (
+          <div className="mt-3 border border-emerald-300 bg-emerald-50 rounded p-3">
+            <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Digitally Signed</div>
+            <div className="text-[10px] text-slate-600 mt-1">By: {agreement.signer_name}</div>
+            <div className="text-[10px] text-slate-600">At: {formatDateTime(agreement.signed_at)}</div>
+            {agreement.signature_url && <img src={agreement.signature_url} alt="signature evidence" className="mt-2 h-20 rounded border border-slate-200 object-cover" />}
+          </div>
+        ) : agreement.status === "signed_physical" ? (
+          <div className="mt-3 border border-blue-300 bg-blue-50 rounded p-3">
+            <div className="text-blue-700 text-[10px] font-semibold">Signed physically — scanned copy on file</div>
+            {agreement.signed_file_url && <a href={agreement.signed_file_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-700 underline">View scanned copy</a>}
+          </div>
+        ) : (
+          <>
+            <div className="mt-8 border-b border-slate-500 w-56" />
+            <div className="text-[9px] text-slate-500 mt-1">Signature</div>
+            <div className="mt-4 border-b border-slate-500 w-40" />
+            <div className="text-[9px] text-slate-500 mt-1">Date / Place</div>
+          </>
+        )}
+      </div>
+      <div>
+        <div className="font-bold text-[10px] uppercase tracking-widest mb-3">For Sankalp Interior Solution</div>
+        <div>Authorized Signatory: Subhendu Biswas</div>
+        <div>Designation: Director</div>
+        <div className="mt-8 border-b border-slate-500 w-56" />
+        <div className="text-[9px] text-slate-500 mt-1">Signature &amp; Company Seal</div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white">
-      {/* Letterhead background layer — position:fixed at document root so it repeats
-          behind every printed page (Chrome/Edge re-render fixed elements per page). */}
-      <div className="agreement-letterhead-bg" aria-hidden="true" />
-
       <div className="max-w-[210mm] mx-auto flex flex-wrap items-center justify-between gap-2 mb-3 no-print">
         <Button variant="outline" className="rounded-lg" onClick={() => nav("/agreements")}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -133,63 +225,29 @@ export default function AgreementPrintPage() {
         </div>
       </div>
 
-      <div className="agreement-a4 agreement-doc mx-auto bg-white print-page shadow-xl print:shadow-none" data-testid="agreement-print-document">
-        <div className="agreement-body">
-          <h1 className="text-center font-bold text-[16px] tracking-tight mb-1">{agreement.title}</h1>
-          <p className="text-center text-[9px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
-
-          <p className="mb-3">
-            This {agreement.title} ("Agreement") is made and executed between <b>SANKALP INTERIOR SOLUTION</b>, having its registered office at GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, VIP Road, Kolkata – 700059 (hereinafter the "Contractor"), AND
-          </p>
-          <p className="mb-6">
-            Mr./Ms. <b>{md.client_name || "___________"}</b>{md.client_guardian ? `, ${md.client_guardian},` : ""} residing at {md.client_address || "___________"}, Mobile No. {md.client_mobile || "___________"} (hereinafter the "Client").
-          </p>
-
-          {clauses.map((c) => (
-            <div key={c.id} className="mb-4 avoid-break">
-              <h3 className="font-bold text-[12px] mb-1">{c.title}</h3>
-              <p className="whitespace-pre-line">{renderClauseBody(c.body, md)}</p>
-              {c.id === "payment_terms" && (
-                <PaymentScheduleTable schedule={agreement.payment_schedule} contractValue={md.contract_value} />
-              )}
-            </div>
-          ))}
-
-          {/* Signature block */}
-          <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t border-slate-300 avoid-break">
-            <div>
-              <div className="font-bold text-[10px] uppercase tracking-widest mb-3">Client Acceptance</div>
-              <div>Client Name: {md.client_name}</div>
-              {agreement.status === "signed_digital" ? (
-                <div className="mt-3 border border-emerald-300 bg-emerald-50 rounded p-3">
-                  <div className="flex items-center gap-1.5 text-emerald-700 text-[10px] font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Digitally Signed</div>
-                  <div className="text-[10px] text-slate-600 mt-1">By: {agreement.signer_name}</div>
-                  <div className="text-[10px] text-slate-600">At: {formatDateTime(agreement.signed_at)}</div>
-                  {agreement.signature_url && <img src={agreement.signature_url} alt="signature evidence" className="mt-2 h-20 rounded border border-slate-200 object-cover" />}
-                </div>
-              ) : agreement.status === "signed_physical" ? (
-                <div className="mt-3 border border-blue-300 bg-blue-50 rounded p-3">
-                  <div className="text-blue-700 text-[10px] font-semibold">Signed physically — scanned copy on file</div>
-                  {agreement.signed_file_url && <a href={agreement.signed_file_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-700 underline">View scanned copy</a>}
-                </div>
-              ) : (
+      <div className="agreement-doc" data-testid="agreement-print-document">
+        {pages.map((chunk, pageIdx) => (
+          <div key={pageIdx} className="doc-page">
+            <HeaderBand />
+            <div className="doc-page-content">
+              {pageIdx === 0 && (
                 <>
-                  <div className="mt-8 border-b border-slate-500 w-56" />
-                  <div className="text-[9px] text-slate-500 mt-1">Signature</div>
-                  <div className="mt-4 border-b border-slate-500 w-40" />
-                  <div className="text-[9px] text-slate-500 mt-1">Date / Place</div>
+                  <h1 className="text-center font-bold text-[16px] tracking-tight mb-1">{agreement.title}</h1>
+                  <p className="text-center text-[9px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
+                  <p className="mb-3">
+                    This {agreement.title} ("Agreement") is made and executed between <b>SANKALP INTERIOR SOLUTION</b>, having its registered office at GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, VIP Road, Kolkata – 700059 (hereinafter the "Contractor"), AND
+                  </p>
+                  <p className="mb-6">
+                    Mr./Ms. <b>{md.client_name || "___________"}</b>{md.client_guardian ? `, ${md.client_guardian},` : ""} residing at {md.client_address || "___________"}, Mobile No. {md.client_mobile || "___________"} (hereinafter the "Client").
+                  </p>
                 </>
               )}
+              {chunk.map(renderClause)}
+              {pageIdx === pages.length - 1 && signatureBlock}
             </div>
-            <div>
-              <div className="font-bold text-[10px] uppercase tracking-widest mb-3">For Sankalp Interior Solution</div>
-              <div>Authorized Signatory: Subhendu Biswas</div>
-              <div>Designation: Director</div>
-              <div className="mt-8 border-b border-slate-500 w-56" />
-              <div className="text-[9px] text-slate-500 mt-1">Signature &amp; Company Seal</div>
-            </div>
+            <FooterBand />
           </div>
-        </div>
+        ))}
       </div>
 
       <style>{`
@@ -207,17 +265,6 @@ export default function AgreementPrintPage() {
           font-style: normal;
           font-display: swap;
         }
-        .agreement-a4 {
-          width: 210mm;
-          min-height: 297mm;
-          max-width: 210mm;
-          /* Screen-only preview approximation of a repeating letterhead per page */
-          background-image: url('/sankalp-letterhead.jpg');
-          background-repeat: repeat-y;
-          background-size: 210mm 297mm;
-          background-position: top center;
-        }
-        .agreement-letterhead-bg { display: none; }
         .agreement-doc {
           font-family: 'Bookman Old Style', 'Georgia', serif;
           font-size: 11pt;
@@ -225,34 +272,48 @@ export default function AgreementPrintPage() {
           color: #1a1a1a;
         }
         .agreement-doc h1, .agreement-doc h3 { font-family: 'Bookman Old Style', 'Georgia', serif; font-weight: 700; }
-        .agreement-body { padding: 1.5in 1in; }
+        .doc-page {
+          width: 210mm;
+          min-height: 297mm;
+          max-width: 210mm;
+          margin: 0 auto 16px;
+          background: #fff;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+          display: flex;
+          flex-direction: column;
+        }
+        .doc-header {
+          display: flex; align-items: center; gap: 12px;
+          padding: 14px 1in;
+          border-bottom: 3px solid #1E3FAD;
+        }
+        .doc-header img { height: 42px; width: auto; }
+        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 14pt; color: #1E3FAD; letter-spacing: 0.02em; }
+        .doc-header-tagline { font-size: 9pt; font-style: italic; color: #475569; margin-top: 2px; }
+        .doc-footer {
+          margin-top: auto;
+          background: #1E3FAD;
+          color: #fff;
+          padding: 8px 1in 10px;
+          font-size: 8pt;
+        }
+        .doc-footer-row { display: flex; justify-content: center; gap: 20px; align-items: center; flex-wrap: wrap; }
+        .doc-footer-row span { display: inline-flex; align-items: center; gap: 4px; }
+        .doc-footer-address { margin-top: 3px; color: #dbeafe; text-align: center; font-size: 7.5pt; }
+        .doc-page-content { padding: 20px 1in; flex: 1; }
         .agreement-table { border-collapse: collapse; font-size: 10.5pt; }
         .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
         .agreement-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
         @media print {
-          @page { size: A4 portrait; margin: 1.5in 1in; }
+          @page { size: A4 portrait; margin: 0; }
           html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .agreement-a4 {
-            width: auto; min-height: 0; box-shadow: none;
-            background-image: none; /* fixed layer below replaces this for print */
-            background-color: transparent !important;
+          .doc-page {
+            width: auto; min-height: 100vh; margin: 0; box-shadow: none;
+            page-break-after: always;
           }
-          .agreement-body { padding: 0; }
+          .doc-page:last-child { page-break-after: auto; }
+          .doc-page-content { padding: 16px 1in; }
           .avoid-break { page-break-inside: avoid; }
-          /* position:fixed repeats on every printed page in Chrome/Edge, and its
-             containing block is the full physical page — so this bleeds edge to
-             edge on every page while @page margin above still insets the text.
-             z-index:-1 with no positioned/transformed ancestor keeps it safely
-             behind all normal in-flow content. */
-          .agreement-letterhead-bg {
-            display: block;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: url('/sankalp-letterhead.jpg');
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            z-index: -1;
-          }
         }
       `}</style>
     </div>

@@ -147,16 +147,30 @@ export const fetchAgreementByToken = async (token) => {
   return row || null;
 };
 
-export const submitAgreementSignature = async ({ token, signerName, signatureUrl, lat, lng, ip, userAgent }) => {
+export const submitAgreementSignature = async ({ token, signerName, signatureUrl, lat, lng, accuracy, ip, userAgent }) => {
   const { data, error } = await supabase.rpc("submit_agreement_signature", {
     p_token: token,
     p_signer_name: signerName,
     p_signature_url: signatureUrl || null,
     p_lat: lat ?? null,
     p_lng: lng ?? null,
+    p_accuracy: accuracy ?? null,
     p_ip: ip || null,
     p_user_agent: userAgent || null,
   });
+  if (error) throw error;
+  return data;
+};
+
+// Customer ID-proof documents (Aadhaar, PAN, etc.) uploaded during agreement
+// creation — same "attachments" bucket used everywhere else in the app.
+export const setIdProofUrls = async (id, idProofUrls) => {
+  const { data, error } = await supabase
+    .from("agreements")
+    .update({ id_proof_urls: idProofUrls })
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
   return data;
 };

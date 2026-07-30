@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SearchableSelect from "@/components/shared/SearchableSelect";
-import { ArrowLeft, Save, Eye, Plus, Trash2, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Eye, Plus, Trash2, Sparkles, Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCustomers } from "@/services/customerService";
@@ -17,6 +17,7 @@ import { fetchProjects } from "@/services/projectService";
 import { fetchEstimates } from "@/services/estimateService";
 import { fetchTemplates } from "@/services/agreementTemplateService";
 import { fetchAgreementById, createAgreement, updateAgreement, buildMergeDataFromSources } from "@/services/agreementService";
+import { uploadFile } from "@/services/attachmentService";
 import { formatINR, numberToWords } from "@/utils/format";
 
 export default function AgreementEditorPage() {
@@ -42,6 +43,8 @@ export default function AgreementEditorPage() {
   const [mergeData, setMergeData] = useState({});
   const [enabledClauseIds, setEnabledClauseIds] = useState([]);
   const [paymentSchedule, setPaymentSchedule] = useState([]);
+  const [idProofUrls, setIdProofUrls] = useState([]);
+  const [uploadingId, setUploadingId] = useState(false);
 
   const selectedTemplate = useMemo(() => templates.find((t) => t.id === templateId), [templates, templateId]);
 
@@ -71,6 +74,7 @@ export default function AgreementEditorPage() {
           setMergeData(ag.merge_data || {});
           setEnabledClauseIds(ag.enabled_clause_ids || []);
           setPaymentSchedule(ag.payment_schedule || []);
+          setIdProofUrls(ag.id_proof_urls || []);
         } else {
           const def = tmpls.find((t) => t.is_default) || tmpls[0];
           if (def) {
@@ -119,6 +123,23 @@ export default function AgreementEditorPage() {
   const removePaymentRow = (i) => setPaymentSchedule((prev) => prev.filter((_, idx) => idx !== i));
   const scheduleTotal = paymentSchedule.reduce((s, r) => s + (Number(r.percent) || 0), 0);
 
+  const handleIdProofUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingId(true);
+    try {
+      const uploaded = [];
+      for (const f of files) {
+        const res = await uploadFile(f, "agreements/id-proofs");
+        uploaded.push({ url: res.url, name: res.name, type: res.type });
+      }
+      setIdProofUrls((prev) => [...prev, ...uploaded]);
+      toast.success(`${uploaded.length} document(s) uploaded`);
+    } catch (err) { toast.error(err.message); }
+    finally { setUploadingId(false); e.target.value = ""; }
+  };
+  const removeIdProof = (i) => setIdProofUrls((prev) => prev.filter((_, idx) => idx !== i));
+
   const handleSave = async (goToPrint) => {
     if (!templateId) { toast.error("Pick a template first"); return; }
     if (!customerId && !leadId) { toast.error("Pick a customer or lead"); return; }
@@ -142,6 +163,7 @@ export default function AgreementEditorPage() {
         merge_data: finalMergeData,
         enabled_clause_ids: enabledClauseIds,
         payment_schedule: paymentSchedule,
+        id_proof_urls: idProofUrls,
       };
       let saved;
       if (isEdit) saved = await updateAgreement(id, payload);
@@ -322,6 +344,28 @@ export default function AgreementEditorPage() {
             <Button variant="outline" size="sm" className="rounded-lg mt-3" onClick={addPaymentRow}>
               <Plus className="w-4 h-4 mr-1" /> Add Stage
             </Button>
+          </div>
+
+          {/* Customer ID proof */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="label-uppercase mb-3">Customer ID Proof (optional)</div>
+            <p className="text-xs text-slate-400 mb-3">Aadhaar, PAN, or other ID — shown alongside the signing evidence on the last page once the agreement is signed.</p>
+            {idProofUrls.length > 0 && (
+              <div className="grid sm:grid-cols-2 gap-2 mb-3">
+                {idProofUrls.map((doc, i) => (
+                  <div key={i} className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2">
+                    <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                    <a href={doc.url} target="_blank" rel="noreferrer" className="text-sm text-blue-700 truncate flex-1 hover:underline">{doc.name}</a>
+                    <Button variant="ghost" size="icon" className="text-rose-500 h-6 w-6" onClick={() => removeIdProof(i)}><X className="w-3.5 h-3.5" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer">
+              <Upload className="w-4 h-4" />
+              {uploadingId ? "Uploading…" : "Upload ID document(s)"}
+              <input type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleIdProofUpload} disabled={uploadingId} data-testid="agreement-id-proof-input" />
+            </label>
           </div>
 
           {/* Optional clauses */}

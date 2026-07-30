@@ -108,6 +108,64 @@ function chunkIntoPages(clauses) {
   return pages;
 }
 
+function EvidenceBlock({ agreement }) {
+  if (agreement.status !== "signed_digital") return null;
+  const mapUrl = agreement.response_lat && agreement.response_lng
+    ? `https://maps.google.com/?q=${agreement.response_lat},${agreement.response_lng}`
+    : null;
+  return (
+    <div className="evidence-panel avoid-break mt-6" data-testid="agreement-evidence-panel">
+      <div className="evidence-title">Customer Response — Evidence</div>
+      <div className="evidence-grid">
+        <div>
+          <div className="evidence-label">Status</div>
+          <div className="evidence-value evidence-value-green">Digitally Accepted &amp; Signed</div>
+        </div>
+        <div>
+          <div className="evidence-label">Responded By (typed name)</div>
+          <div className="evidence-value">{agreement.signer_name}</div>
+        </div>
+        <div>
+          <div className="evidence-label">Response Time</div>
+          <div className="evidence-value">{formatDateTime(agreement.signed_at)}</div>
+        </div>
+        <div>
+          <div className="evidence-label">IP Address</div>
+          <div className="evidence-value">{agreement.response_ip || "—"}</div>
+        </div>
+      </div>
+
+      <div className="evidence-label mt-3 mb-2">Customer Selfie &amp; ID Proof</div>
+      <div className="evidence-media-grid">
+        <div className="evidence-media-box">
+          {agreement.signature_url ? (
+            <img src={agreement.signature_url} alt="Customer selfie evidence" />
+          ) : (
+            <div className="evidence-media-empty">No selfie captured</div>
+          )}
+        </div>
+        <div className="evidence-media-box">
+          {(agreement.id_proof_urls || []).length > 0 ? (
+            <div className="evidence-docs-grid">
+              {agreement.id_proof_urls.map((doc, i) => (
+                doc.type?.startsWith("image/")
+                  ? <img key={i} src={doc.url} alt={doc.name || "ID document"} />
+                  : <a key={i} href={doc.url} target="_blank" rel="noreferrer" className="evidence-doc-link">{doc.name || "ID document"}</a>
+              ))}
+            </div>
+          ) : (
+            <div className="evidence-media-empty">No ID document uploaded</div>
+          )}
+        </div>
+      </div>
+      <div className="evidence-footnote">
+        {mapUrl && <>Location: {agreement.response_lat?.toFixed(5)}, {agreement.response_lng?.toFixed(5)} · </>}
+        Device: {agreement.response_user_agent || "—"}
+      </div>
+    </div>
+  );
+}
+
 export default function AgreementPrintPage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -260,6 +318,7 @@ export default function AgreementPrintPage() {
               )}
               {chunk.map(renderClause)}
               {pageIdx === pages.length - 1 && signatureBlock}
+              {pageIdx === pages.length - 1 && <EvidenceBlock agreement={agreement} />}
             </div>
             <FooterBand pageNumber={pageIdx + 1} totalPages={pages.length} agreement={agreement} md={md} />
           </div>
@@ -333,6 +392,19 @@ export default function AgreementPrintPage() {
         .agreement-table { border-collapse: collapse; font-size: 10.5pt; }
         .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
         .agreement-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
+        .evidence-panel { border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 6px; padding: 14px 16px; }
+        .evidence-title { font-size: 9pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #047857; margin-bottom: 10px; }
+        .evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+        .evidence-label { font-size: 7pt; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; font-weight: 700; }
+        .evidence-value { font-size: 9.5pt; color: #0f172a; font-weight: 600; }
+        .evidence-value-green { color: #047857; }
+        .evidence-media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .evidence-media-box { border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; padding: 6px; min-height: 90px; display: flex; align-items: center; justify-content: center; }
+        .evidence-media-box img { max-width: 100%; max-height: 160px; object-fit: contain; }
+        .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; }
+        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; }
+        .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
+        .evidence-footnote { margin-top: 8px; font-size: 7pt; color: #64748b; font-family: monospace; word-break: break-all; }
         @media print {
           @page { size: A4 portrait; margin: 0; }
           html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

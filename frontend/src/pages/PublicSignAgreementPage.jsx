@@ -16,6 +16,7 @@ export default function PublicSignAgreementPage() {
   const [selfie, setSelfie] = useState(null);
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
+  const [accuracy, setAccuracy] = useState(null);
   const [locStatus, setLocStatus] = useState("idle");
   const [cameraOn, setCameraOn] = useState(false);
   const videoRef = useRef(null);
@@ -38,7 +39,7 @@ export default function PublicSignAgreementPage() {
     if (!navigator.geolocation) { setLocStatus("error"); return; }
     setLocStatus("requesting");
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocStatus("ok"); },
+      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude); setAccuracy(pos.coords.accuracy); setLocStatus("ok"); },
       () => setLocStatus("error"),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
@@ -73,7 +74,42 @@ export default function PublicSignAgreementPage() {
     const v = videoRef.current;
     const c = document.createElement("canvas");
     c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
-    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+    const ctx = c.getContext("2d");
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+
+    // ---------- Watermark overlay (same evidence style as Digital Approvals) ----------
+    const pad = Math.round(c.width * 0.02);
+    const lineH = Math.round(c.width * 0.032);
+    const fontS = Math.round(c.width * 0.028);
+    const bandH = lineH * 4 + pad * 2;
+
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(0, c.height - bandH, c.width, bandH);
+    ctx.fillStyle = "#f5b800";
+    ctx.fillRect(0, c.height - bandH, c.width, 2);
+
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#f5b800";
+    ctx.font = `bold ${Math.round(fontS * 0.9)}px Inter, Arial, sans-serif`;
+    ctx.fillText("SANKALP GROUP · DIGITAL SIGNATURE EVIDENCE", pad, c.height - bandH + pad);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `${fontS}px Inter, Arial, sans-serif`;
+    const now = new Date();
+    const ts = now.toLocaleString("en-IN", { hour12: true });
+    const geoLine = (lat != null && lng != null)
+      ? `GEO: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${Math.round(accuracy || 0)}m)`
+      : "GEO: not captured";
+
+    let y = c.height - bandH + pad + lineH;
+    ctx.fillText(`TIME: ${ts}`, pad, y);
+    y += lineH;
+    ctx.fillText(geoLine, pad, y);
+    y += lineH;
+    if (agreement?.title) {
+      ctx.fillText(`RE: ${agreement.title.slice(0, 60)}${agreement.merge_data?.client_name ? ` · ${agreement.merge_data.client_name}` : ""}`, pad, y);
+    }
+
     c.toBlob((blob) => { setSelfie({ url: URL.createObjectURL(blob), blob }); stopCamera(); }, "image/jpeg", 0.88);
   };
 
@@ -89,7 +125,7 @@ export default function PublicSignAgreementPage() {
       let ip = null;
       try { const r = await fetch("https://api.ipify.org?format=json"); ip = (await r.json()).ip; } catch {}
       const updated = await submitAgreementSignature({
-        token, signerName: name.trim(), signatureUrl, lat, lng, ip, userAgent: navigator.userAgent,
+        token, signerName: name.trim(), signatureUrl, lat, lng, accuracy, ip, userAgent: navigator.userAgent,
       });
       setAgreement(updated);
       setStep("done");

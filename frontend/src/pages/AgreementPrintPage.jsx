@@ -175,40 +175,45 @@ function EvidenceBlock({ agreement }) {
       {mapUrl && (
         <>
           <div className="evidence-label mt-3 mb-2">Location Map</div>
-          <div className="evidence-map-box">
-            {(() => {
-              const VIEW = 260; // visible square, in px
-              const tile = latLngToTile(agreement.response_lat, agreement.response_lng, 16);
-              // Target's pixel position within a 3x3 (768x768) tile grid centered on `tile`
-              const targetX = 256 + tile.pixelX;
-              const targetY = 256 + tile.pixelY;
-              const gridLeft = VIEW / 2 - targetX;
-              const gridTop = VIEW / 2 - targetY;
-              const offsets = [-1, 0, 1];
-              return (
-                <div className="evidence-map-viewport" style={{ width: VIEW, height: VIEW }}>
-                  <div className="evidence-map-grid" style={{ left: gridLeft, top: gridTop }}>
-                    {offsets.map((dy) => offsets.map((dx) => (
-                      <img
-                        key={`${dx}_${dy}`}
-                        src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.x + dx}/${tile.y + dy}.png`}
-                        alt=""
-                        width={256} height={256}
-                        style={{ position: "absolute", left: (dx + 1) * 256, top: (dy + 1) * 256 }}
-                      />
-                    )))}
+          <div className="evidence-map-row">
+            <div className="evidence-map-box">
+              {(() => {
+                const VIEW = 220; // visible square, in px
+                const tile = latLngToTile(agreement.response_lat, agreement.response_lng, 16);
+                // Target's pixel position within a 3x3 (768x768) tile grid centered on `tile`
+                const targetX = 256 + tile.pixelX;
+                const targetY = 256 + tile.pixelY;
+                const gridLeft = VIEW / 2 - targetX;
+                const gridTop = VIEW / 2 - targetY;
+                const offsets = [-1, 0, 1];
+                return (
+                  <div className="evidence-map-viewport" style={{ width: VIEW, height: VIEW }}>
+                    <div className="evidence-map-grid" style={{ left: gridLeft, top: gridTop }}>
+                      {offsets.map((dy) => offsets.map((dx) => (
+                        <img
+                          key={`${dx}_${dy}`}
+                          src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.x + dx}/${tile.y + dy}.png`}
+                          alt=""
+                          width={256} height={256}
+                          style={{ position: "absolute", left: (dx + 1) * 256, top: (dy + 1) * 256 }}
+                        />
+                      )))}
+                    </div>
+                    <div className="evidence-map-pin" style={{ left: VIEW / 2, top: VIEW / 2 }} />
                   </div>
-                  <div className="evidence-map-pin" style={{ left: VIEW / 2, top: VIEW / 2 }} />
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
+            <div className="evidence-map-text">
+              <div>Location: {agreement.response_lat?.toFixed(5)}, {agreement.response_lng?.toFixed(5)}</div>
+              <div className="mt-2">Device: {agreement.response_user_agent || "—"}</div>
+            </div>
           </div>
         </>
       )}
-      <div className="evidence-footnote">
-        {mapUrl && <>Location: {agreement.response_lat?.toFixed(5)}, {agreement.response_lng?.toFixed(5)} · </>}
-        Device: {agreement.response_user_agent || "—"}
-      </div>
+      {!mapUrl && (
+        <div className="evidence-footnote">Device: {agreement.response_user_agent || "—"}</div>
+      )}
     </div>
   );
 }
@@ -466,12 +471,15 @@ export default function AgreementPrintPage() {
         .evidence-value { font-size: 9.5pt; color: #0f172a; font-weight: 600; }
         .evidence-value-green { color: #047857; }
         .evidence-media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .evidence-media-box { border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; padding: 6px; min-height: 90px; display: flex; align-items: center; justify-content: center; }
-        .evidence-media-box img { max-width: 100%; max-height: 160px; object-fit: contain; }
-        .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; }
-        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; }
+        .evidence-media-box { border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; overflow: hidden; min-height: 170px; display: flex; align-items: center; justify-content: center; }
+        .evidence-media-box img { width: 100%; height: 170px; object-fit: cover; display: block; }
+        .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; padding: 12px; }
+        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; height: 100%; }
+        .evidence-docs-grid img { height: 82px; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
-        .evidence-map-box { display: flex; justify-content: center; }
+        .evidence-map-box { display: flex; justify-content: flex-start; }
+        .evidence-map-row { display: flex; align-items: center; gap: 16px; }
+        .evidence-map-text { font-size: 9pt; color: #334155; line-height: 1.6; word-break: break-word; }
         .evidence-map-viewport { position: relative; overflow: hidden; border: 2px solid #0f172a; border-radius: 4px; }
         .evidence-map-grid { position: absolute; width: 768px; height: 768px; }
         .evidence-map-pin {

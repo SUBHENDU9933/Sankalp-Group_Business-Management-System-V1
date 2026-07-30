@@ -293,12 +293,12 @@ export default function AgreementPrintPage() {
         }
         .doc-header-wrap { }
         .doc-header {
-          display: flex; align-items: center; gap: 16px;
+          display: flex; align-items: center; gap: 12px;
           padding: 20px 1in 14px;
         }
         .doc-header img { height: 64px; width: auto; flex-shrink: 0; }
-        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 31pt; color: #1E3FAD; letter-spacing: 0.005em; white-space: nowrap; line-height: 1.1; }
-        .doc-header-tagline { font-size: 11pt; font-style: italic; color: #1E3FAD; margin-top: 3px; text-align: right; white-space: nowrap; }
+        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 24pt; color: #1E3FAD; letter-spacing: 0.005em; white-space: nowrap; line-height: 1.1; }
+        .doc-header-tagline { font-size: 10pt; font-style: italic; color: #1E3FAD; margin-top: 3px; text-align: right; white-space: nowrap; }
         .doc-header-stripe { display: flex; flex-direction: column; }
         .doc-header-stripe-blue { height: 8px; background: #1E3FAD; width: 100%; }
         .doc-header-stripe-orange { height: 4px; background: #F97316; width: 100%; }

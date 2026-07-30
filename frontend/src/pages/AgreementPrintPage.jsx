@@ -71,8 +71,7 @@ function FooterBand() {
       <div className="doc-footer">
         <div className="doc-footer-row">
           <span><i className="doc-icon-circle"><Globe size={11} /></i> www.sankalps.com</span>
-          <span><i className="doc-icon-circle"><Phone size={11} /></i> +91 3368260520</span>
-          <span><i className="doc-icon-circle doc-icon-circle-plain" /> +91 9748297025</span>
+          <span><i className="doc-icon-circle"><Phone size={11} /></i> +91 9748297025</span>
           <span><i className="doc-icon-circle"><Mail size={11} /></i> info.sankalpgrp@gmail.com</span>
         </div>
         <div className="doc-footer-address">
@@ -294,12 +293,12 @@ export default function AgreementPrintPage() {
         }
         .doc-header-wrap { }
         .doc-header {
-          display: flex; align-items: center; gap: 18px;
-          padding: 22px 1in 16px;
+          display: flex; align-items: center; gap: 16px;
+          padding: 20px 1in 14px;
         }
-        .doc-header img { height: 72px; width: auto; }
-        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 26pt; color: #1E3FAD; letter-spacing: 0.01em; }
-        .doc-header-tagline { font-size: 11pt; font-style: italic; color: #1E3FAD; margin-top: 2px; text-align: right; }
+        .doc-header img { height: 64px; width: auto; flex-shrink: 0; }
+        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 31pt; color: #1E3FAD; letter-spacing: 0.005em; white-space: nowrap; line-height: 1.1; }
+        .doc-header-tagline { font-size: 11pt; font-style: italic; color: #1E3FAD; margin-top: 3px; text-align: right; white-space: nowrap; }
         .doc-header-stripe { display: flex; flex-direction: column; }
         .doc-header-stripe-blue { height: 8px; background: #1E3FAD; width: 100%; }
         .doc-header-stripe-orange { height: 4px; background: #F97316; width: 100%; }

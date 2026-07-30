@@ -28,6 +28,29 @@
     --ring: 222 76% 38%;
     --radius: 0.75rem;
   }
+
+  .dark {
+    /* Sankalp brand palette — dark mode */
+    --background: 222 47% 8%;        /* deep slate */
+    --foreground: 210 20% 96%;
+    --card: 222 40% 11%;
+    --card-foreground: 210 20% 96%;
+    --popover: 222 40% 11%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 217 91% 60%;          /* brighter blue for dark bg */
+    --primary-foreground: 222 47% 8%;
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 25 95% 58%;            /* orange, slightly brighter */
+    --accent-foreground: 222 47% 8%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 25% 20%;
+    --input: 222 25% 20%;
+    --ring: 217 91% 60%;
+  }
 }
 
 @layer base {

@@ -3,11 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, UserCheck, ReceiptText, Hammer,
   Truck, ShieldCheck, LogOut, UsersRound, Settings, Calculator,
-  FileCheck2, Trash2, Activity,
+  FileCheck2, Trash2, Activity, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
 import NotificationBell from "@/components/layout/NotificationBell";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, testid: "nav-dashboard" },
@@ -22,6 +23,7 @@ const NAV = [
 
 export default function DashboardLayout() {
   const { profile, isAdmin, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
 
   const handleLogout = async () => {
@@ -30,16 +32,16 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 grid lg:grid-cols-[260px_1fr]">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 grid lg:grid-cols-[260px_1fr]">
       {/* Sidebar */}
-      <aside className="bg-white border-r border-slate-200 flex flex-col" data-testid="sidebar">
-        <div className="px-5 py-5 border-b border-slate-100 flex items-center gap-3">
+      <aside className="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col" data-testid="sidebar">
+        <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <div className="bg-white rounded-xl border border-slate-100 p-1.5 shadow-sm">
             <Logo className="h-9 w-9 object-contain" />
           </div>
           <div>
-            <div className="font-display text-sm font-bold tracking-tight text-slate-900 leading-tight">SANKALP GROUP</div>
-            <div className="text-[10px] tracking-[0.18em] uppercase text-slate-500 mt-0.5">Interior &amp; Infra Solutions</div>
+            <div className="font-display text-sm font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-tight">SANKALP GROUP</div>
+            <div className="text-[10px] tracking-[0.18em] uppercase text-slate-500 dark:text-slate-400 mt-0.5">Interior &amp; Infra Solutions</div>
           </div>
         </div>
 
@@ -55,7 +57,7 @@ export default function DashboardLayout() {
                   "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
                   isActive
                     ? "bg-blue-700 text-white shadow-sm shadow-blue-700/20"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
                 )
               }
             >
@@ -134,14 +136,22 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main */}
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
         {/* Topbar */}
-        <header className="bg-white border-b border-slate-200 px-6 lg:px-10 py-3.5 flex items-center justify-between sticky top-0 z-20">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 lg:px-10 py-3.5 flex items-center justify-between sticky top-0 z-20">
           <div>
-            <div className="text-xs text-slate-500">Welcome back,</div>
-            <div className="font-display text-base font-bold text-slate-900">{profile?.full_name?.split(" ")[0] || "there"} <span className="ml-1">👋</span></div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Welcome back,</div>
+            <div className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{profile?.full_name?.split(" ")[0] || "there"} <span className="ml-1">👋</span></div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              data-testid="theme-toggle-button"
+              aria-label="Toggle light or dark mode"
+              className="w-9 h-9 grid place-items-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <NotificationBell />
           </div>
         </header>

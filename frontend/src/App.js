@@ -1,6 +1,7 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "@/components/ui/sonner";
 import LoginPage from "@/pages/LoginPage";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -61,6 +62,7 @@ const AdminOnly = ({ children }) => {
 function App() {
   return (
     <div className="App">
+      <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -98,6 +100,7 @@ function App() {
         </BrowserRouter>
         <Toaster position="bottom-right" duration={2200} />
       </AuthProvider>
+      </ThemeProvider>
     </div>
   );
 }

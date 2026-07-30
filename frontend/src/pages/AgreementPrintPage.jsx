@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, Send, Upload, CheckCircle2, Copy, Globe, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, Printer, Send, Upload, CheckCircle2, Copy, Globe, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { fetchAgreementById, renderClauseBody, sendForDigitalSignature, markSignedPhysical } from "@/services/agreementService";
 import { fetchTemplateById } from "@/services/agreementTemplateService";
 import { uploadFile } from "@/services/attachmentService";
 import { formatDateTime, formatINR } from "@/utils/format";
-import { SANKALP_LOGO, SANKALP_CONTACT } from "@/lib/brand";
+import { SANKALP_LOGO } from "@/lib/brand";
 
 // Auto-calculated payment breakup table — stage / % / amount, from the
 // agreement's own payment_schedule + contract value.
@@ -49,25 +49,35 @@ function PaymentScheduleTable({ schedule, contractValue }) {
 // appear on every page regardless of how the browser paginates print output.
 function HeaderBand() {
   return (
-    <div className="doc-header">
-      <img src={SANKALP_LOGO} alt="Sankalp Interior Solution" />
-      <div>
-        <div className="doc-header-name">SANKALP INTERIOR SOLUTION</div>
-        <div className="doc-header-tagline">"Innovation for a Better Tomorrow"</div>
+    <div className="doc-header-wrap">
+      <div className="doc-header">
+        <img src={SANKALP_LOGO} alt="Sankalp Interior Solution" />
+        <div>
+          <div className="doc-header-name">Sankalp Interior Solution</div>
+          <div className="doc-header-tagline">"Innovation for a Better Tomorrow"</div>
+        </div>
+      </div>
+      <div className="doc-header-stripe">
+        <div className="doc-header-stripe-blue" />
+        <div className="doc-header-stripe-orange" />
       </div>
     </div>
   );
 }
 function FooterBand() {
   return (
-    <div className="doc-footer">
-      <div className="doc-footer-row">
-        <span><Globe size={10} /> {SANKALP_CONTACT.website}</span>
-        <span><Phone size={10} /> {SANKALP_CONTACT.phone}</span>
-        <span><Mail size={10} /> info.sankalpgrp@gmail.com</span>
-      </div>
-      <div className="doc-footer-row doc-footer-address">
-        <MapPin size={10} /> {SANKALP_CONTACT.address}
+    <div className="doc-footer-wrap">
+      <div className="doc-footer-stripe-orange" />
+      <div className="doc-footer">
+        <div className="doc-footer-row">
+          <span><i className="doc-icon-circle"><Globe size={11} /></i> www.sankalps.com</span>
+          <span><i className="doc-icon-circle"><Phone size={11} /></i> +91 3368260520</span>
+          <span><i className="doc-icon-circle doc-icon-circle-plain" /> +91 9748297025</span>
+          <span><i className="doc-icon-circle"><Mail size={11} /></i> info.sankalpgrp@gmail.com</span>
+        </div>
+        <div className="doc-footer-address">
+          Office: GB, Oishi Tower-II, Rabindra Pally, Jyangra, P.S - Baguiati, Jyangra to VIP Road, Raghunathpur, Kolkata, West Bengal - 700059
+        </div>
       </div>
     </div>
   );
@@ -282,24 +292,34 @@ export default function AgreementPrintPage() {
           display: flex;
           flex-direction: column;
         }
+        .doc-header-wrap { }
         .doc-header {
-          display: flex; align-items: center; gap: 12px;
-          padding: 14px 1in;
-          border-bottom: 3px solid #1E3FAD;
+          display: flex; align-items: center; gap: 18px;
+          padding: 22px 1in 16px;
         }
-        .doc-header img { height: 42px; width: auto; }
-        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 14pt; color: #1E3FAD; letter-spacing: 0.02em; }
-        .doc-header-tagline { font-size: 9pt; font-style: italic; color: #475569; margin-top: 2px; }
+        .doc-header img { height: 72px; width: auto; }
+        .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 26pt; color: #1E3FAD; letter-spacing: 0.01em; }
+        .doc-header-tagline { font-size: 11pt; font-style: italic; color: #1E3FAD; margin-top: 2px; text-align: right; }
+        .doc-header-stripe { display: flex; flex-direction: column; }
+        .doc-header-stripe-blue { height: 8px; background: #1E3FAD; width: 100%; }
+        .doc-header-stripe-orange { height: 4px; background: #F97316; width: 100%; }
+        .doc-footer-wrap { margin-top: auto; }
+        .doc-footer-stripe-orange { height: 4px; background: #F97316; width: 100%; }
         .doc-footer {
-          margin-top: auto;
           background: #1E3FAD;
           color: #fff;
-          padding: 8px 1in 10px;
-          font-size: 8pt;
+          padding: 12px 1in 14px;
+          font-size: 8.5pt;
         }
-        .doc-footer-row { display: flex; justify-content: center; gap: 20px; align-items: center; flex-wrap: wrap; }
-        .doc-footer-row span { display: inline-flex; align-items: center; gap: 4px; }
-        .doc-footer-address { margin-top: 3px; color: #dbeafe; text-align: center; font-size: 7.5pt; }
+        .doc-footer-row { display: flex; justify-content: center; gap: 22px; align-items: center; flex-wrap: wrap; }
+        .doc-footer-row span { display: inline-flex; align-items: center; gap: 6px; }
+        .doc-icon-circle {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 18px; height: 18px; border-radius: 50%;
+          background: #F97316; color: #fff; flex-shrink: 0;
+        }
+        .doc-icon-circle-plain { width: 14px; height: 14px; margin: 2px; }
+        .doc-footer-address { margin-top: 6px; color: #dbeafe; text-align: center; font-size: 7.5pt; }
         .doc-page-content { padding: 20px 1in; flex: 1; }
         .agreement-table { border-collapse: collapse; font-size: 10.5pt; }
         .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }

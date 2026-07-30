@@ -9,6 +9,20 @@ import { uploadFile } from "@/services/attachmentService";
 import { formatDateTime, formatINR } from "@/utils/format";
 import { SANKALP_LOGO } from "@/lib/brand";
 
+// Converts lat/lng to an OpenStreetMap slippy-map tile (the official, reliable
+// production tile server — no API key, no third-party compositor dependency)
+// plus the exact pixel offset within that 256x256 tile, so we can draw our
+// own marker on top instead of relying on an unofficial static-map service.
+function latLngToTile(lat, lng, zoom) {
+  const n = Math.pow(2, zoom);
+  const xExact = ((lng + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const yExact = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const x = Math.floor(xExact);
+  const y = Math.floor(yExact);
+  return { x, y, zoom, pixelX: Math.round((xExact - x) * 256), pixelY: Math.round((yExact - y) * 256) };
+}
+
 // Auto-calculated payment breakup table — stage / % / amount, from the
 // agreement's own payment_schedule + contract value.
 function PaymentScheduleTable({ schedule, contractValue }) {
@@ -162,10 +176,19 @@ function EvidenceBlock({ agreement }) {
         <>
           <div className="evidence-label mt-3 mb-2">Location Map</div>
           <div className="evidence-map-box">
-            <img
-              src={`https://staticmap.openstreetmap.de/staticmap.php?center=${agreement.response_lat},${agreement.response_lng}&zoom=15&size=600x260&maptype=mapnik&markers=${agreement.response_lat},${agreement.response_lng},red-pushpin`}
-              alt="Signing location map"
-            />
+            {(() => {
+              const tile = latLngToTile(agreement.response_lat, agreement.response_lng, 16);
+              return (
+                <>
+                  <img
+                    src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.x}/${tile.y}.png`}
+                    alt="Signing location map"
+                    width={256} height={256}
+                  />
+                  <div className="evidence-map-pin" style={{ left: tile.pixelX, top: tile.pixelY }} />
+                </>
+              );
+            })()}
           </div>
         </>
       )}
@@ -426,8 +449,13 @@ export default function AgreementPrintPage() {
         .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; }
         .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
-        .evidence-map-box { border: 2px solid #0f172a; border-radius: 4px; overflow: hidden; line-height: 0; }
-        .evidence-map-box img { width: 100%; height: auto; display: block; }
+        .evidence-map-box { position: relative; width: 256px; height: 256px; margin: 0 auto; border: 2px solid #0f172a; border-radius: 4px; overflow: hidden; }
+        .evidence-map-box img { width: 256px; height: 256px; display: block; }
+        .evidence-map-pin {
+          position: absolute; width: 16px; height: 16px; margin-left: -8px; margin-top: -16px;
+          background: #dc2626; border: 2px solid #fff; border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg); box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
         .evidence-footnote { margin-top: 8px; font-size: 7pt; color: #64748b; font-family: monospace; word-break: break-all; }
         @media print {
           @page { size: A4 portrait; margin: 0; }

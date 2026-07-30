@@ -470,12 +470,12 @@ export default function AgreementPrintPage() {
         .evidence-label { font-size: 7pt; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; font-weight: 700; }
         .evidence-value { font-size: 9.5pt; color: #0f172a; font-weight: 600; }
         .evidence-value-green { color: #047857; }
-        .evidence-media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .evidence-media-box { border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; overflow: hidden; min-height: 170px; display: flex; align-items: center; justify-content: center; }
-        .evidence-media-box img { width: 100%; height: 170px; object-fit: cover; display: block; }
+        .evidence-media-grid { display: grid; grid-template-columns: 275px 275px; justify-content: center; gap: 10px; }
+        .evidence-media-box { width: 275px; height: 410px; border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .evidence-media-box img { width: 275px; height: 410px; object-fit: cover; display: block; }
         .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; padding: 12px; }
-        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; height: 100%; }
-        .evidence-docs-grid img { height: 82px; }
+        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 275px; height: 410px; }
+        .evidence-docs-grid img { width: 275px; height: 202px; object-fit: cover; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
         .evidence-map-box { display: flex; justify-content: flex-start; }
         .evidence-map-row { display: flex; align-items: center; gap: 16px; }

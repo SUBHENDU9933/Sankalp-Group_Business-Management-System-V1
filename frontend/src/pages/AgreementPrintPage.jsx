@@ -295,6 +295,7 @@ export default function AgreementPrintPage() {
         .doc-header {
           display: flex; align-items: center; gap: 12px;
           padding: 20px 1in 14px;
+          background: linear-gradient(135deg, #eef2ff 0%, #ffffff 45%, #fff7ed 100%);
         }
         .doc-header img { height: 64px; width: auto; flex-shrink: 0; }
         .doc-header-name { font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 24pt; color: #1E3FAD; letter-spacing: 0.005em; white-space: nowrap; line-height: 1.1; }

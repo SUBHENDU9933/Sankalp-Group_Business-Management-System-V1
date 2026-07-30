@@ -64,9 +64,16 @@ function HeaderBand() {
     </div>
   );
 }
-function FooterBand() {
+function FooterBand({ pageNumber, totalPages, agreement, md }) {
+  const signedLine = agreement.status === "signed_digital"
+    ? `Digitally signed by ${agreement.signer_name || md.client_name || "Client"} on ${formatDateTime(agreement.signed_at)} — accepted to the best of my knowledge.`
+    : agreement.status === "signed_physical"
+    ? `Physically signed by ${md.client_name || "Client"} on ${formatDateTime(agreement.signed_at)}.`
+    : null;
   return (
     <div className="doc-footer-wrap">
+      <div className="doc-page-number">Page : {pageNumber} of {totalPages}</div>
+      {signedLine && <div className="doc-signed-line">{signedLine}</div>}
       <div className="doc-footer-stripe-orange" />
       <div className="doc-footer">
         <div className="doc-footer-row">
@@ -241,8 +248,8 @@ export default function AgreementPrintPage() {
             <div className="doc-page-content">
               {pageIdx === 0 && (
                 <>
-                  <h1 className="text-center font-bold text-[16px] tracking-tight mb-1">{agreement.title}</h1>
-                  <p className="text-center text-[9px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
+                  <h1 className="text-center font-bold text-[18px] tracking-tight mb-1">{agreement.title}</h1>
+                  <p className="text-center text-[10px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
                   <p className="mb-3">
                     This {agreement.title} ("Agreement") is made and executed between <b>SANKALP INTERIOR SOLUTION</b>, having its registered office at GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, VIP Road, Kolkata – 700059 (hereinafter the "Contractor"), AND
                   </p>
@@ -254,7 +261,7 @@ export default function AgreementPrintPage() {
               {chunk.map(renderClause)}
               {pageIdx === pages.length - 1 && signatureBlock}
             </div>
-            <FooterBand />
+            <FooterBand pageNumber={pageIdx + 1} totalPages={pages.length} agreement={agreement} md={md} />
           </div>
         ))}
       </div>
@@ -304,6 +311,8 @@ export default function AgreementPrintPage() {
         .doc-header-stripe-blue { height: 8px; background: #1E3FAD; width: 100%; }
         .doc-header-stripe-orange { height: 4px; background: #F97316; width: 100%; }
         .doc-footer-wrap { margin-top: auto; }
+        .doc-page-number { text-align: right; padding: 0 1in 4px; font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 15pt; color: #1E3FAD; }
+        .doc-signed-line { text-align: right; padding: 0 1in 8px; font-size: 8pt; color: #059669; font-style: italic; }
         .doc-footer-stripe-orange { height: 4px; background: #F97316; width: 100%; }
         .doc-footer {
           background: #1E3FAD;

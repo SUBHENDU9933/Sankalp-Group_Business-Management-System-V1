@@ -158,6 +158,17 @@ function EvidenceBlock({ agreement }) {
           )}
         </div>
       </div>
+      {mapUrl && (
+        <>
+          <div className="evidence-label mt-3 mb-2">Location Map</div>
+          <div className="evidence-map-box">
+            <img
+              src={`https://staticmap.openstreetmap.de/staticmap.php?center=${agreement.response_lat},${agreement.response_lng}&zoom=15&size=600x260&maptype=mapnik&markers=${agreement.response_lat},${agreement.response_lng},red-pushpin`}
+              alt="Signing location map"
+            />
+          </div>
+        </>
+      )}
       <div className="evidence-footnote">
         {mapUrl && <>Location: {agreement.response_lat?.toFixed(5)}, {agreement.response_lng?.toFixed(5)} · </>}
         Device: {agreement.response_user_agent || "—"}
@@ -415,6 +426,8 @@ export default function AgreementPrintPage() {
         .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; }
         .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
+        .evidence-map-box { border: 2px solid #0f172a; border-radius: 4px; overflow: hidden; line-height: 0; }
+        .evidence-map-box img { width: 100%; height: auto; display: block; }
         .evidence-footnote { margin-top: 8px; font-size: 7pt; color: #64748b; font-family: monospace; word-break: break-all; }
         @media print {
           @page { size: A4 portrait; margin: 0; }

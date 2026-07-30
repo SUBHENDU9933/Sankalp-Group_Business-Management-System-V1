@@ -100,6 +100,10 @@ export default function AgreementPrintPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white">
+      {/* Letterhead background layer — position:fixed at document root so it repeats
+          behind every printed page (Chrome/Edge re-render fixed elements per page). */}
+      <div className="agreement-letterhead-bg" aria-hidden="true" />
+
       <div className="max-w-[210mm] mx-auto flex flex-wrap items-center justify-between gap-2 mb-3 no-print">
         <Button variant="outline" className="rounded-lg" onClick={() => nav("/agreements")}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -129,11 +133,8 @@ export default function AgreementPrintPage() {
         </div>
       </div>
 
-      <div className="agreement-a4 agreement-doc mx-auto bg-white print-page shadow-xl print:shadow-none relative" data-testid="agreement-print-document">
-        {/* Letterhead — shown once at the top of the document, like a printed letterhead sheet */}
-        <img src="/sankalp-letterhead.jpg" alt="Sankalp Interior Solution" className="w-full block" />
-
-        <div className="agreement-body relative z-10">
+      <div className="agreement-a4 agreement-doc mx-auto bg-white print-page shadow-xl print:shadow-none" data-testid="agreement-print-document">
+        <div className="agreement-body">
           <h1 className="text-center font-bold text-[16px] tracking-tight mb-1">{agreement.title}</h1>
           <p className="text-center text-[9px] text-slate-500 mb-6">Agreement Ref: {agreement.id.slice(0, 8).toUpperCase()} · Generated {formatDateTime(agreement.created_at)}</p>
 
@@ -210,7 +211,13 @@ export default function AgreementPrintPage() {
           width: 210mm;
           min-height: 297mm;
           max-width: 210mm;
+          /* Screen-only preview approximation of a repeating letterhead per page */
+          background-image: url('/sankalp-letterhead.jpg');
+          background-repeat: repeat-y;
+          background-size: 210mm 297mm;
+          background-position: top center;
         }
+        .agreement-letterhead-bg { display: none; }
         .agreement-doc {
           font-family: 'Bookman Old Style', 'Georgia', serif;
           font-size: 11pt;
@@ -218,16 +225,34 @@ export default function AgreementPrintPage() {
           color: #1a1a1a;
         }
         .agreement-doc h1, .agreement-doc h3 { font-family: 'Bookman Old Style', 'Georgia', serif; font-weight: 700; }
-        .agreement-body { padding: 0.4in 1in; }
+        .agreement-body { padding: 1.5in 1in; }
         .agreement-table { border-collapse: collapse; font-size: 10.5pt; }
         .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
         .agreement-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
         @media print {
           @page { size: A4 portrait; margin: 1.5in 1in; }
           html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .agreement-a4 { width: auto; min-height: 0; box-shadow: none; }
+          .agreement-a4 {
+            width: auto; min-height: 0; box-shadow: none;
+            background-image: none; /* fixed layer below replaces this for print */
+            background-color: transparent !important;
+          }
           .agreement-body { padding: 0; }
           .avoid-break { page-break-inside: avoid; }
+          /* position:fixed repeats on every printed page in Chrome/Edge, and its
+             containing block is the full physical page — so this bleeds edge to
+             edge on every page while @page margin above still insets the text.
+             z-index:-1 with no positioned/transformed ancestor keeps it safely
+             behind all normal in-flow content. */
+          .agreement-letterhead-bg {
+            display: block;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('/sankalp-letterhead.jpg');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            z-index: -1;
+          }
         }
       `}</style>
     </div>

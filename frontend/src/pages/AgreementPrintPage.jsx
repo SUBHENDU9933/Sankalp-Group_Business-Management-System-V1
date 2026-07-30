@@ -177,16 +177,29 @@ function EvidenceBlock({ agreement }) {
           <div className="evidence-label mt-3 mb-2">Location Map</div>
           <div className="evidence-map-box">
             {(() => {
+              const VIEW = 260; // visible square, in px
               const tile = latLngToTile(agreement.response_lat, agreement.response_lng, 16);
+              // Target's pixel position within a 3x3 (768x768) tile grid centered on `tile`
+              const targetX = 256 + tile.pixelX;
+              const targetY = 256 + tile.pixelY;
+              const gridLeft = VIEW / 2 - targetX;
+              const gridTop = VIEW / 2 - targetY;
+              const offsets = [-1, 0, 1];
               return (
-                <>
-                  <img
-                    src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.x}/${tile.y}.png`}
-                    alt="Signing location map"
-                    width={256} height={256}
-                  />
-                  <div className="evidence-map-pin" style={{ left: tile.pixelX, top: tile.pixelY }} />
-                </>
+                <div className="evidence-map-viewport" style={{ width: VIEW, height: VIEW }}>
+                  <div className="evidence-map-grid" style={{ left: gridLeft, top: gridTop }}>
+                    {offsets.map((dy) => offsets.map((dx) => (
+                      <img
+                        key={`${dx}_${dy}`}
+                        src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.x + dx}/${tile.y + dy}.png`}
+                        alt=""
+                        width={256} height={256}
+                        style={{ position: "absolute", left: (dx + 1) * 256, top: (dy + 1) * 256 }}
+                      />
+                    )))}
+                  </div>
+                  <div className="evidence-map-pin" style={{ left: VIEW / 2, top: VIEW / 2 }} />
+                </div>
               );
             })()}
           </div>
@@ -449,12 +462,13 @@ export default function AgreementPrintPage() {
         .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; }
         .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
-        .evidence-map-box { position: relative; width: 256px; height: 256px; margin: 0 auto; border: 2px solid #0f172a; border-radius: 4px; overflow: hidden; }
-        .evidence-map-box img { width: 256px; height: 256px; display: block; }
+        .evidence-map-box { display: flex; justify-content: center; }
+        .evidence-map-viewport { position: relative; overflow: hidden; border: 2px solid #0f172a; border-radius: 4px; }
+        .evidence-map-grid { position: absolute; width: 768px; height: 768px; }
         .evidence-map-pin {
           position: absolute; width: 16px; height: 16px; margin-left: -8px; margin-top: -16px;
           background: #dc2626; border: 2px solid #fff; border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg); box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+          transform: rotate(-45deg); box-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 1;
         }
         .evidence-footnote { margin-top: 8px; font-size: 7pt; color: #64748b; font-family: monospace; word-break: break-all; }
         @media print {

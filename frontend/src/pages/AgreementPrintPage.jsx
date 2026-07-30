@@ -221,6 +221,8 @@ export default function AgreementPrintPage() {
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const md = agreement.merge_data || {};
   const pages = chunkIntoPages(clauses);
+  const hasEvidencePage = agreement.status === "signed_digital";
+  const totalPages = pages.length + (hasEvidencePage ? 1 : 0);
 
   const renderClause = (c) => (
     <div key={c.id} className="mb-4 avoid-break">
@@ -318,11 +320,20 @@ export default function AgreementPrintPage() {
               )}
               {chunk.map(renderClause)}
               {pageIdx === pages.length - 1 && signatureBlock}
-              {pageIdx === pages.length - 1 && <EvidenceBlock agreement={agreement} />}
             </div>
-            <FooterBand pageNumber={pageIdx + 1} totalPages={pages.length} agreement={agreement} md={md} />
+            <FooterBand pageNumber={pageIdx + 1} totalPages={totalPages} agreement={agreement} md={md} />
           </div>
         ))}
+        {hasEvidencePage && (
+          <div className="doc-page">
+            <HeaderBand />
+            <div className="doc-page-content">
+              <h2 className="font-bold text-[13px] uppercase tracking-widest text-center mb-6">Digital Signing — Audit Trail</h2>
+              <EvidenceBlock agreement={agreement} />
+            </div>
+            <FooterBand pageNumber={totalPages} totalPages={totalPages} agreement={agreement} md={md} />
+          </div>
+        )}
       </div>
 
       <style>{`

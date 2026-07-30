@@ -95,3 +95,28 @@ export const PROJECT_STATUSES = [
   { key: "cancelled", label: "Cancelled" },
 ];
 export const VENDOR_TYPES = ["Carpenter", "Painter", "Electrician", "Plumber", "Mason", "Polish", "POP/False Ceiling", "Other"];
+
+export const numberToWords = (num) => {
+  if (num === null || num === undefined || num === "" || isNaN(num)) return "";
+  const a = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const w = (n) => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n/10)] + (n%10 ? " " + a[n%10] : "");
+    if (n < 1000) return a[Math.floor(n/100)] + " Hundred" + (n%100 ? " " + w(n%100) : "");
+    if (n < 100000) return w(Math.floor(n/1000)) + " Thousand" + (n%1000 ? " " + w(n%1000) : "");
+    if (n < 10000000) return w(Math.floor(n/100000)) + " Lakh" + (n%100000 ? " " + w(n%100000) : "");
+    return w(Math.floor(n/10000000)) + " Crore" + (n%10000000 ? " " + w(n%10000000) : "");
+  };
+  const i = Math.floor(Number(num));
+  if (i === 0) return "Zero Rupees Only";
+  return w(i) + " Rupees Only";
+};
+
+export const AGREEMENT_STATUSES = [
+  { key: "draft", label: "Draft", color: "bg-stone-100 text-stone-900 border-stone-300", dot: "bg-stone-500" },
+  { key: "sent", label: "Sent for Signature", color: "bg-amber-50 text-amber-900 border-amber-300", dot: "bg-amber-500" },
+  { key: "signed_physical", label: "Signed (Physical)", color: "bg-blue-50 text-blue-900 border-blue-300", dot: "bg-blue-500" },
+  { key: "signed_digital", label: "Signed (Digital)", color: "bg-emerald-50 text-emerald-900 border-emerald-400", dot: "bg-emerald-500" },
+  { key: "void", label: "Void", color: "bg-rose-50 text-rose-900 border-rose-300", dot: "bg-rose-500" },
+];

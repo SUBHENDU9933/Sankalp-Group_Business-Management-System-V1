@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, UserCheck, ReceiptText, Hammer,
   Truck, ShieldCheck, LogOut, UsersRound, Settings, Calculator,
-  FileCheck2, Trash2, Activity, Sun, Moon,
+  FileCheck2, Trash2, Activity, Sun, Moon, FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
@@ -19,6 +19,7 @@ const NAV = [
   { to: "/receipts", label: "Receipts", icon: ReceiptText, testid: "nav-receipts" },
   { to: "/vendors", label: "Vendors", icon: Truck, testid: "nav-vendors" },
   { to: "/digital-approvals", label: "Digital Approvals", icon: FileCheck2, testid: "nav-digital-approvals" },
+  { to: "/agreements", label: "Agreements", icon: FileSignature, testid: "nav-agreements" },
 ];
 
 export default function DashboardLayout() {
@@ -74,6 +75,12 @@ export default function DashboardLayout() {
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
                     isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
                 <UsersRound className="w-4 h-4" /><span className="flex-1 font-medium">Team</span>
+              </NavLink>
+              <NavLink to="/agreement-templates" data-testid="nav-agreement-templates"
+                className={({ isActive }) =>
+                  cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                <FileSignature className="w-4 h-4" /><span className="flex-1 font-medium">Agreement Templates</span>
               </NavLink>
               <NavLink to="/approvals" data-testid="nav-approvals"
                 className={({ isActive }) =>

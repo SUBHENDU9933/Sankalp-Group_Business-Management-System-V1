@@ -23,6 +23,11 @@ import TrashPage from "@/pages/TrashPage";
 import AuditLogPage from "@/pages/AuditLogPage";
 import DigitalApprovalsPage from "@/pages/DigitalApprovalsPage";
 import PublicApprovePage from "@/pages/PublicApprovePage";
+import AgreementsPage from "@/pages/AgreementsPage";
+import AgreementEditorPage from "@/pages/AgreementEditorPage";
+import AgreementPrintPage from "@/pages/AgreementPrintPage";
+import AgreementTemplatesPage from "@/pages/AgreementTemplatesPage";
+import PublicSignAgreementPage from "@/pages/PublicSignAgreementPage";
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -69,6 +74,7 @@ function App() {
             <Route path="/verify/:uid" element={<VerifyReceiptPage />} />
             <Route path="/approve/:token" element={<PublicApprovePage />} />
             <Route path="/approve-app/:token" element={<PublicApprovePage />} />
+            <Route path="/sign/:token" element={<PublicSignAgreementPage />} />
 
             <Route element={<PublicOnly />}>
               <Route path="/login" element={<LoginPage />} />
@@ -76,6 +82,7 @@ function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route path="/receipts/:id/print" element={<ReceiptPrintPage />} />
+              <Route path="/agreements/:id/print" element={<AgreementPrintPage />} />
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
@@ -90,6 +97,10 @@ function App() {
                 <Route path="/team" element={<AdminOnly><TeamPage /></AdminOnly>} />
                 <Route path="/approvals" element={<AdminOnly><ApprovalsPage /></AdminOnly>} />
                 <Route path="/digital-approvals" element={<DigitalApprovalsPage />} />
+                <Route path="/agreements" element={<AgreementsPage />} />
+                <Route path="/agreements/new" element={<AgreementEditorPage />} />
+                <Route path="/agreements/:id/edit" element={<AgreementEditorPage />} />
+                <Route path="/agreement-templates" element={<AdminOnly><AgreementTemplatesPage /></AdminOnly>} />
                 <Route path="/trash" element={<TrashPage />} />
                 <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
               </Route>

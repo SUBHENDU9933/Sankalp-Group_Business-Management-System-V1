@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
-import { CheckCircle2, ShieldCheck, Camera, MapPin, AlertTriangle, RotateCcw } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Camera, MapPin, AlertTriangle, RotateCcw, Download, Loader2 } from "lucide-react";
 import { fetchAgreementByToken, submitAgreementSignature, uploadPublicSignaturePhoto } from "@/services/agreementService";
-import { formatDateTime } from "@/utils/format";
+import { AgreementDocumentPages } from "@/components/shared/AgreementDocument";
+import { downloadAgreementPdf } from "@/utils/pdfExport";
 
 export default function PublicSignAgreementPage() {
   const { token } = useParams();
@@ -11,6 +12,8 @@ export default function PublicSignAgreementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [step, setStep] = useState("view"); // view | form | submitting | done
+  const [downloading, setDownloading] = useState(false);
+  const [nameEdited, setNameEdited] = useState(false);
 
   const [name, setName] = useState("");
   const [selfie, setSelfie] = useState(null);
@@ -25,6 +28,7 @@ export default function PublicSignAgreementPage() {
   const padCanvasRef = useRef(null);
   const drawingRef = useRef(false);
   const lastPtRef = useRef(null);
+  const docRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -32,6 +36,7 @@ export default function PublicSignAgreementPage() {
       const row = await fetchAgreementByToken(token);
       if (!row) { setError("Invalid or expired link."); return; }
       setAgreement(row);
+      if (!nameEdited && row.merge_data?.client_name) setName(row.merge_data.client_name);
       if (row.status === "signed_digital") setStep("done");
       else if (row.expires_at && new Date(row.expires_at) < new Date()) setError("This signing link has expired. Please ask Sankalp Interior Solution to resend it.");
     } catch (e) { setError(e.message); }
@@ -48,6 +53,11 @@ export default function PublicSignAgreementPage() {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
+  // Location is mandatory — ask for it the moment the person reaches the signing form.
+  useEffect(() => {
+    if (step === "form" && locStatus === "idle") requestLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const startCamera = async () => {
     try {
@@ -55,7 +65,7 @@ export default function PublicSignAgreementPage() {
       streamRef.current = stream;
       setCameraOn(true);
     } catch {
-      toast.error("Camera permission denied — you can still sign with just your name");
+      toast.error("Camera access is required to sign — please allow camera permission and try again");
     }
   };
   const stopCamera = () => {
@@ -157,18 +167,17 @@ export default function PublicSignAgreementPage() {
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Please type your full name"); return; }
     if (!hasSignature) { toast.error("Please sign in the signature box"); return; }
+    if (!selfie) { toast.error("A photo is required to sign — please take a selfie"); return; }
+    if (locStatus !== "ok") { toast.error("Location is required to sign — please allow location access"); requestLocation(); return; }
     setStep("submitting");
     try {
-      let signatureUrl = null;
-      if (selfie?.blob) {
-        const up = await uploadPublicSignaturePhoto(selfie.blob);
-        signatureUrl = up.url;
-      }
+      const up = await uploadPublicSignaturePhoto(selfie.blob);
+      const signatureUrl = up.url;
       let signaturePadUrl = null;
       const padBlob = await new Promise((resolve) => padCanvasRef.current.toBlob(resolve, "image/png"));
       if (padBlob) {
-        const up = await uploadPublicSignaturePhoto(padBlob, "agreements/signature-pads", "png", "image/png");
-        signaturePadUrl = up.url;
+        const upPad = await uploadPublicSignaturePhoto(padBlob, "agreements/signature-pads", "png", "image/png");
+        signaturePadUrl = upPad.url;
       }
       let ip = null;
       try { const r = await fetch("https://api.ipify.org?format=json"); ip = (await r.json()).ip; } catch {}
@@ -179,6 +188,15 @@ export default function PublicSignAgreementPage() {
       setStep("done");
       toast.success("Agreement signed — thank you!");
     } catch (e) { toast.error(e.message); setStep("form"); }
+  };
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const filename = `${(agreement.title || "Agreement").replace(/[^\w\- ]/g, "")}-${agreement.id.slice(0, 8).toUpperCase()}.pdf`;
+      await downloadAgreementPdf(docRef.current, filename);
+    } catch (e) { toast.error("Couldn't generate PDF: " + e.message); }
+    finally { setDownloading(false); }
   };
 
   if (loading) return <div className="min-h-screen grid place-items-center text-slate-400">Loading agreement…</div>;
@@ -193,6 +211,37 @@ export default function PublicSignAgreementPage() {
 
   const clauses = agreement.signed_snapshot || [];
   const md = agreement.merge_data || {};
+
+  // ---- Signed: show the full styled document + a real downloadable PDF ----
+  if (step === "done") {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
+        <Toaster position="top-center" />
+        <div className="max-w-2xl mx-auto text-center mb-6">
+          <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500 mb-2" />
+          <div className="font-semibold text-slate-900 text-lg">Signed successfully</div>
+          <div className="text-sm text-slate-500 mt-1">By {agreement.signer_name} on {new Date(agreement.signed_at).toLocaleString("en-IN")}</div>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-2 mb-4"><ShieldCheck className="w-3.5 h-3.5" /> This record is securely stored by Sankalp Interior Solution</div>
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+            className="px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold inline-flex items-center gap-2 disabled:opacity-60"
+            data-testid="sign-download-pdf-button"
+          >
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {downloading ? "Preparing your PDF…" : "Download Signed Agreement (PDF)"}
+          </button>
+        </div>
+        <div className="overflow-x-auto pb-8">
+          <div style={{ transform: "scale(0.42)", transformOrigin: "top center", marginBottom: "-58%" }}>
+            <div ref={docRef}>
+              <AgreementDocumentPages agreement={agreement} resolvedClauses={clauses} md={md} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
@@ -218,15 +267,7 @@ export default function PublicSignAgreementPage() {
             ))}
           </div>
 
-          {step === "done" ? (
-            <div className="mt-5 text-center py-6">
-              <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500 mb-2" />
-              <div className="font-semibold text-slate-900">Signed successfully</div>
-              <div className="text-sm text-slate-500 mt-1">By {agreement.signer_name} on {formatDateTime(agreement.signed_at)}</div>
-              {agreement.signature_pad_url && <img src={agreement.signature_pad_url} alt="" className="mt-3 h-20 mx-auto border border-slate-200 rounded bg-white object-contain px-4" />}
-              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-3"><ShieldCheck className="w-3.5 h-3.5" /> This record is securely stored by Sankalp Interior Solution</div>
-            </div>
-          ) : step === "view" ? (
+          {step === "view" ? (
             <div className="mt-5 text-center">
               <button
                 onClick={() => setStep("form")}
@@ -243,15 +284,16 @@ export default function PublicSignAgreementPage() {
                 <input
                   className="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); setNameEdited(true); }}
                   placeholder="Type your full legal name"
                   data-testid="sign-name-input"
                 />
               </div>
 
               <div>
-                <button onClick={requestLocation} className="text-xs inline-flex items-center gap-1.5 text-blue-700 hover:underline">
-                  <MapPin className="w-3.5 h-3.5" /> {locStatus === "ok" ? "Location captured ✓" : locStatus === "error" ? "Location unavailable — continuing without it" : "Share location (optional, strengthens evidence)"}
+                <button onClick={requestLocation} className={`text-xs inline-flex items-center gap-1.5 hover:underline ${locStatus === "ok" ? "text-emerald-600" : locStatus === "error" ? "text-rose-600" : "text-blue-700"}`}>
+                  <MapPin className="w-3.5 h-3.5" />
+                  {locStatus === "ok" ? "Location captured ✓" : locStatus === "error" ? "Location required — tap to allow, or check your browser's location permission" : locStatus === "requesting" ? "Requesting location…" : "Location required — tap to allow"}
                 </button>
               </div>
 
@@ -287,6 +329,7 @@ export default function PublicSignAgreementPage() {
                 {selfie ? (
                   <div className="flex items-center gap-3">
                     <img src={selfie.url} alt="" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
+                    <span className="text-xs text-emerald-600">Photo captured ✓</span>
                     <button onClick={() => setSelfie(null)} className="text-xs text-slate-500 hover:underline">Retake</button>
                   </div>
                 ) : cameraOn ? (
@@ -297,8 +340,8 @@ export default function PublicSignAgreementPage() {
                     </button>
                   </div>
                 ) : (
-                  <button onClick={startCamera} className="px-4 py-2 border-2 border-slate-300 rounded-lg text-sm inline-flex items-center gap-2 hover:bg-slate-50">
-                    <Camera className="w-4 h-4" /> Take a quick selfie (optional, strengthens evidence)
+                  <button onClick={startCamera} className="px-4 py-2 border-2 border-slate-300 rounded-lg text-sm inline-flex items-center gap-2 hover:bg-slate-50" data-testid="sign-selfie-button">
+                    <Camera className="w-4 h-4" /> Take a photo (required)
                   </button>
                 )}
               </div>

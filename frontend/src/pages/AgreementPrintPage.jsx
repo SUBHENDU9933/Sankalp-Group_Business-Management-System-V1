@@ -178,7 +178,7 @@ function EvidenceBlock({ agreement }) {
           <div className="evidence-map-row">
             <div className="evidence-map-box">
               {(() => {
-                const VIEW = 220; // visible square, in px
+                const VIEW = 190; // visible square, in px
                 const tile = latLngToTile(agreement.response_lat, agreement.response_lng, 16);
                 // Target's pixel position within a 3x3 (768x768) tile grid centered on `tile`
                 const targetX = 256 + tile.pixelX;
@@ -469,12 +469,12 @@ export default function AgreementPrintPage() {
         .evidence-label { font-size: 7pt; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; font-weight: 700; }
         .evidence-value { font-size: 9.5pt; color: #0f172a; font-weight: 600; }
         .evidence-value-green { color: #047857; }
-        .evidence-media-grid { display: grid; grid-template-columns: 275px 275px; justify-content: center; gap: 10px; }
-        .evidence-media-box { width: 275px; height: 410px; border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        .evidence-media-box img { width: 275px; height: 410px; object-fit: cover; display: block; }
+        .evidence-media-grid { display: grid; grid-template-columns: 230px 230px; justify-content: center; gap: 10px; }
+        .evidence-media-box { width: 230px; height: 300px; border: 1px solid #a7f3d0; background: #fff; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .evidence-media-box img { width: 230px; height: 300px; object-fit: cover; display: block; }
         .evidence-media-empty { font-size: 8pt; color: #94a3b8; text-align: center; padding: 12px; }
-        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 275px; height: 410px; }
-        .evidence-docs-grid img { width: 275px; height: 202px; object-fit: cover; }
+        .evidence-docs-grid { display: grid; grid-template-columns: 1fr; gap: 6px; width: 230px; height: 300px; }
+        .evidence-docs-grid img { width: 230px; height: 147px; object-fit: cover; }
         .evidence-doc-link { font-size: 8.5pt; color: #1d4ed8; text-decoration: underline; text-align: center; display: block; }
         .evidence-map-box { display: flex; justify-content: flex-start; }
         .evidence-map-row { display: flex; align-items: center; gap: 16px; }

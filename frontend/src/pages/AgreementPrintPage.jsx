@@ -86,8 +86,10 @@ function FooterBand({ pageNumber, totalPages, agreement, md }) {
     : null;
   return (
     <div className="doc-footer-wrap">
-      <div className="doc-page-number">Page : {pageNumber} of {totalPages}</div>
-      {signedLine && <div className="doc-signed-line">{signedLine}</div>}
+      <div className="doc-footer-topline">
+        <div className="doc-signed-line">{signedLine || ""}</div>
+        <div className="doc-page-number">Page : {pageNumber} of {totalPages}</div>
+      </div>
       <div className="doc-footer-stripe-orange" />
       <div className="doc-footer">
         <div className="doc-footer-row">
@@ -441,8 +443,9 @@ export default function AgreementPrintPage() {
         .doc-header-stripe-blue { height: 8px; background: #1E3FAD; width: 100%; }
         .doc-header-stripe-orange { height: 4px; background: #F97316; width: 100%; }
         .doc-footer-wrap { margin-top: auto; }
-        .doc-page-number { text-align: right; padding: 0 1in 4px; font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 15pt; color: #1E3FAD; }
-        .doc-signed-line { text-align: right; padding: 0 1in 8px; font-size: 8pt; color: #059669; font-style: italic; }
+        .doc-footer-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 1in 6px; }
+        .doc-page-number { text-align: right; font-family: 'Bookman Old Style', Georgia, serif; font-weight: 700; font-size: 15pt; color: #1E3FAD; white-space: nowrap; }
+        .doc-signed-line { text-align: left; font-size: 8pt; color: #dc2626; font-style: italic; }
         .doc-footer-stripe-orange { height: 4px; background: #F97316; width: 100%; }
         .doc-footer {
           background: #1E3FAD;

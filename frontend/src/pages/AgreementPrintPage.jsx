@@ -129,7 +129,7 @@ function EvidenceBlock({ agreement }) {
     : null;
   return (
     <div className="evidence-panel avoid-break mt-6" data-testid="agreement-evidence-panel">
-      <div className="evidence-title">Customer Response — Evidence</div>
+      <div className="evidence-title">Digital Signing / Customer Response — Evidence</div>
       <div className="evidence-grid">
         <div>
           <div className="evidence-label">Status</div>
@@ -389,7 +389,6 @@ export default function AgreementPrintPage() {
           <div className="doc-page">
             <HeaderBand />
             <div className="doc-page-content">
-              <h2 className="font-bold text-[13px] uppercase tracking-widest text-center mb-6">Digital Signing — Audit Trail</h2>
               <EvidenceBlock agreement={agreement} />
             </div>
             <FooterBand pageNumber={totalPages} totalPages={totalPages} agreement={agreement} md={md} />
@@ -465,7 +464,7 @@ export default function AgreementPrintPage() {
         .agreement-table th, .agreement-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
         .agreement-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
         .evidence-panel { border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 6px; padding: 14px 16px; }
-        .evidence-title { font-size: 9pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #047857; margin-bottom: 10px; }
+        .evidence-title { font-size: 9pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #047857; margin-bottom: 10px; text-align: center; }
         .evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
         .evidence-label { font-size: 7pt; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; font-weight: 700; }
         .evidence-value { font-size: 9.5pt; color: #0f172a; font-weight: 600; }

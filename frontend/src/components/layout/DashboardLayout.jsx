@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, UserCheck, ReceiptText, Hammer,
   Truck, ShieldCheck, LogOut, UsersRound, Settings, Calculator,
-  FileCheck2, Trash2, Activity, Sun, Moon, FileSignature, Send,
+  FileCheck2, Trash2, Activity, Sun, Moon, FileSignature, Send, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
@@ -75,6 +75,12 @@ export default function DashboardLayout() {
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
                     isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
                 <UsersRound className="w-4 h-4" /><span className="flex-1 font-medium">Team</span>
+              </NavLink>
+              <NavLink to="/reports" data-testid="nav-reports"
+                className={({ isActive }) =>
+                  cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                <BarChart3 className="w-4 h-4" /><span className="flex-1 font-medium">Reports</span>
               </NavLink>
               <NavLink to="/agreement-templates" data-testid="nav-agreement-templates"
                 className={({ isActive }) =>

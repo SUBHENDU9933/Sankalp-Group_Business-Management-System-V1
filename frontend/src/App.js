@@ -1,5 +1,5 @@
 import "@/App.css";
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -31,6 +31,7 @@ import AgreementPrintPage from "@/pages/AgreementPrintPage";
 import AgreementTemplatesPage from "@/pages/AgreementTemplatesPage";
 import PublicSignAgreementPage from "@/pages/PublicSignAgreementPage";
 import AdminNotifyPage from "@/pages/AdminNotifyPage";
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -122,6 +123,13 @@ function App() {
                 <Route path="/agreements/new" element={<AgreementEditorPage />} />
                 <Route path="/agreements/:id/edit" element={<AgreementEditorPage />} />
                 <Route path="/agreement-templates" element={<AdminOnly><AgreementTemplatesPage /></AdminOnly>} />
+                <Route path="/reports" element={
+                  <AdminOnly>
+                    <Suspense fallback={<div className="p-16 text-center text-slate-400">Loading Reports…</div>}>
+                      <ReportsPage />
+                    </Suspense>
+                  </AdminOnly>
+                } />
                 <Route path="/admin-notify" element={<SuperAdminOnly><AdminNotifyPage /></SuperAdminOnly>} />
                 <Route path="/trash" element={<TrashPage />} />
                 <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />

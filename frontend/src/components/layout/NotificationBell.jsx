@@ -44,7 +44,7 @@ export default function NotificationBell() {
         // that stays until manually dismissed, plus a chime — everything
         // else (lead assigned, delete requests, etc.) stays as a silent
         // badge update, same as before.
-        if (n?.type === "reminder_chime" || n?.type === "daily_report") {
+        if (n?.type === "reminder_chime" || n?.type === "daily_report" || n?.type === "admin_broadcast") {
           playEmergencySiren();
           setAlertNotif(n);
         }

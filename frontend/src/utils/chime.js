@@ -26,7 +26,26 @@ const tone = (audioCtx, freq, startTime, duration, gainPeak = 0.12) => {
   osc.stop(startTime + duration + 0.05);
 };
 
-// Soft two-note "ding" — used for regular pending-reminder nudges.
+let unlocked = false;
+// Browsers block AudioContext playback unless it starts from (or was already
+// resumed by) a real user gesture — a chime fired later from a realtime
+// event, with no click at that exact moment, gets silently blocked.
+// Call this once, anywhere, on the very first click/touch in the app —
+// it "primes" the context so later programmatic chimes actually play.
+export const unlockAudioOnFirstInteraction = () => {
+  if (unlocked) return;
+  const unlock = () => {
+    const audioCtx = getCtx();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    unlocked = true;
+    document.removeEventListener("click", unlock);
+    document.removeEventListener("touchstart", unlock);
+    document.removeEventListener("keydown", unlock);
+  };
+  document.addEventListener("click", unlock);
+  document.addEventListener("touchstart", unlock);
+  document.addEventListener("keydown", unlock);
+};
 export const playChime = () => {
   const audioCtx = getCtx();
   if (!audioCtx) return;

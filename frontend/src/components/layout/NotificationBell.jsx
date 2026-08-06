@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Bell, Check, CheckCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { fetchNotifications, unreadCount, markRead, markAllRead } from "@/services/notificationService";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/lib/utils";
 import { playChime, playReportChime } from "@/utils/chime";
-import { toast } from "sonner";
 
 export default function NotificationBell() {
   const { user } = useAuth();
@@ -19,6 +19,7 @@ export default function NotificationBell() {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [alertNotif, setAlertNotif] = useState(null); // reminder/report shown as a blocking centered popup
 
   const refresh = async () => {
     if (!user) return;
@@ -36,15 +37,16 @@ export default function NotificationBell() {
       .channel("notif-" + user.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
         const n = payload.new;
-        // Reminder digests and the end-of-day report get a sound + popup —
-        // everything else (lead assigned, delete requests, etc.) stays
-        // as a silent badge update, same as before.
+        // Reminder digests and the end-of-day report get a centered popup
+        // that stays until manually dismissed, plus a chime — everything
+        // else (lead assigned, delete requests, etc.) stays as a silent
+        // badge update, same as before.
         if (n?.type === "reminder_chime") {
           playChime();
-          toast(n.title, { description: n.body, duration: 8000 });
+          setAlertNotif(n);
         } else if (n?.type === "daily_report") {
           playReportChime();
-          toast(n.title, { description: n.body, duration: 12000 });
+          setAlertNotif(n);
         }
         refresh();
       })
@@ -66,8 +68,49 @@ export default function NotificationBell() {
     try { await markAllRead(); refresh(); } catch {}
   };
 
+  const dismissAlert = async () => {
+    if (alertNotif && !alertNotif.read) {
+      try { await markRead(alertNotif.id); } catch {}
+      refresh();
+    }
+    setAlertNotif(null);
+  };
+  const openAlertLink = () => {
+    const link = alertNotif?.link;
+    dismissAlert();
+    if (link) nav(link);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <>
+      <Dialog open={!!alertNotif} onOpenChange={(v) => { if (!v) dismissAlert(); }}>
+        <DialogContent
+          className="max-w-sm border-2 border-rose-400 shadow-2xl"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          data-testid="reminder-alert-dialog"
+        >
+          <DialogHeader>
+            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-rose-100 grid place-items-center">
+              <AlertCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <DialogTitle className="text-center text-rose-700">{alertNotif?.title}</DialogTitle>
+            <DialogDescription className="text-center pt-1">{alertNotif?.body}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-2 mt-2">
+            {alertNotif?.link && (
+              <Button variant="outline" className="rounded-lg" onClick={openAlertLink} data-testid="reminder-alert-view">
+                View
+              </Button>
+            )}
+            <Button className="rounded-lg bg-rose-600 hover:bg-rose-700 text-white" onClick={dismissAlert} data-testid="reminder-alert-dismiss">
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full hover:bg-slate-100" data-testid="notification-bell">
           <Bell className="w-5 h-5 text-slate-700" />
@@ -110,6 +153,7 @@ export default function NotificationBell() {
           )}
         </div>
       </PopoverContent>
-    </Popover>
+      </Popover>
+    </>
   );
 }

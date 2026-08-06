@@ -1,8 +1,10 @@
 import "@/App.css";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "@/components/ui/sonner";
+import { unlockAudioOnFirstInteraction } from "@/utils/chime";
 import LoginPage from "@/pages/LoginPage";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardPage from "@/pages/DashboardPage";
@@ -65,6 +67,7 @@ const AdminOnly = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => { unlockAudioOnFirstInteraction(); }, []);
   return (
     <div className="App">
       <ThemeProvider>

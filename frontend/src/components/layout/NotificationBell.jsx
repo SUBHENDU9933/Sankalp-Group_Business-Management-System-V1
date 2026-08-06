@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Bell, Check, CheckCheck, AlertCircle } from "lucide-react";
+import { Bell, Check, CheckCheck, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -11,12 +11,12 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/lib/utils";
-import { playChime, playReportChime } from "@/utils/chime";
+import { playEmergencySiren } from "@/utils/chime";
 
 const SNOOZE_MS = 30 * 60 * 1000; // re-alert after 30 minutes if dismissed without being addressed
 
 export default function NotificationBell() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const nav = useNavigate();
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
@@ -44,11 +44,8 @@ export default function NotificationBell() {
         // that stays until manually dismissed, plus a chime — everything
         // else (lead assigned, delete requests, etc.) stays as a silent
         // badge update, same as before.
-        if (n?.type === "reminder_chime") {
-          playChime();
-          setAlertNotif(n);
-        } else if (n?.type === "daily_report") {
-          playReportChime();
+        if (n?.type === "reminder_chime" || n?.type === "daily_report") {
+          playEmergencySiren();
           setAlertNotif(n);
         }
         refresh();
@@ -76,7 +73,7 @@ export default function NotificationBell() {
       try {
         const { data } = await supabase.from("notifications").select("*").eq("id", notif.id).maybeSingle();
         if (data && !data.read) {
-          if (data.type === "daily_report") playReportChime(); else playChime();
+          playEmergencySiren();
           setAlertNotif(data);
         }
       } catch {}
@@ -113,10 +110,15 @@ export default function NotificationBell() {
           data-testid="reminder-alert-dialog"
         >
           <DialogHeader>
-            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-rose-100 grid place-items-center">
-              <AlertCircle className="w-6 h-6 text-rose-600" />
+            <div className="mx-auto mb-2 h-16 w-16 rounded-full bg-rose-100 grid place-items-center relative">
+              <span className="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-50" />
+              <Siren className="w-8 h-8 text-rose-600 relative siren-flash" />
             </div>
             <DialogTitle className="text-center text-rose-700">{alertNotif?.title}</DialogTitle>
+            <div className="text-center font-extrabold text-rose-600 text-sm mt-1 leading-snug" data-testid="reminder-alert-urgent-message">
+              <div>{(profile?.full_name || "").split(" ")[0] || "Hi"}, please complete your pending tasks urgently!</div>
+              <div lang="bn">{(profile?.full_name || "").split(" ")[0] || "আপনি"}, অনুগ্রহ করে জরুরি ভিত্তিতে আপনার বাকি কাজগুলো সম্পন্ন করুন!</div>
+            </div>
             <DialogDescription className="text-center pt-1">{alertNotif?.body}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-col gap-2 mt-2">
@@ -129,6 +131,10 @@ export default function NotificationBell() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <style>{`
+        @keyframes siren-flash { 0%, 100% { color: #e11d48; } 50% { color: #f97316; } }
+        .siren-flash { animation: siren-flash 0.6s infinite; }
+      `}</style>
 
       <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

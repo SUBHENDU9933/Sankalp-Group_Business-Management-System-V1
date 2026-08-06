@@ -46,6 +46,33 @@ export const unlockAudioOnFirstInteraction = () => {
   document.addEventListener("touchstart", unlock);
   document.addEventListener("keydown", unlock);
 };
+// Urgent "hooter/siren" alert — sweeps between two pitches rapidly, like a
+// classic emergency siren — used for the pending-task reminder popups so
+// they're impossible to mistake for a routine notification.
+export const playEmergencySiren = () => {
+  const audioCtx = getCtx();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sawtooth";
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const t0 = audioCtx.currentTime;
+  const duration = 1.8;
+  const sweepMs = 0.28; // time for one up/down cycle
+  osc.frequency.setValueAtTime(500, t0);
+  for (let t = 0; t < duration; t += sweepMs * 2) {
+    osc.frequency.linearRampToValueAtTime(900, t0 + t + sweepMs);
+    osc.frequency.linearRampToValueAtTime(500, t0 + t + sweepMs * 2);
+  }
+  gain.gain.setValueAtTime(0.09, t0);
+  gain.gain.setValueAtTime(0.09, t0 + duration - 0.1);
+  gain.gain.linearRampToValueAtTime(0.0001, t0 + duration);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.05);
+};
+
 export const playChime = () => {
   const audioCtx = getCtx();
   if (!audioCtx) return;

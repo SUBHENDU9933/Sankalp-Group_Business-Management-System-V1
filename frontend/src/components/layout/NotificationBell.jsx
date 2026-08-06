@@ -55,6 +55,14 @@ export default function NotificationBell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Repeat the siren every ~2.2s for as long as the popup stays open —
+  // stops the instant either button is clicked (popup closes → alertNotif becomes null).
+  useEffect(() => {
+    if (!alertNotif) return;
+    const repeat = setInterval(() => playEmergencySiren(), 2200);
+    return () => clearInterval(repeat);
+  }, [alertNotif]);
+
   const handleClick = async (n) => {
     if (!n.read) {
       try { await markRead(n.id); } catch {}

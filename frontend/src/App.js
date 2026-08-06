@@ -30,6 +30,7 @@ import AgreementEditorPage from "@/pages/AgreementEditorPage";
 import AgreementPrintPage from "@/pages/AgreementPrintPage";
 import AgreementTemplatesPage from "@/pages/AgreementTemplatesPage";
 import PublicSignAgreementPage from "@/pages/PublicSignAgreementPage";
+import AdminNotifyPage from "@/pages/AdminNotifyPage";
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -63,6 +64,23 @@ const AdminOnly = ({ children }) => {
     );
   }
   if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+};
+
+// The manual/scheduled broadcast tool is restricted to one specific account,
+// enforced server-side too (see admin_send_notification RPC) — this is just
+// the UI-level gate so it doesn't even show for other admins.
+const SuperAdminOnly = ({ children }) => {
+  const { profile, loading } = useAuth();
+  if (loading) return null;
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-100">
+        <div className="label-uppercase animate-pulse">Loading…</div>
+      </div>
+    );
+  }
+  if (profile.email !== "info.subhendu@gmail.com") return <Navigate to="/" replace />;
   return children;
 };
 
@@ -104,6 +122,7 @@ function App() {
                 <Route path="/agreements/new" element={<AgreementEditorPage />} />
                 <Route path="/agreements/:id/edit" element={<AgreementEditorPage />} />
                 <Route path="/agreement-templates" element={<AdminOnly><AgreementTemplatesPage /></AdminOnly>} />
+                <Route path="/admin-notify" element={<SuperAdminOnly><AdminNotifyPage /></SuperAdminOnly>} />
                 <Route path="/trash" element={<TrashPage />} />
                 <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
               </Route>

@@ -26,6 +26,7 @@ import { fetchCustomers } from "@/services/customerService";
 import { fetchReceiptsByCustomer } from "@/services/receiptService";
 import ProjectFormDialog from "@/components/projects/ProjectFormDialog";
 import ProjectMembersPanel from "@/components/projects/ProjectMembersPanel";
+import ProjectAgreementsApprovalsPanel from "@/components/projects/ProjectAgreementsApprovalsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, formatDateTime, EXPENSE_CATEGORIES, PROJECT_STATUSES } from "@/utils/format";
 import { useForm } from "react-hook-form";
@@ -166,7 +167,10 @@ export default function ProjectDetailPage() {
 
         {/* Members + Receipts/Expenses log layout */}
         <div className="grid lg:grid-cols-[360px_1fr] gap-6 mt-8">
-          <ProjectMembersPanel projectId={project.id} creatorId={project.created_by} />
+          <div className="space-y-6">
+            <ProjectMembersPanel projectId={project.id} creatorId={project.created_by} />
+            <ProjectAgreementsApprovalsPanel projectId={project.id} />
+          </div>
 
           <div className="space-y-8">
             {/* Receipts Log */}

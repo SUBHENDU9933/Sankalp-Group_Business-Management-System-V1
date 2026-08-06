@@ -83,19 +83,18 @@ export default function NotificationBell() {
     }, SNOOZE_MS);
   };
 
-  // Dismissing ("Got it" / ×) closes the popup but deliberately does NOT
-  // mark it read — that's what lets the 30-minute snooze check above know
-  // whether it was ever actually addressed.
-  const dismissAlert = () => {
-    if (alertNotif) scheduleSnooze(alertNotif);
-    setAlertNotif(null);
-  };
-  const openAlertLink = async () => {
+  // "Got it, thanks" — full acknowledgement: marks read, no further re-alert.
+  const acknowledgeAlert = async () => {
     const n = alertNotif;
     if (snoozeTimerRef.current) { clearTimeout(snoozeTimerRef.current); snoozeTimerRef.current = null; }
     setAlertNotif(null);
     if (n && !n.read) { try { await markRead(n.id); } catch {} refresh(); }
-    if (n?.link) nav(n.link);
+  };
+  // "Remind me after 30 minutes again" — closes now, stays unread, and
+  // re-alerts with sound+popup in 30 minutes if still unread by then.
+  const snoozeAlert = () => {
+    if (alertNotif) scheduleSnooze(alertNotif);
+    setAlertNotif(null);
   };
 
   useEffect(() => () => { if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current); }, []);
@@ -106,7 +105,7 @@ export default function NotificationBell() {
 
   return (
     <>
-      <Dialog open={!!alertNotif} onOpenChange={(v) => { if (!v) dismissAlert(); }}>
+      <Dialog open={!!alertNotif} onOpenChange={(v) => { if (!v) snoozeAlert(); }}>
         <DialogContent
           className="max-w-sm border-2 border-rose-400 shadow-2xl"
           onInteractOutside={(e) => e.preventDefault()}
@@ -120,14 +119,12 @@ export default function NotificationBell() {
             <DialogTitle className="text-center text-rose-700">{alertNotif?.title}</DialogTitle>
             <DialogDescription className="text-center pt-1">{alertNotif?.body}</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sm:justify-center gap-2 mt-2">
-            {alertNotif?.link && (
-              <Button variant="outline" className="rounded-lg" onClick={openAlertLink} data-testid="reminder-alert-view">
-                View
-              </Button>
-            )}
-            <Button className="rounded-lg bg-rose-600 hover:bg-rose-700 text-white" onClick={dismissAlert} data-testid="reminder-alert-dismiss">
-              Got it
+          <DialogFooter className="flex-col sm:flex-col gap-2 mt-2">
+            <Button className="w-full rounded-lg bg-rose-600 hover:bg-rose-700 text-white" onClick={acknowledgeAlert} data-testid="reminder-alert-ack">
+              Got it, thanks
+            </Button>
+            <Button variant="outline" className="w-full rounded-lg" onClick={snoozeAlert} data-testid="reminder-alert-snooze">
+              Remind me after 30 minutes again
             </Button>
           </DialogFooter>
         </DialogContent>

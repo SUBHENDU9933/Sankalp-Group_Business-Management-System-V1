@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Bell, Check, CheckCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import { formatDateTime } from "@/utils/format";
 import { cn } from "@/lib/utils";
 import { playChime, playReportChime } from "@/utils/chime";
 
+const SNOOZE_MS = 30 * 60 * 1000; // re-alert after 30 minutes if dismissed without being addressed
+
 export default function NotificationBell() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -20,6 +22,7 @@ export default function NotificationBell() {
   const [count, setCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [alertNotif, setAlertNotif] = useState(null); // reminder/report shown as a blocking centered popup
+  const snoozeTimerRef = useRef(null);
 
   const refresh = async () => {
     if (!user) return;
@@ -64,21 +67,41 @@ export default function NotificationBell() {
     refresh();
   };
 
-  const handleMarkAll = async () => {
-    try { await markAllRead(); refresh(); } catch {}
+  const scheduleSnooze = (notif) => {
+    if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current);
+    snoozeTimerRef.current = setTimeout(async () => {
+      // Only re-alert if it's still genuinely unread (i.e. never actually
+      // opened/viewed in the meantime) — avoids re-nagging about something
+      // already handled.
+      try {
+        const { data } = await supabase.from("notifications").select("*").eq("id", notif.id).maybeSingle();
+        if (data && !data.read) {
+          if (data.type === "daily_report") playReportChime(); else playChime();
+          setAlertNotif(data);
+        }
+      } catch {}
+    }, SNOOZE_MS);
   };
 
-  const dismissAlert = async () => {
-    if (alertNotif && !alertNotif.read) {
-      try { await markRead(alertNotif.id); } catch {}
-      refresh();
-    }
+  // Dismissing ("Got it" / ×) closes the popup but deliberately does NOT
+  // mark it read — that's what lets the 30-minute snooze check above know
+  // whether it was ever actually addressed.
+  const dismissAlert = () => {
+    if (alertNotif) scheduleSnooze(alertNotif);
     setAlertNotif(null);
   };
-  const openAlertLink = () => {
-    const link = alertNotif?.link;
-    dismissAlert();
-    if (link) nav(link);
+  const openAlertLink = async () => {
+    const n = alertNotif;
+    if (snoozeTimerRef.current) { clearTimeout(snoozeTimerRef.current); snoozeTimerRef.current = null; }
+    setAlertNotif(null);
+    if (n && !n.read) { try { await markRead(n.id); } catch {} refresh(); }
+    if (n?.link) nav(n.link);
+  };
+
+  useEffect(() => () => { if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current); }, []);
+
+  const handleMarkAll = async () => {
+    try { await markAllRead(); refresh(); } catch {}
   };
 
   return (

@@ -10,6 +10,8 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/lib/utils";
+import { playChime, playReportChime } from "@/utils/chime";
+import { toast } from "sonner";
 
 export default function NotificationBell() {
   const { user } = useAuth();
@@ -32,7 +34,20 @@ export default function NotificationBell() {
     // also realtime if available
     const ch = supabase
       .channel("notif-" + user.id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => refresh())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const n = payload.new;
+        // Reminder digests and the end-of-day report get a sound + popup —
+        // everything else (lead assigned, delete requests, etc.) stays
+        // as a silent badge update, same as before.
+        if (n?.type === "reminder_chime") {
+          playChime();
+          toast(n.title, { description: n.body, duration: 8000 });
+        } else if (n?.type === "daily_report") {
+          playReportChime();
+          toast(n.title, { description: n.body, duration: 12000 });
+        }
+        refresh();
+      })
       .subscribe();
     return () => { clearInterval(t); supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

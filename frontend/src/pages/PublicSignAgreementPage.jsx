@@ -290,11 +290,17 @@ export default function PublicSignAgreementPage() {
                 />
               </div>
 
-              <div>
-                <button onClick={requestLocation} className={`text-xs inline-flex items-center gap-1.5 hover:underline ${locStatus === "ok" ? "text-emerald-600" : locStatus === "error" ? "text-rose-600" : "text-blue-700"}`}>
-                  <MapPin className="w-3.5 h-3.5" />
-                  {locStatus === "ok" ? "Location captured ✓" : locStatus === "error" ? "Location required — tap to allow, or check your browser's location permission" : locStatus === "requesting" ? "Requesting location…" : "Location required — tap to allow"}
-                </button>
+              <div className={`border rounded-lg p-3 ${locStatus === "ok" ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300"}`}>
+                <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mb-1">
+                  <MapPin className="w-3.5 h-3.5" /> Location <span className="text-rose-600 font-semibold">— Required</span>
+                </div>
+                {locStatus === "ok" ? (
+                  <span className="text-emerald-700 font-semibold text-sm">✓ Location captured</span>
+                ) : (
+                  <button onClick={requestLocation} className="text-sm font-medium text-rose-700 underline">
+                    {locStatus === "error" ? "⚠ Not yet provided — tap to allow location access" : locStatus === "requesting" ? "Requesting location…" : "⚠ Not yet provided — tap to allow"}
+                  </button>
+                )}
               </div>
 
               <div>
@@ -326,10 +332,13 @@ export default function PublicSignAgreementPage() {
               </div>
 
               <div>
+                <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mb-1">
+                  <Camera className="w-3.5 h-3.5" /> Photo <span className="text-rose-600 font-semibold">— Required</span>
+                </div>
                 {selfie ? (
                   <div className="flex items-center gap-3">
                     <img src={selfie.url} alt="" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
-                    <span className="text-xs text-emerald-600">Photo captured ✓</span>
+                    <span className="text-xs text-emerald-600 font-semibold">✓ Photo captured</span>
                     <button onClick={() => setSelfie(null)} className="text-xs text-slate-500 hover:underline">Retake</button>
                   </div>
                 ) : cameraOn ? (
@@ -340,9 +349,12 @@ export default function PublicSignAgreementPage() {
                     </button>
                   </div>
                 ) : (
-                  <button onClick={startCamera} className="px-4 py-2 border-2 border-slate-300 rounded-lg text-sm inline-flex items-center gap-2 hover:bg-slate-50" data-testid="sign-selfie-button">
-                    <Camera className="w-4 h-4" /> Take a photo (required)
-                  </button>
+                  <div className="border border-rose-300 bg-rose-50 rounded-lg p-3">
+                    <div className="text-rose-700 font-semibold text-sm mb-2">⚠ Not yet provided</div>
+                    <button onClick={startCamera} className="px-4 py-2 border-2 border-rose-400 bg-white rounded-lg text-sm inline-flex items-center gap-2 hover:bg-rose-100" data-testid="sign-selfie-button">
+                      <Camera className="w-4 h-4" /> Take a photo
+                    </button>
+                  </div>
                 )}
               </div>
 

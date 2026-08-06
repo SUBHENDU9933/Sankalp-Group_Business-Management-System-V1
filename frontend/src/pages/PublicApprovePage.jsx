@@ -234,6 +234,8 @@ export default function PublicApprovePage() {
     if (!decision) { toast.error("Choose Approve or Reject"); return; }
     if (!name.trim()) { toast.error("Please type your full name"); return; }
     if (decision === "rejected" && !comment.trim()) { toast.error("Please share what needs to change"); return; }
+    if (!selfie) { toast.error("A photo is required — please take a selfie before submitting"); return; }
+    if (locStatus !== "ok") { toast.error("Location is required — please allow location access before submitting"); requestLocation(); return; }
 
     setStep("submitting");
     try {
@@ -400,7 +402,9 @@ export default function PublicApprovePage() {
               <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={4} placeholder={decision === "approved" ? "Any note for the team…" : "e.g. Please change the kitchen colour to darker walnut…"} className="mt-1 w-full border-2 border-stone-300 px-3 py-2 text-sm focus:border-stone-900 outline-none" data-testid="pa-comment" />
             </div>
             <div>
-              <label className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 flex items-center gap-1"><Camera className="w-3 h-3" /> Selfie (recommended)</label>
+              <label className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 flex items-center gap-1">
+                <Camera className="w-3 h-3" /> Selfie <span className="text-rose-600">— Required</span>
+              </label>
               {selfie ? (
                 <div className="mt-2 border-2 border-emerald-400 bg-emerald-50 p-3">
                   <div className="text-[11px] text-emerald-800 font-bold mb-2 tracking-wider">✓ SELFIE CAPTURED</div>
@@ -419,23 +423,37 @@ export default function PublicApprovePage() {
                   </div>
                 </div>
               ) : (
-                <button onClick={startCamera} className="mt-1 px-4 py-2 border-2 border-stone-300 text-sm hover:bg-stone-100 inline-flex items-center gap-2" data-testid="pa-selfie-open">
-                  <Camera className="w-4 h-4" /> Open Camera
-                </button>
+                <div className="mt-2 border-2 border-rose-300 bg-rose-50 p-3">
+                  <div className="text-[11px] text-rose-700 font-bold mb-2 tracking-wider">⚠ NOT YET PROVIDED — required to submit</div>
+                  <button onClick={startCamera} className="px-4 py-2 border-2 border-rose-400 bg-white text-sm hover:bg-rose-100 inline-flex items-center gap-2" data-testid="pa-selfie-open">
+                    <Camera className="w-4 h-4" /> Open Camera
+                  </button>
+                </div>
               )}
             </div>
-            <div className="bg-stone-50 border border-stone-200 p-3 text-xs">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-stone-500" />
-                {locStatus === "ok" && <span className="text-emerald-700 font-medium">✓ Location captured ({lat?.toFixed(4)}, {lng?.toFixed(4)})</span>}
-                {locStatus === "requesting" && <span className="text-stone-600">Requesting location…</span>}
-                {locStatus === "error" && <span className="text-amber-700">Location permission denied — response will still record without it.</span>}
-                {locStatus === "idle" && <button onClick={requestLocation} className="text-blue-700 underline" data-testid="pa-req-location">Enable location</button>}
-              </div>
+            <div className={cn("border p-3 text-xs", locStatus === "ok" ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300")}>
+              <label className="text-[10px] tracking-[0.15em] uppercase font-bold text-stone-500 flex items-center gap-1 mb-1.5">
+                <MapPin className="w-3 h-3" /> Location <span className="text-rose-600">— Required</span>
+              </label>
+              {locStatus === "ok" && <span className="text-emerald-700 font-bold">✓ Location captured ({lat?.toFixed(4)}, {lng?.toFixed(4)})</span>}
+              {locStatus === "requesting" && <span className="text-stone-600">Requesting location…</span>}
+              {locStatus === "error" && (
+                <div>
+                  <div className="text-rose-700 font-bold mb-1">⚠ NOT YET PROVIDED — required to submit</div>
+                  <div className="text-stone-600">Location permission was denied. Please enable location for this site in your browser settings, then tap below.</div>
+                  <button onClick={requestLocation} className="mt-1 text-blue-700 underline font-medium" data-testid="pa-req-location">Try again</button>
+                </div>
+              )}
+              {locStatus === "idle" && (
+                <div>
+                  <div className="text-rose-700 font-bold mb-1">⚠ NOT YET PROVIDED — required to submit</div>
+                  <button onClick={requestLocation} className="text-blue-700 underline font-medium" data-testid="pa-req-location">Enable location</button>
+                </div>
+              )}
             </div>
             <div className="text-[10px] text-stone-500 italic">
               By clicking submit, you confirm you are the customer named above and that your response is final.
-              IP address, timestamp{lat && ", geo-location"}{selfie && ", and photo"} will be recorded as legal evidence.
+              Your photo, location, IP address, and timestamp will be recorded as legal evidence.
             </div>
             <button onClick={handleSubmit} disabled={step === "submitting" || selfieUploading} className={cn("w-full py-3 text-white font-bold text-lg tracking-wider", decision === "approved" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700", (step === "submitting" || selfieUploading) && "opacity-60")} data-testid="pa-submit">
               {step === "submitting" ? "Submitting…" : selfieUploading ? "Uploading photo…" : (decision === "approved" ? "CONFIRM APPROVAL" : "SUBMIT CHANGE REQUEST")}

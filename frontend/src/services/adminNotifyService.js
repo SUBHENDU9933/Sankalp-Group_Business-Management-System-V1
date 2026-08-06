@@ -32,5 +32,17 @@ export const fetchMyBroadcasts = async () => {
     .order("created_at", { ascending: false })
     .limit(30);
   if (error) throw error;
-  return data || [];
+  const rows = data || [];
+  // Pull real read/unread status for each broadcast's actual notification rows.
+  const allIds = rows.flatMap((r) => r.notification_ids || []);
+  let readMap = {};
+  if (allIds.length) {
+    const { data: notifs } = await supabase.from("notifications").select("id, read").in("id", allIds);
+    readMap = Object.fromEntries((notifs || []).map((n) => [n.id, n.read]));
+  }
+  return rows.map((r) => {
+    const ids = r.notification_ids || [];
+    const readCount = ids.filter((id) => readMap[id]).length;
+    return { ...r, readCount, totalCount: ids.length };
+  });
 };

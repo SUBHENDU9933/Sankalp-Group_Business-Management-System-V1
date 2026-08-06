@@ -115,6 +115,7 @@ export default function NotificationBell() {
           className="max-w-sm border-2 border-rose-400 shadow-2xl"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
+          hideClose
           data-testid="reminder-alert-dialog"
         >
           <DialogHeader>

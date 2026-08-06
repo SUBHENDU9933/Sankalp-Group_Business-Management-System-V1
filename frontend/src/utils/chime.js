@@ -49,9 +49,16 @@ export const unlockAudioOnFirstInteraction = () => {
 // Urgent "hooter/siren" alert — sweeps between two pitches rapidly, like a
 // classic emergency siren — used for the pending-task reminder popups so
 // they're impossible to mistake for a routine notification.
-export const playEmergencySiren = () => {
+export const playEmergencySiren = async () => {
   const audioCtx = getCtx();
   if (!audioCtx) return;
+  // Mobile browsers auto-suspend the AudioContext when a tab is backgrounded
+  // or the screen locks — if that happened since the last play, scheduling
+  // sound immediately (without waiting for resume() to actually finish)
+  // silently drops the sound. Wait for it here before scheduling anything.
+  if (audioCtx.state === "suspended") {
+    try { await audioCtx.resume(); } catch { return; }
+  }
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = "sawtooth";

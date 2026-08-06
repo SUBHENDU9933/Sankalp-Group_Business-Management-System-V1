@@ -119,6 +119,14 @@ export default function AdminNotifyPage() {
                   <div className="text-xs text-slate-400 mt-0.5">
                     {h.target_user_ids?.length || 0} recipient(s) · {h.sent ? `Sent ${formatDateTime(h.sent_at)}` : `Scheduled for ${formatDateTime(h.send_at)}`}
                   </div>
+                  {h.sent && h.totalCount > 0 && (
+                    <div className="text-xs mt-1">
+                      <span className="text-emerald-600 font-medium">✓ Read by {h.readCount}</span>
+                      {h.totalCount - h.readCount > 0 && (
+                        <span className="text-amber-600 font-medium ml-2">● Unread by {h.totalCount - h.readCount}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

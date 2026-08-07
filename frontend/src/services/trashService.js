@@ -22,6 +22,8 @@ export const TRASH_ENTITIES = [
     select: "*, creator:profiles!digital_approvals_created_by_fkey(id,full_name,email)", },
   { key: "agreements", label: "Agreements", table: "agreements", labelField: "title",
     select: "*, creator:profiles!agreements_created_by_fkey(id,full_name,email), customer:customers!agreements_customer_id_fkey(id,name)", },
+  { key: "project_documents", label: "Project Documents", table: "project_documents", labelField: "name",
+    select: "*, uploader:profiles!project_documents_uploaded_by_fkey(id,full_name,email)", },
 ];
 
 export const listTrash = async (entityKey) => {

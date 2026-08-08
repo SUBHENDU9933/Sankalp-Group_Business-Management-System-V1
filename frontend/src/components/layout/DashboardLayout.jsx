@@ -68,89 +68,89 @@ export default function DashboardLayout() {
           ))}
 
           {isAdmin && (
-            <div className="pt-3 mt-3 border-t border-slate-100 space-y-0.5">
+            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
               <div className="px-3 py-1.5 label-uppercase text-slate-400">Admin</div>
               <NavLink to="/team" data-testid="nav-team"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <UsersRound className="w-4 h-4" /><span className="flex-1 font-medium">Team</span>
               </NavLink>
               <NavLink to="/reports" data-testid="nav-reports"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <BarChart3 className="w-4 h-4" /><span className="flex-1 font-medium">Reports</span>
               </NavLink>
               <NavLink to="/agreement-templates" data-testid="nav-agreement-templates"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <FileSignature className="w-4 h-4" /><span className="flex-1 font-medium">Agreement Templates</span>
               </NavLink>
               {profile?.email === "info.subhendu@gmail.com" && (
                 <NavLink to="/admin-notify" data-testid="nav-admin-notify"
                   className={({ isActive }) =>
                     cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                      isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                      isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                   <Send className="w-4 h-4" /><span className="flex-1 font-medium">Send Notification</span>
                 </NavLink>
               )}
               <NavLink to="/approvals" data-testid="nav-approvals"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <ShieldCheck className="w-4 h-4" /><span className="flex-1 font-medium">Delete Approvals</span>
               </NavLink>
               <NavLink to="/audit-log" data-testid="nav-audit-log"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <Activity className="w-4 h-4" /><span className="flex-1 font-medium">Audit Log</span>
               </NavLink>
               <NavLink to="/trash" data-testid="nav-trash"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <Trash2 className="w-4 h-4" /><span className="flex-1 font-medium">Trash</span>
               </NavLink>
             </div>
           )}
           {!isAdmin && (
-            <div className="pt-3 mt-3 border-t border-slate-100 space-y-0.5">
+            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
               <NavLink to="/trash" data-testid="nav-trash-user"
                 className={({ isActive }) =>
                   cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                    isActive ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
+                    isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}>
                 <Trash2 className="w-4 h-4" /><span className="flex-1 font-medium">Trash</span>
               </NavLink>
             </div>
           )}
         </nav>
 
-        <div className="border-t border-slate-100 p-3">
+        <div className="border-t border-slate-100 dark:border-slate-800 p-3">
           <NavLink to="/profile" data-testid="sidebar-profile-link"
             className={({ isActive }) =>
               cn("flex items-center gap-3 p-2 rounded-lg transition-colors",
-                isActive ? "bg-blue-50 ring-1 ring-blue-200" : "bg-slate-50 hover:bg-slate-100")
+                isActive ? "bg-blue-50 dark:bg-blue-950 ring-1 ring-blue-200 dark:ring-blue-800" : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700")
             }>
             <div className="w-9 h-9 rounded-full bg-blue-700 text-white grid place-items-center font-bold text-sm">
               {(profile?.full_name || profile?.email || "?").slice(0,1).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-slate-900 truncate" data-testid="sidebar-user-name">
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" data-testid="sidebar-user-name">
                 {profile?.full_name || profile?.email?.split("@")[0] || "—"}
               </div>
               <div className="inline-flex items-center gap-1.5 mt-0.5">
                 <span className={cn("inline-block w-1.5 h-1.5 rounded-full", isAdmin ? "bg-emerald-500" : "bg-slate-400")} />
-                <span className="text-[10px] tracking-widest uppercase font-semibold text-slate-500" data-testid="sidebar-user-role">
+                <span className="text-[10px] tracking-widest uppercase font-semibold text-slate-500 dark:text-slate-400" data-testid="sidebar-user-role">
                   {profile?.designation || (isAdmin ? "Administrator" : "RM")}
                 </span>
               </div>
             </div>
           </NavLink>
           <button onClick={handleLogout} data-testid="sidebar-logout-button"
-            className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-medium">
+            className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-lg transition-colors font-medium">
             <LogOut className="w-4 h-4" /> Sign out
           </button>
         </div>
@@ -176,7 +176,9 @@ export default function DashboardLayout() {
             <NotificationBell />
           </div>
         </header>
-        <Outlet />
+        <div className="content-light-scope bg-slate-50">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -35,7 +35,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 grid lg:grid-cols-[260px_1fr]">
       {/* Sidebar */}
-      <aside className="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col" data-testid="sidebar">
+      <aside className="shell-dark-scope bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col" data-testid="sidebar">
         <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <div className="bg-white rounded-xl border border-slate-100 p-1.5 shadow-sm">
             <Logo className="h-9 w-9 object-contain" />
@@ -159,7 +159,7 @@ export default function DashboardLayout() {
       {/* Main */}
       <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
         {/* Topbar */}
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 lg:px-10 py-3.5 flex items-center justify-between sticky top-0 z-20">
+        <header className="shell-dark-scope bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 lg:px-10 py-3.5 flex items-center justify-between sticky top-0 z-20">
           <div>
             <div className="text-xs text-slate-500 dark:text-slate-400">Welcome back,</div>
             <div className="font-display text-base font-bold text-slate-900 dark:text-slate-100">{profile?.full_name?.split(" ")[0] || "there"} <span className="ml-1">👋</span></div>
@@ -176,9 +176,7 @@ export default function DashboardLayout() {
             <NotificationBell />
           </div>
         </header>
-        <div className="content-light-scope bg-slate-50">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );

@@ -215,6 +215,13 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
   useEffect(() => {
     if (!open) return;
     setAttachments([]);
+    // datetime-local wants "YYYY-MM-DDTHH:mm" in *local* time — build that
+    // from the receipt's timestamp when editing, or from right now when creating.
+    const toLocalInputValue = (iso) => {
+      const d = iso ? new Date(iso) : new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
     reset({
       customer_id: receipt?.customer_id || defaultCustomerId || "",
       project_id: receipt?.project_id || "",
@@ -223,6 +230,7 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
       payment_purpose: receipt?.payment_purpose || "advance",
       transaction_ref: receipt?.transaction_ref || "",
       note: receipt?.note || "",
+      receipt_date: toLocalInputValue(receipt?.created_at),
     });
   }, [open, defaultCustomerId, receipt, reset]);
 
@@ -265,6 +273,7 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
       payment_purpose: values.payment_purpose || null,
       transaction_ref: values.transaction_ref || null,
       note: values.note || null,
+      created_at: values.receipt_date ? new Date(values.receipt_date).toISOString() : new Date().toISOString(),
     };
     try {
       if (isEdit) {
@@ -346,6 +355,11 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label className="label-uppercase">Date &amp; Time</Label>
+            <Input type="datetime-local" className="rounded-lg mt-1.5 border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-700" {...register("receipt_date", { required: true })} data-testid="receipt-input-date" />
+            <div className="text-[11px] text-slate-400 mt-1">Defaults to now — change it if you're recording a payment that happened earlier.</div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

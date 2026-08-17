@@ -10,7 +10,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  Plus, Search, MoreVertical, Eye, Pencil, Copy, Trash2, FileText, Calculator,
+  Plus, Search, MoreVertical, Eye, Pencil, Copy, Trash2, FileText, Calculator, X,
 } from "lucide-react";
 import {
   fetchEstimates, deleteEstimate, duplicateEstimate, updateEstimateStatus, buildEstimatorUrl,
@@ -33,6 +33,9 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [createdByFilter, setCreatedByFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -44,9 +47,20 @@ export default function EstimatesPage() {
 
   useEffect(() => { load(); }, []);
 
+  const creators = useMemo(() => {
+    const map = new Map();
+    rows.forEach((r) => {
+      if (r.creator?.id) map.set(r.creator.id, r.creator.full_name || r.creator.email || "Unknown");
+    });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (createdByFilter !== "all" && r.creator?.id !== createdByFilter) return false;
+      if (dateFrom && new Date(r.created_at) < new Date(`${dateFrom}T00:00:00`)) return false;
+      if (dateTo && new Date(r.created_at) > new Date(`${dateTo}T23:59:59`)) return false;
       if (search) {
         const s = search.toLowerCase();
         const hay = [r.estimate_no, r.customer_name, r.phone, r.lead?.name].filter(Boolean).join(" ").toLowerCase();
@@ -54,7 +68,10 @@ export default function EstimatesPage() {
       }
       return true;
     });
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, createdByFilter, dateFrom, dateTo]);
+
+  const clearFilters = () => { setSearch(""); setStatusFilter("all"); setCreatedByFilter("all"); setDateFrom(""); setDateTo(""); };
+  const hasActiveFilters = search || statusFilter !== "all" || createdByFilter !== "all" || dateFrom || dateTo;
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -116,7 +133,7 @@ export default function EstimatesPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="mt-5 bg-white border border-stone-200 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-0 grid-divider-x">
+        <div className="mt-5 bg-white border border-stone-200 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-0 grid-divider-x">
           <div className="flex items-center gap-2 px-4 py-3">
             <Search className="w-4 h-4 text-stone-400" />
             <Input
@@ -130,7 +147,7 @@ export default function EstimatesPage() {
           <div className="px-4 py-3 flex items-center gap-2">
             <span className="label-uppercase">Status</span>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="rounded-none w-[160px] border-stone-300 h-9" data-testid="estimates-status-filter"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="rounded-none w-[140px] border-stone-300 h-9" data-testid="estimates-status-filter"><SelectValue /></SelectTrigger>
               <SelectContent className="rounded-none">
                 <SelectItem value="all" className="rounded-none">All</SelectItem>
                 {Object.entries(STATUS_META).map(([k, v]) => (
@@ -139,7 +156,36 @@ export default function EstimatesPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="px-4 py-3 flex items-center gap-2">
+            <span className="label-uppercase">Created By</span>
+            <Select value={createdByFilter} onValueChange={setCreatedByFilter}>
+              <SelectTrigger className="rounded-none w-[150px] border-stone-300 h-9" data-testid="estimates-createdby-filter"><SelectValue /></SelectTrigger>
+              <SelectContent className="rounded-none">
+                <SelectItem value="all" className="rounded-none">All</SelectItem>
+                {creators.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="rounded-none">{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="px-4 py-3 flex items-center gap-2">
+            <span className="label-uppercase">From</span>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-none border-stone-300 h-9 w-[145px]" data-testid="estimates-date-from" />
+          </div>
+          <div className="px-4 py-3 flex items-center gap-2">
+            <span className="label-uppercase">To</span>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-none border-stone-300 h-9 w-[145px]" data-testid="estimates-date-to" />
+          </div>
+          {hasActiveFilters && (
+            <div className="px-4 py-3 flex items-center">
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="rounded-none text-stone-500 hover:text-rose-600" data-testid="estimates-clear-filters">
+                <X className="w-3.5 h-3.5 mr-1" /> Clear
+              </Button>
+            </div>
+          )}
         </div>
+
+        {!loading && <div className="text-xs text-stone-400 mt-2">{filtered.length} of {rows.length} estimates</div>}
 
         {/* Table */}
         <div className="mt-5">

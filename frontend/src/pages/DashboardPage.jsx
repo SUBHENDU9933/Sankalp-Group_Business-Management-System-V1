@@ -244,20 +244,14 @@ export default function DashboardPage() {
         <SectionLabel title="Lead pipeline" subtitle="Stage-wise distribution" icon={<Sparkles className="w-3 h-3" />} className="mt-8" link="/leads" />
         <PipelineFunnel byStatus={data.leadsByStatus} total={data.leadsTotal} loading={loading} />
 
-        {/* Follow-up queue — full width */}
-        <div className="mt-8">
+        {/* Follow-up queue (55%) + stacked sidebar (45%): Recent Activity, Active Projects, Top Vendors */}
+        <div className="grid lg:grid-cols-[11fr_9fr] gap-6 mt-8 mb-4 items-start">
           <FollowupsPanel today={data.todayFups} overdue={data.overdue} loading={loading} />
-        </div>
-
-        {/* SNAPSHOTS — Active projects + Top vendors */}
-        <div className="grid lg:grid-cols-2 gap-6 mt-8">
-          <ActiveProjectsPanel projects={data.topProjects} loading={loading} />
-          <TopVendorsPanel vendors={data.topVendors} loading={loading} />
-        </div>
-
-        {/* Recent Activity — now last */}
-        <div className="mt-8 mb-4">
-          <ActivityFeed items={data.activities} loading={loading} />
+          <div className="space-y-6">
+            <ActivityFeed items={data.activities} loading={loading} />
+            <ActiveProjectsPanel projects={data.topProjects} loading={loading} />
+            <TopVendorsPanel vendors={data.topVendors} loading={loading} />
+          </div>
         </div>
       </PageBody>
 

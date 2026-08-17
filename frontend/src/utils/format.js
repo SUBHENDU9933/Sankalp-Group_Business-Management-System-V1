@@ -57,9 +57,12 @@ export const isToday = (dateStr) => {
 export const LEAD_STATUSES = [
   { key: "new", label: "New", color: "bg-stone-100 text-stone-900 border-stone-300", dot: "bg-stone-500" },
   { key: "contacted", label: "Contacted", color: "bg-blue-50 text-blue-900 border-blue-300", dot: "bg-blue-500" },
+  { key: "not_contacted", label: "Not Contacted", color: "bg-slate-100 text-slate-700 border-slate-300", dot: "bg-slate-400" },
   { key: "site_visit", label: "Site Visit", color: "bg-indigo-50 text-indigo-900 border-indigo-300", dot: "bg-indigo-500" },
+  { key: "floor_plan_site_info", label: "Floor Plan / Site Info", color: "bg-cyan-50 text-cyan-900 border-cyan-300", dot: "bg-cyan-500" },
+  { key: "estimate_to_be_created", label: "Estimate To Be Created", color: "bg-purple-50 text-purple-900 border-purple-300", dot: "bg-purple-500" },
   { key: "quotation_given", label: "Estimate Given", color: "bg-amber-50 text-amber-900 border-amber-300", dot: "bg-amber-500" },
-  { key: "negotiation", label: "Negotiation", color: "bg-orange-50 text-orange-900 border-orange-400", dot: "bg-orange-500" },
+  { key: "need_followup", label: "Need Followup", color: "bg-orange-50 text-orange-900 border-orange-400", dot: "bg-orange-500" },
   { key: "converted", label: "Converted", color: "bg-emerald-50 text-emerald-900 border-emerald-400", dot: "bg-emerald-500" },
   { key: "lost", label: "Lost", color: "bg-rose-50 text-rose-900 border-rose-300", dot: "bg-rose-500" },
 ];

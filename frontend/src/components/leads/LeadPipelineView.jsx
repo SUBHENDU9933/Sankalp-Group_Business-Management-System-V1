@@ -40,7 +40,7 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
 
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-0 grid-divider-x border border-stone-200 bg-stone-200 overflow-x-auto"
+      className="grid grid-cols-[repeat(10,minmax(150px,1fr))] gap-0 grid-divider-x border border-stone-200 bg-stone-200 overflow-x-auto"
       data-testid="leads-kanban"
     >
       {LEAD_STATUSES.map((s) => {
@@ -59,17 +59,17 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
             onDrop={(e) => onDrop(e, s.key)}
             data-testid={`pipeline-col-${s.key}`}
           >
-            <div className={cn("px-3 py-2 border-b-2 flex items-center justify-between gap-2", s.color)}>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={cn("w-2 h-2 rounded-full shrink-0", s.dot)} />
-                <div className="text-[10px] tracking-[0.15em] uppercase font-semibold truncate">{s.label}</div>
+            <div className={cn("px-2 py-2 border-b-2 flex flex-col gap-1", s.color)}>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
+                <div className="text-[9px] leading-tight tracking-[0.08em] uppercase font-semibold">{s.label}</div>
               </div>
-              <div className="text-[10px] font-mono shrink-0">
+              <div className="text-[9px] font-mono">
                 <span className="font-semibold">{items.length}</span>
                 {total > 0 && <span className="ml-1 text-stone-600">· {formatINR(total)}</span>}
               </div>
             </div>
-            <div className="p-2 space-y-2 flex-1">
+            <div className="p-1.5 space-y-1.5 flex-1">
               {items.map((l) => (
                 <PipelineCard
                   key={l.id}

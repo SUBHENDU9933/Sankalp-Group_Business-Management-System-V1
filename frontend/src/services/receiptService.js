@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { pushToAllAdmins } from "@/services/notificationService";
 
 export const fetchReceipts = async () => {
-  const rich = "*, customer:customers(id,name,phone,address), requested_by:profiles!receipts_delete_requested_by_fkey(id,full_name,email)";
+  const rich = "*, customer:customers(id,name,phone,address), lead:leads(id,name,phone), requested_by:profiles!receipts_delete_requested_by_fkey(id,full_name,email)";
   const withFilter = await supabase
     .from("receipts")
     .select(rich)
@@ -108,7 +108,7 @@ export const fetchReceiptsByCustomer = async (customerId) => {
 export const fetchReceiptById = async (id) => {
   const { data, error } = await supabase
     .from("receipts")
-    .select("*, customer:customers(id,name,phone,address,project_details), project:projects(id,project_name), creator:profiles!receipts_created_by_fkey(full_name,email)")
+    .select("*, customer:customers(id,name,phone,address,project_details), lead:leads(id,name,phone,location), project:projects(id,project_name), creator:profiles!receipts_created_by_fkey(full_name,email)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;

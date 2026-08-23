@@ -135,7 +135,14 @@ function PipelineCard({ lead: l, isDragging, onDragStart, onDragEnd, onOpen, onS
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="text-xs text-stone-500 mt-1 ml-5">{l.phone}</div>
+      <div className="text-xs text-stone-500 mt-1 ml-5 flex items-center gap-1.5">
+        <span>{l.phone}</span>
+        {l.receiptsTotal > 0 && (
+          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-bold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-300 rounded" title={`₹${l.receiptsTotal.toLocaleString("en-IN")} collected`}>
+            ₹ Paid
+          </span>
+        )}
+      </div>
       {(l.project_type || l.area) && (
         <div className="text-xs text-stone-700 mt-1.5 ml-5 truncate">
           {[l.project_type, l.area].filter(Boolean).join(" · ")}

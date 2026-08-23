@@ -10,6 +10,7 @@ import {
   bulkUpdateLeads, bulkAddCoAssignee,
 } from "@/services/leadService";
 import { fetchProfiles } from "@/services/profileService";
+import { fetchLeadPaymentTotals } from "@/services/leadPaymentService";
 import { useAuth } from "@/contexts/AuthContext";
 import LeadFormDialog from "@/components/leads/LeadFormDialog";
 import LeadKpiStrip from "@/components/leads/LeadKpiStrip";
@@ -60,8 +61,8 @@ export default function LeadsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [d, p] = await Promise.all([fetchLeads(), fetchProfiles().catch(() => [])]);
-      setLeads(d);
+      const [d, p, paidMap] = await Promise.all([fetchLeads(), fetchProfiles().catch(() => []), fetchLeadPaymentTotals().catch(() => ({}))]);
+      setLeads(d.map((l) => ({ ...l, receiptsTotal: paidMap[l.id] || 0 })));
       setProfiles(p);
     } catch (e) {
       toast.error(e.message);

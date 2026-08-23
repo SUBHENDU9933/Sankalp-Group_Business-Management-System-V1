@@ -136,7 +136,10 @@ export default function ReceiptPrintPage() {
           <div className="border-2 border-orange-400 rounded-md mt-2 px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-slate-900 text-[12px]">
             <div>
               <span className="font-bold">Customer Name: </span>
-              <span className="font-semibold border-b border-slate-400 inline-block min-w-[180px] pb-0.5">{receipt.customer?.name || ""}</span>
+              <span className="font-semibold border-b border-slate-400 inline-block min-w-[180px] pb-0.5">
+                {receipt.customer?.name || receipt.lead?.name || ""}
+                {!receipt.customer && receipt.lead && <span className="text-[9px] text-amber-700 font-normal ml-1">(Lead)</span>}
+              </span>
             </div>
             <div>
               <span className="font-bold">Amount Received (₹): </span>
@@ -145,7 +148,7 @@ export default function ReceiptPrintPage() {
 
             <div>
               <span className="font-bold">Address: </span>
-              <span className="border-b border-slate-400 inline-block min-w-[200px] pb-0.5">{receipt.customer?.address || ""}</span>
+              <span className="border-b border-slate-400 inline-block min-w-[200px] pb-0.5">{receipt.customer?.address || receipt.lead?.location || ""}</span>
             </div>
             <div>
               <span className="font-bold">Amount in Words: </span>

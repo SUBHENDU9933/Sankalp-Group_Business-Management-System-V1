@@ -125,6 +125,11 @@ export default function LeadTableView({
                   <div className="flex flex-wrap items-center gap-1 mt-1">
                     <TagBadge tag={l.tag} />
                     <EstimateBadge status={l.estimate_status} count={l.estimate_count} />
+                    {l.receiptsTotal > 0 && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-300 rounded" title={`₹${l.receiptsTotal.toLocaleString("en-IN")} collected`}>
+                        ₹ Paid
+                      </span>
+                    )}
                     {l.delete_request && <span className="text-[10px] tracking-widest uppercase text-rose-600 font-semibold">Delete pending</span>}
                   </div>
                 </td>

@@ -195,5 +195,10 @@ export const convertLeadToCustomer = async (lead, userId) => {
     .update({ status: "converted", is_locked: true })
     .eq("id", lead.id);
   if (lErr) throw lErr;
+  // Carry forward any receipts collected while this was still a lead
+  // (visit charge / consultancy charge etc.) — link them to the new
+  // customer record so the payment history isn't orphaned. lead_id stays
+  // set too, so the pre-conversion origin is still visible.
+  await supabase.from("receipts").update({ customer_id: customer.id }).eq("lead_id", lead.id).is("customer_id", null);
   return customer;
 };

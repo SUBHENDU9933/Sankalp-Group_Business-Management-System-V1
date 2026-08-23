@@ -22,6 +22,7 @@ import {
 } from "@/services/receiptService";
 import { uploadFile } from "@/services/attachmentService";
 import { fetchCustomers } from "@/services/customerService";
+import { fetchLeads } from "@/services/leadService";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, PAYMENT_MODES } from "@/utils/format";
 import { useForm } from "react-hook-form";
@@ -34,6 +35,7 @@ export default function ReceiptsPage() {
   const preselectCustomer = searchParams.get("customer");
   const [list, setList] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -42,9 +44,10 @@ export default function ReceiptsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [r, c] = await Promise.all([fetchReceipts(), fetchCustomers()]);
+      const [r, c, l] = await Promise.all([fetchReceipts(), fetchCustomers(), fetchLeads()]);
       setList(r);
       setCustomers(c);
+      setLeads(l.filter((x) => x.status !== "converted"));
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
   };
@@ -57,7 +60,9 @@ export default function ReceiptsPage() {
     return (
       (r.receipt_no || "").toLowerCase().includes(s) ||
       (r.customer?.name || "").toLowerCase().includes(s) ||
-      (r.customer?.phone || "").includes(s)
+      (r.customer?.phone || "").includes(s) ||
+      (r.lead?.name || "").toLowerCase().includes(s) ||
+      (r.lead?.phone || "").includes(s)
     );
   }), [list, search]);
 
@@ -142,7 +147,13 @@ export default function ReceiptsPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3">{r.customer?.name || "—"}<div className="text-xs text-stone-500">{r.customer?.phone}</div></td>
+                      <td className="px-4 py-3">
+                        {r.customer?.name || r.lead?.name || "—"}
+                        {!r.customer && r.lead && (
+                          <span className="ml-1.5 text-[9px] tracking-widest uppercase font-bold text-amber-700 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded">Lead</span>
+                        )}
+                        <div className="text-xs text-stone-500">{r.customer?.phone || r.lead?.phone}</div>
+                      </td>
                       <td className="px-4 py-3 capitalize text-stone-700">{r.payment_mode}</td>
                       <td className="px-4 py-3 text-stone-700 max-w-[260px] truncate">{r.note || "—"}</td>
                       <td className="px-4 py-3 text-stone-600">{formatDate(r.created_at)}</td>
@@ -195,6 +206,7 @@ export default function ReceiptsPage() {
         open={open}
         onOpenChange={(v) => { setOpen(v); if (!v) setEditReceipt(null); }}
         customers={customers}
+        leads={leads}
         defaultCustomerId={preselectCustomer || ""}
         receipt={editReceipt}
         onSaved={load}
@@ -203,7 +215,7 @@ export default function ReceiptsPage() {
   );
 }
 
-function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, receipt, onSaved }) {
+function ReceiptFormDialog({ open, onOpenChange, customers, leads, defaultCustomerId, receipt, onSaved }) {
   const { user } = useAuth();
   const isEdit = Boolean(receipt?.id);
   const [submitting, setSubmitting] = useState(false);
@@ -211,6 +223,7 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
   const [attachments, setAttachments] = useState([]);   // {url, name, type, size}
   const [uploadingAttach, setUploadingAttach] = useState(false);
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
+  const forType = watch("for_type") || "customer";
 
   useEffect(() => {
     if (!open) return;
@@ -223,7 +236,9 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
     reset({
+      for_type: receipt?.lead_id && !receipt?.customer_id ? "lead" : "customer",
       customer_id: receipt?.customer_id || defaultCustomerId || "",
+      lead_id: receipt?.lead_id || "",
       project_id: receipt?.project_id || "",
       amount: receipt?.amount ?? "",
       payment_mode: receipt?.payment_mode || "cash",
@@ -263,11 +278,16 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
   }, [cid]);
 
   const onSubmit = async (values) => {
-    if (!values.customer_id) { toast.error("Select a customer"); return; }
+    if (values.for_type === "lead") {
+      if (!values.lead_id) { toast.error("Select a lead"); return; }
+    } else if (!values.customer_id) {
+      toast.error("Select a customer"); return;
+    }
     setSubmitting(true);
     const payload = {
-      customer_id: values.customer_id,
-      project_id: values.project_id || null,
+      customer_id: values.for_type === "lead" ? null : values.customer_id,
+      lead_id: values.for_type === "lead" ? values.lead_id : null,
+      project_id: values.for_type === "lead" ? null : (values.project_id || null),
       amount: Number(values.amount),
       payment_mode: values.payment_mode,
       payment_purpose: values.payment_purpose || null,
@@ -322,24 +342,65 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div>
-            <Label className="label-uppercase">Customer *</Label>
-            <Select value={watch("customer_id") || ""} onValueChange={(v) => setValue("customer_id", v)}>
-              <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent className="rounded-lg">
-                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} <span className="text-slate-500 ml-1">({c.phone})</span></SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="label-uppercase">Project (optional)</Label>
-            <Select value={watch("project_id") || ""} onValueChange={(v) => setValue("project_id", v)} disabled={!cid || projects.length === 0}>
-              <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-project"><SelectValue placeholder={projects.length === 0 ? "No projects for this customer" : "Link to project"} /></SelectTrigger>
-              <SelectContent className="rounded-lg">
-                {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isEdit && (
+            <div>
+              <Label className="label-uppercase">For</Label>
+              <div className="flex gap-2 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => { setValue("for_type", "customer"); setValue("lead_id", ""); }}
+                  className={cn("flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    forType === "customer" ? "border-blue-700 bg-blue-50 text-blue-800" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
+                  data-testid="receipt-for-customer"
+                >
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setValue("for_type", "lead"); setValue("customer_id", ""); }}
+                  className={cn("flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    forType === "lead" ? "border-amber-600 bg-amber-50 text-amber-800" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
+                  data-testid="receipt-for-lead"
+                >
+                  Lead <span className="text-[10px] font-normal">(not yet a customer)</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {forType === "lead" ? (
+            <div>
+              <Label className="label-uppercase">Lead *</Label>
+              <Select value={watch("lead_id") || ""} onValueChange={(v) => setValue("lead_id", v)}>
+                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-lead"><SelectValue placeholder="Select lead" /></SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  {leads.map((l) => <SelectItem key={l.id} value={l.id}>{l.name} <span className="text-slate-500 ml-1">({l.phone})</span></SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="text-[11px] text-amber-700 mt-1">This receipt will automatically link to their customer record once they convert.</div>
+            </div>
+          ) : (
+            <div>
+              <Label className="label-uppercase">Customer *</Label>
+              <Select value={watch("customer_id") || ""} onValueChange={(v) => setValue("customer_id", v)} disabled={isEdit && !receipt?.customer_id}>
+                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} <span className="text-slate-500 ml-1">({c.phone})</span></SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {forType === "customer" && (
+            <div>
+              <Label className="label-uppercase">Project (optional)</Label>
+              <Select value={watch("project_id") || ""} onValueChange={(v) => setValue("project_id", v)} disabled={!cid || projects.length === 0}>
+                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-project"><SelectValue placeholder={projects.length === 0 ? "No projects for this customer" : "Link to project"} /></SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="label-uppercase">Amount (₹) *</Label>
@@ -370,6 +431,8 @@ function ReceiptFormDialog({ open, onOpenChange, customers, defaultCustomerId, r
                   <SelectItem value="advance">Advance</SelectItem>
                   <SelectItem value="token">Token</SelectItem>
                   <SelectItem value="part">Part Payment</SelectItem>
+                  <SelectItem value="visit_charge">Visit Charge</SelectItem>
+                  <SelectItem value="consultancy_charge">Consultancy Charge</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>

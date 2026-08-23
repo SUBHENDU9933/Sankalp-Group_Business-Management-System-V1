@@ -170,6 +170,8 @@ export default function ReceiptPrintPage() {
               <Box label="ADVANCE" checked={receipt.payment_purpose === "advance"} />
               <Box label="TOKEN" checked={receipt.payment_purpose === "token"} />
               <Box label="PART" checked={receipt.payment_purpose === "part"} />
+              <Box label="VISIT CHARGE" checked={receipt.payment_purpose === "visit_charge"} />
+              <Box label="CONSULTANCY CHARGE" checked={receipt.payment_purpose === "consultancy_charge"} />
               <Box label="OTHERS" checked={receipt.payment_purpose === "others"} />
             </div>
 

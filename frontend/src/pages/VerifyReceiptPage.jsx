@@ -45,11 +45,16 @@ export default function VerifyReceiptPage() {
             <div className="mt-5 space-y-3 text-sm">
               <Row label="Receipt No." value={receipt.receipt_no} />
               <Row label="SI No." value={receipt.si_no || "—"} />
-              <Row label="Customer" value={receipt.customer_name || "—"} />
+              <Row label="Customer" value={
+                <>
+                  {receipt.customer_name || "—"}
+                  {receipt.is_lead && <span className="ml-1.5 text-[10px] tracking-widest uppercase font-bold text-amber-700 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded">Lead</span>}
+                </>
+              } />
               <Row label="Project" value={receipt.project_name || receipt.customer_address || "—"} />
               <Row label="Amount" value={<span className="font-bold text-orange-600">{formatINR(receipt.amount)}</span>} />
               <Row label="Mode" value={<span className="capitalize">{receipt.payment_mode}</span>} />
-              <Row label="Purpose" value={<span className="capitalize">{receipt.payment_purpose || "—"}</span>} />
+              <Row label="Purpose" value={<span>{receipt.payment_purpose ? receipt.payment_purpose.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—"}</span>} />
               <Row label="Date" value={formatDate(receipt.created_at)} />
             </div>
 

@@ -23,6 +23,7 @@ import {
 import { uploadFile } from "@/services/attachmentService";
 import { fetchCustomers } from "@/services/customerService";
 import { fetchLeads } from "@/services/leadService";
+import SearchableSelect from "@/components/shared/SearchableSelect";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, PAYMENT_MODES } from "@/utils/format";
 import { useForm } from "react-hook-form";
@@ -371,23 +372,31 @@ function ReceiptFormDialog({ open, onOpenChange, customers, leads, defaultCustom
           {forType === "lead" ? (
             <div>
               <Label className="label-uppercase">Lead *</Label>
-              <Select value={watch("lead_id") || ""} onValueChange={(v) => setValue("lead_id", v)}>
-                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-lead"><SelectValue placeholder="Select lead" /></SelectTrigger>
-                <SelectContent className="rounded-lg">
-                  {leads.map((l) => <SelectItem key={l.id} value={l.id}>{l.name} <span className="text-slate-500 ml-1">({l.phone})</span></SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="mt-1.5">
+                <SearchableSelect
+                  options={leads.map((l) => ({ value: l.id, label: l.name, sublabel: l.phone }))}
+                  value={watch("lead_id") || ""}
+                  onChange={(v) => setValue("lead_id", v)}
+                  placeholder="Select lead"
+                  searchPlaceholder="Search leads by name or phone…"
+                  testId="receipt-select-lead"
+                />
+              </div>
               <div className="text-[11px] text-amber-700 mt-1">This receipt will automatically link to their customer record once they convert.</div>
             </div>
           ) : (
             <div>
               <Label className="label-uppercase">Customer *</Label>
-              <Select value={watch("customer_id") || ""} onValueChange={(v) => setValue("customer_id", v)} disabled={isEdit && !receipt?.customer_id}>
-                <SelectTrigger className="rounded-lg mt-1.5 border-slate-200" data-testid="receipt-select-customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
-                <SelectContent className="rounded-lg">
-                  {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} <span className="text-slate-500 ml-1">({c.phone})</span></SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="mt-1.5">
+                <SearchableSelect
+                  options={customers.map((c) => ({ value: c.id, label: c.name, sublabel: c.phone }))}
+                  value={watch("customer_id") || ""}
+                  onChange={(v) => setValue("customer_id", v)}
+                  placeholder="Select customer"
+                  searchPlaceholder="Search customers by name or phone…"
+                  testId="receipt-select-customer"
+                />
+              </div>
             </div>
           )}
           {forType === "customer" && (

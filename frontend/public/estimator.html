@@ -321,7 +321,13 @@
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
                 <div class="section-box">
-                    <div class="section-title">Manage Rooms (<span id="cntRooms">0</span>)</div>
+                    <div class="section-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span>Manage Rooms (<span id="cntRooms">0</span>)</span>
+                        <span style="flex:1;"></span>
+                        <button type="button" onclick="sortRoomsByName()" style="background:#0c1c3e; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">
+                            <i class="fas fa-sort-alpha-down"></i> Sort A–Z
+                        </button>
+                    </div>
                     <div id="roomSettingsList" class="rooms-grid"></div>
                     <button class="mod-btn-add" onclick="addRoomInput()">+ Add Room</button>
                 </div>
@@ -347,6 +353,9 @@
                 <div class="section-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <span>Manage Items &amp; Rates (<span id="cntItems">0</span>)</span>
                     <span style="flex:1;"></span>
+                    <button type="button" onclick="sortItemsByName()" style="background:#0c1c3e; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">
+                        <i class="fas fa-sort-alpha-down"></i> Sort A–Z
+                    </button>
                     <button type="button" onclick="downloadItemsExcelTemplate()" style="background:#16a34a; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">
                         <i class="fas fa-file-excel"></i> Download Excel
                     </button>
@@ -1657,6 +1666,26 @@
             document.getElementById('settingsModal').classList.remove('hidden');
         }
         function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function sortRoomsByName() {
+            const container = document.getElementById('roomSettingsList');
+            const rows = Array.from(container.children);
+            rows.sort((a, b) => {
+                const an = (a.querySelector('input')?.value || '').trim().toLowerCase();
+                const bn = (b.querySelector('input')?.value || '').trim().toLowerCase();
+                return an.localeCompare(bn);
+            });
+            rows.forEach(r => container.appendChild(r));
+        }
+        function sortItemsByName() {
+            const container = document.getElementById('itemSettingsList');
+            const rows = Array.from(container.children);
+            rows.sort((a, b) => {
+                const an = (a.querySelector('input')?.value || '').trim().toLowerCase();
+                const bn = (b.querySelector('input')?.value || '').trim().toLowerCase();
+                return an.localeCompare(bn);
+            });
+            rows.forEach(r => container.appendChild(r));
+        }
         function addRoomInput(v="") { document.getElementById('roomSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-room-inp" value="${v}" placeholder="Room Name"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
         function addNoteInput(v="") { document.getElementById('noteSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-note-inp" value='${v}' placeholder="Standard Term"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }
         function addProjNoteInput(v="") { document.getElementById('projNoteSettingsList').insertAdjacentHTML('beforeend', `<div class="room-item"><input type="text" class="mod-inp mod-pnote-inp" value='${v}' placeholder="Project Note"><button class="mod-btn-del" onclick="this.parentElement.remove()" style="width:30px;"><i class="fas fa-trash"></i></button></div>`); }

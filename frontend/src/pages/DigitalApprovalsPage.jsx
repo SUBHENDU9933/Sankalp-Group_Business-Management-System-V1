@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, FileCheck2, Search, X, Copy, Send, ExternalLink, MapPin, Image as ImageIcon, User, Calendar, Trash2, MessageCircle, Mail, ClipboardCheck, Printer, Pencil, Lock } from "lucide-react";
+import LocationMapTile from "@/components/shared/LocationMapTile";
 import { fetchApprovals, createApproval, updateApproval, softDeleteApproval, APPROVAL_STATUSES } from "@/services/digitalApprovalService";
 import { fetchCustomers } from "@/services/customerService";
 import { fetchProjects } from "@/services/projectService";
@@ -451,14 +452,9 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete, onEdit })
                         target="_blank"
                         rel="noreferrer"
                         data-testid="da-detail-map"
-                        className="block border-2 border-stone-300 shadow overflow-hidden bg-stone-100"
+                        className="block"
                       >
-                        <img
-                          src={`https://staticmap.openstreetmap.de/staticmap.php?center=${approval.response_lat},${approval.response_lng}&zoom=16&size=500x400&markers=${approval.response_lat},${approval.response_lng},red-pushpin`}
-                          alt="Location map"
-                          className="w-full block"
-                          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.innerHTML += `<div style='padding:1rem;text-align:center;font-size:11px;color:#666'>Static map unavailable · <span style='color:#1d4ed8;text-decoration:underline'>Open in Google Maps</span></div>`; }}
-                        />
+                        <LocationMapTile lat={approval.response_lat} lng={approval.response_lng} size={280} />
                       </a>
                     )}
                   </div>

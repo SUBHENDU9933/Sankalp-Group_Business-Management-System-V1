@@ -95,6 +95,10 @@
         
         /* ALIGNMENT & COLUMNS */
         .col-sl { text-align: center; font-weight: bold; color: var(--accent); }
+        .drag-handle { cursor: grab; color: #94a3b8; margin-right: 4px; font-size: 12px; }
+        .drag-handle:hover { color: var(--primary); }
+        tr.dragging-row { opacity: 0.4; background: #eff6ff; }
+        #tableBody tr { transition: background-color 0.15s; }
         .col-area { background-color: var(--accent-light); font-weight: 700; text-align: center; color: var(--accent); } 
         .col-money { text-align: center !important; } 
         .col-total { font-weight: 700; color: var(--primary); text-align: center !important; background: rgba(30, 58, 138, 0.03); } 
@@ -265,6 +269,7 @@
             body.mobile-view tbody tr { background: white; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; }
             
             body.mobile-view td.col-sl { position: absolute; top: 0; left: 0; background: var(--primary); color: white; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; border-radius: 8px 0 8px 0; font-size: 12px; padding: 0; border: none; }
+            body.mobile-view td.col-sl .drag-handle { display: none; }
             body.mobile-view td.del-btn { position: absolute; top: 0; right: 0; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 20px; border: none; }
             body.mobile-view td { border: none; padding: 5px 0; position: relative; margin-bottom: 5px; }
             body.mobile-view td select, body.mobile-view td input { padding: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 14px; }
@@ -1457,6 +1462,21 @@
         }
 
         // --- CORE FUNCTIONS ---
+        // Renumbers the visible SL column to match each row's actual position
+        // in the table (1,2,3,4…) — call this after ANY operation that can
+        // change row order or count: add, delete, sort by room, drag-drop.
+        // The SL cell must never be confused with a row's internal id
+        // (row-${rowCount}) — that id is just a unique DOM/element key and is
+        // allowed to have gaps; the visible SL number must not.
+        function renumberSl() {
+            const tbody = document.getElementById('tableBody');
+            if (!tbody) return;
+            Array.from(tbody.querySelectorAll('tr')).forEach((r, i) => {
+                const slCell = r.querySelector('.col-sl .sl-num') || r.querySelector('.col-sl');
+                if (slCell) slCell.textContent = i + 1;
+            });
+        }
+
         // ===== Sort items table by Room (preserves preset order from appData.rooms) =====
         function sortRowsByRoom() {
             const tbody = document.getElementById('tableBody');
@@ -1483,10 +1503,7 @@
             rows.forEach((r) => tbody.appendChild(r));
 
             // Renumber the SL column (first cell of each row)
-            rows.forEach((r, i) => {
-                const slCell = r.querySelector('.col-sl');
-                if (slCell) slCell.textContent = i + 1;
-            });
+            renumberSl();
 
             // Recompute totals (no rate change, but keep grand totals fresh after reorder)
             if (typeof calcTotals === 'function') calcTotals();
@@ -1517,7 +1534,7 @@
             `;
 
             tr.innerHTML = `
-                <td class="col-sl">${rowCount}</td>
+                <td class="col-sl"><i class="fas fa-grip-vertical drag-handle" title="Drag to reorder"></i><span class="sl-num">${rowCount}</span></td>
                 <td><select class="room-select">${rOpts}</select></td>
                 <td>
                     <select class="item-select" onchange="fillItemData(this, ${rowCount})" style="font-weight:600; margin-bottom:4px; color:var(--primary);">${iOpts}</select>
@@ -1534,11 +1551,45 @@
                 <td class="del-btn" onclick="removeRow(${rowCount})">×</td>
             `;
             document.getElementById('tableBody').appendChild(tr); 
+            tr.draggable = true;
+            tr.addEventListener('dragstart', handleRowDragStart);
+            tr.addEventListener('dragover', handleRowDragOver);
+            tr.addEventListener('dragend', handleRowDragEnd);
             toggleColumns();
+            renumberSl();
             // Default logic runs to setup dims
         }
 
-        function removeRow(id) { document.getElementById(`row-${id}`).remove(); calcTotals(); }
+        function removeRow(id) { document.getElementById(`row-${id}`).remove(); calcTotals(); renumberSl(); }
+
+        // --- Drag & drop reordering of item rows (manual override, on top of Sort by Room) ---
+        let dragSrcRow = null;
+        function handleRowDragStart(e) {
+            dragSrcRow = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', e.currentTarget.id); } catch (err) {}
+            e.currentTarget.classList.add('dragging-row');
+        }
+        function handleRowDragOver(e) {
+            e.preventDefault();
+            if (!dragSrcRow) return;
+            const tbody = document.getElementById('tableBody');
+            const rows = Array.from(tbody.querySelectorAll('tr:not(.dragging-row)'));
+            let afterRow = null;
+            let closestOffset = Number.NEGATIVE_INFINITY;
+            rows.forEach((row) => {
+                const box = row.getBoundingClientRect();
+                const offset = e.clientY - box.top - box.height / 2;
+                if (offset < 0 && offset > closestOffset) { closestOffset = offset; afterRow = row; }
+            });
+            if (afterRow == null) tbody.appendChild(dragSrcRow);
+            else if (afterRow !== dragSrcRow) tbody.insertBefore(dragSrcRow, afterRow);
+        }
+        function handleRowDragEnd(e) {
+            e.currentTarget.classList.remove('dragging-row');
+            dragSrcRow = null;
+            renumberSl();
+        }
 
         function fillItemData(sel, id) {
             const item = appData.items.find(i => i.name === sel.value);

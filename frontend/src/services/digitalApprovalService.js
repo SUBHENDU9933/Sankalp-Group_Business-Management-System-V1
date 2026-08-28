@@ -27,11 +27,31 @@ export const createApproval = async (payload) => {
   return data;
 };
 
-export const softDeleteApproval = async (id, userId) => {
-  const { error } = await supabase.from("digital_approvals")
-    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
-    .eq("id", id);
+// Only an unsigned (still "pending") approval may be edited — once the
+// customer has responded (approved/rejected), the record is evidence and
+// must stay exactly as it was when they signed it.
+export const updateApproval = async (id, payload) => {
+  const { data, error } = await supabase
+    .from("digital_approvals")
+    .update(payload)
+    .eq("id", id)
+    .eq("status", "pending")
+    .select()
+    .single();
   if (error) throw error;
+  if (!data) throw new Error("This approval has already been signed and can no longer be edited.");
+  return data;
+};
+
+export const softDeleteApproval = async (id, userId) => {
+  const { data, error } = await supabase.from("digital_approvals")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("This approval has already been signed and can no longer be deleted.");
 };
 
 // -------- Public (magic-link) API --------

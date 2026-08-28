@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, FileCheck2, Search, X, Copy, Send, ExternalLink, MapPin, Image as ImageIcon, User, Calendar, Trash2, MessageCircle, Mail, ClipboardCheck, Printer } from "lucide-react";
-import { fetchApprovals, createApproval, softDeleteApproval, APPROVAL_STATUSES } from "@/services/digitalApprovalService";
+import { Plus, FileCheck2, Search, X, Copy, Send, ExternalLink, MapPin, Image as ImageIcon, User, Calendar, Trash2, MessageCircle, Mail, ClipboardCheck, Printer, Pencil, Lock } from "lucide-react";
+import { fetchApprovals, createApproval, updateApproval, softDeleteApproval, APPROVAL_STATUSES } from "@/services/digitalApprovalService";
 import { fetchCustomers } from "@/services/customerService";
 import { fetchProjects } from "@/services/projectService";
 import { uploadFile } from "@/services/attachmentService";
@@ -28,6 +28,7 @@ export default function DigitalApprovalsPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
+  const [editingApproval, setEditingApproval] = useState(null); // row being edited, or null for "new"
   const [activeView, setActiveView] = useState(null);   // row for detail sheet
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -64,7 +65,7 @@ export default function DigitalApprovalsPage() {
       <PageHeader
         title="Digital Approvals"
         subtitle="Send a magic link to your customer for approval — capture geo, IP, selfie & signature."
-        actions={<Button onClick={() => setOpenForm(true)} className="rounded-none bg-stone-900 hover:bg-stone-800 h-9" data-testid="new-approval-btn"><Plus className="w-4 h-4 mr-1" /> New Approval</Button>}
+        actions={<Button onClick={() => { setEditingApproval(null); setOpenForm(true); }} className="rounded-none bg-stone-900 hover:bg-stone-800 h-9" data-testid="new-approval-btn"><Plus className="w-4 h-4 mr-1" /> New Approval</Button>}
       />
       <PageBody>
         {/* Filter bar */}
@@ -142,12 +143,15 @@ export default function DigitalApprovalsPage() {
 
       {openForm && (
         <NewApprovalDialog
+          key={editingApproval?.id || "new"}
           open={openForm}
-          onOpenChange={setOpenForm}
+          onOpenChange={(o) => { setOpenForm(o); if (!o) setEditingApproval(null); }}
           customers={customers}
           projects={projects}
           userId={user?.id}
+          editApproval={editingApproval}
           onCreated={(r) => { load(); setActiveView(r); }}
+          onUpdated={(r) => { load(); setActiveView(r); }}
         />
       )}
       {activeView && (
@@ -156,6 +160,7 @@ export default function DigitalApprovalsPage() {
           open={!!activeView}
           onOpenChange={(o) => !o && setActiveView(null)}
           onDelete={handleDelete}
+          onEdit={(r) => { setEditingApproval(r); setOpenForm(true); setActiveView(null); }}
         />
       )}
     </div>
@@ -165,13 +170,14 @@ export default function DigitalApprovalsPage() {
 // ============================================================================
 // New Approval Dialog
 // ============================================================================
-function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, onCreated }) {
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [photos, setPhotos] = useState([]);   // {url, name}
-  const [files, setFiles] = useState([]);     // {url, name}
+function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, editApproval, onCreated, onUpdated }) {
+  const isEdit = !!editApproval;
+  const [subject, setSubject] = useState(editApproval?.subject || "");
+  const [description, setDescription] = useState(editApproval?.description || "");
+  const [customerId, setCustomerId] = useState(editApproval?.customer_id || "");
+  const [projectId, setProjectId] = useState(editApproval?.project_id || "");
+  const [photos, setPhotos] = useState(editApproval?.photo_urls || []);   // {url, name}
+  const [files, setFiles] = useState(editApproval?.file_urls || []);     // {url, name}
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -196,20 +202,26 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, on
     setSaving(true);
     const cust = customers.find((c) => c.id === customerId);
     const proj = projects.find((p) => p.id === projectId);
+    const payload = {
+      subject: subject.trim(),
+      description: description.trim() || null,
+      customer_id: customerId || null,
+      customer_name: cust?.name || null,
+      project_id: projectId || null,
+      project_name: proj?.project_name || null,
+      photo_urls: photos.map((p) => ({ url: p.url, name: p.name })),
+      file_urls: files.map((f) => ({ url: f.url, name: f.name, type: f.type })),
+    };
     try {
-      const row = await createApproval({
-        subject: subject.trim(),
-        description: description.trim() || null,
-        customer_id: customerId || null,
-        customer_name: cust?.name || null,
-        project_id: projectId || null,
-        project_name: proj?.project_name || null,
-        photo_urls: photos.map((p) => ({ url: p.url, name: p.name })),
-        file_urls: files.map((f) => ({ url: f.url, name: f.name, type: f.type })),
-        created_by: userId,
-      });
-      toast.success("Approval created — share the link with your customer");
-      onCreated?.(row);
+      if (isEdit) {
+        const row = await updateApproval(editApproval.id, payload);
+        toast.success("Approval updated");
+        onUpdated?.(row);
+      } else {
+        const row = await createApproval({ ...payload, created_by: userId });
+        toast.success("Approval created — share the link with your customer");
+        onCreated?.(row);
+      }
       onOpenChange(false);
     } catch (e) { toast.error(e.message); }
     finally { setSaving(false); }
@@ -219,7 +231,7 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl rounded-none border-stone-300">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">New Digital Approval</DialogTitle>
+          <DialogTitle className="font-display text-2xl">{isEdit ? "Edit Digital Approval" : "New Digital Approval"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -295,7 +307,7 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, on
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-none border-stone-300">Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving || uploading} className="rounded-none bg-stone-900 hover:bg-stone-800" data-testid="da-submit">
-            {saving ? "Creating…" : "Create & Get Link"}
+            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save Changes" : "Create & Get Link")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -306,7 +318,7 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, on
 // ============================================================================
 // Approval Detail Sheet
 // ============================================================================
-function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
+function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete, onEdit }) {
   const link = `${window.location.origin}/approve/${approval.token}`;
   const style = STATUS_STYLES[approval.status] || STATUS_STYLES.pending;
 
@@ -461,13 +473,24 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete }) {
             </div>
           )}
 
-          <div className="pt-4 border-t border-stone-200 flex items-center gap-2">
+          <div className="pt-4 border-t border-stone-200 flex items-center gap-2 flex-wrap">
             <Button variant="outline" onClick={() => printApprovalRecord(approval)} className="rounded-none border-stone-300 hover:bg-stone-100 h-8 text-xs" data-testid="da-print">
               <Printer className="w-3.5 h-3.5 mr-1" /> Print / Save PDF
             </Button>
-            <Button variant="outline" onClick={() => onDelete(approval)} className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs" data-testid="da-delete">
-              <Trash2 className="w-3.5 h-3.5 mr-1" /> Move to Trash
-            </Button>
+            {approval.status === "pending" ? (
+              <>
+                <Button variant="outline" onClick={() => onEdit(approval)} className="rounded-none border-stone-300 hover:bg-stone-100 h-8 text-xs" data-testid="da-edit">
+                  <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                </Button>
+                <Button variant="outline" onClick={() => onDelete(approval)} className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs" data-testid="da-delete">
+                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Move to Trash
+                </Button>
+              </>
+            ) : (
+              <span className="text-[11px] text-stone-500 italic flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Signed — this record is locked and can no longer be edited or deleted.
+              </span>
+            )}
           </div>
         </div>
       </SheetContent>

@@ -99,7 +99,7 @@ export const uploadVendorDoc = async (vendorId, kind, file) => {
 export const fetchVendorPayments = async (vendorId) => {
   let q = supabase
     .from("vendor_payments")
-    .select("*, vendor:vendors(id,name,type,phone), project:projects(id,project_name)")
+    .select("*, vendor:vendors(id,name,type,phone), project:projects(id,project_name), bill:vendor_bills(id,title,amount)")
     .order("payment_date", { ascending: false });
   if (vendorId) q = q.eq("vendor_id", vendorId);
   // Try with deleted_at filter first
@@ -122,6 +122,40 @@ export const createVendorPayment = async (payload, userId) => {
 
 export const deleteVendorPayment = async (id, userId) => {
   const { error } = await supabase.from("vendor_payments")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", id);
+  if (error) throw error;
+};
+
+// ---------- VENDOR WORK / BILLS ----------
+// What work was actually done and what it's worth — separate from
+// vendor_payments (money paid out). One bill can be a single final amount
+// (electrician-style) or you can add many small ones over time
+// (carpenter/painter-style weekly labor) — same table either way.
+export const fetchVendorBills = async (vendorId) => {
+  let q = supabase
+    .from("vendor_bills")
+    .select("*, vendor:vendors(id,name,type), project:projects(id,project_name)")
+    .is("deleted_at", null)
+    .order("bill_date", { ascending: false });
+  if (vendorId) q = q.eq("vendor_id", vendorId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+};
+
+export const createVendorBill = async (payload, userId) => {
+  const { data, error } = await supabase
+    .from("vendor_bills")
+    .insert([{ ...payload, created_by: userId }])
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteVendorBill = async (id, userId) => {
+  const { error } = await supabase.from("vendor_bills")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq("id", id);
   if (error) throw error;

@@ -18,6 +18,8 @@ export const TRASH_ENTITIES = [
     select: "*, creator:profiles!expenses_created_by_fkey(id,full_name,email), project:projects(id,project_name)", },
   { key: "vendor_payments", label: "Vendor Payments",  table: "vendor_payments",  labelField: "note",
     select: "*, vendor:vendors(id,name), project:projects(id,project_name), creator:profiles!vendor_payments_created_by_fkey(id,full_name,email)", },
+  { key: "vendor_bills", label: "Vendor Bills", table: "vendor_bills", labelField: "title",
+    select: "*, vendor:vendors(id,name), project:projects(id,project_name), creator:profiles!vendor_bills_created_by_fkey(id,full_name,email)", },
   { key: "digital_approvals", label: "Digital Approvals", table: "digital_approvals", labelField: "subject",
     select: "*, creator:profiles!digital_approvals_created_by_fkey(id,full_name,email)", },
   { key: "agreements", label: "Agreements", table: "agreements", labelField: "title",

@@ -10,16 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, Wallet, MoreVertical,
-  Upload, FileImage, IdCard, ImageOff, Hammer, MessageCircle, IndianRupee, Copy,
+  Upload, FileImage, IdCard, ImageOff, Hammer, MessageCircle, IndianRupee, Copy, FileText, Plus,
 } from "lucide-react";
 import {
   fetchVendorById, fetchVendorPayments, deleteVendor, deleteVendorPayment, uploadVendorDoc,
+  fetchVendorBills, deleteVendorBill,
 } from "@/services/vendorService";
 import { fetchProjects } from "@/services/projectService";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatINR, formatDate, formatDateTime } from "@/utils/format";
 import VendorFormDialog from "@/components/vendors/VendorFormDialog";
 import VendorPaymentDialog from "@/components/vendors/VendorPaymentDialog";
+import VendorBillDialog from "@/components/vendors/VendorBillDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -29,40 +31,53 @@ export default function VendorDetailPage() {
   const { isAdmin, user } = useAuth();
   const [vendor, setVendor] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [bills, setBills] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
   const [defaultProjectId, setDefaultProjectId] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [v, p, pr] = await Promise.all([
+      const [v, p, b, pr] = await Promise.all([
         fetchVendorById(id),
         fetchVendorPayments(id),
+        fetchVendorBills(id).catch(() => []),
         fetchProjects().catch(() => []),
       ]);
-      setVendor(v); setPayments(p); setProjects(pr);
+      setVendor(v); setPayments(p); setBills(b); setProjects(pr);
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   const stats = useMemo(() => {
-    const total = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalBilled = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
     const byProject = {};
+    const ensure = (key, name) => {
+      if (!byProject[key]) byProject[key] = { id: key === "_none" ? null : key, name, count: 0, paid: 0, billed: 0, last: null };
+      return byProject[key];
+    };
     payments.forEach((p) => {
       const key = p.project?.id || "_none";
-      const name = p.project?.project_name || "(Unassigned)";
-      if (!byProject[key]) byProject[key] = { id: key === "_none" ? null : key, name, count: 0, total: 0, last: null };
-      byProject[key].count += 1;
-      byProject[key].total += Number(p.amount || 0);
+      const row = ensure(key, p.project?.project_name || "(Unassigned)");
+      row.count += 1;
+      row.paid += Number(p.amount || 0);
       const d = p.payment_date || p.created_at;
-      if (!byProject[key].last || new Date(d) > new Date(byProject[key].last)) byProject[key].last = d;
+      if (!row.last || new Date(d) > new Date(row.last)) row.last = d;
     });
-    return { total, byProject: Object.values(byProject).sort((a, b) => b.total - a.total) };
-  }, [payments]);
+    bills.forEach((b) => {
+      const key = b.project?.id || "_none";
+      const row = ensure(key, b.project?.project_name || "(Unassigned)");
+      row.billed += Number(b.amount || 0);
+    });
+    const list = Object.values(byProject).map((r) => ({ ...r, owed: r.billed - r.paid }));
+    return { totalPaid, totalBilled, owed: totalBilled - totalPaid, byProject: list.sort((a, b) => b.billed - a.billed) };
+  }, [payments, bills]);
 
   if (loading) return <div className="p-12 text-center text-sm text-stone-500">Loading vendor…</div>;
   if (!vendor) return <div className="p-12 text-center text-sm text-stone-500">Vendor not found.</div>;
@@ -79,7 +94,13 @@ export default function VendorDetailPage() {
     try { await deleteVendorPayment(p.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
+  const handleDeleteBill = async (b) => {
+    if (!window.confirm(`Delete bill "${b.title}" (${formatINR(b.amount)})? Any payments already linked to it will stay recorded but lose that link.`)) return;
+    try { await deleteVendorBill(b.id, user?.id); toast.success("Moved to Trash"); load(); }
+    catch (e) { toast.error(e.message); }
+  };
   const openPayWith = (projectId) => { setDefaultProjectId(projectId || null); setPayOpen(true); };
+  const openBillWith = (projectId) => { setDefaultProjectId(projectId || null); setBillOpen(true); };
   const copy = (text) => { if (!text) return; navigator.clipboard.writeText(text); toast.success("Copied"); };
 
   return (
@@ -91,6 +112,7 @@ export default function VendorDetailPage() {
           <>
             <Link to="/vendors"><Button variant="outline" className="rounded-none border-stone-300"><ArrowLeft className="w-4 h-4 mr-1" />All Vendors</Button></Link>
             <Button onClick={() => setEditOpen(true)} variant="outline" className="rounded-none border-stone-300" data-testid="vendor-edit-button"><Pencil className="w-4 h-4 mr-1" />Edit</Button>
+            <Button onClick={() => openBillWith(null)} variant="outline" className="rounded-none border-stone-300" data-testid="vendor-add-bill-button"><FileText className="w-4 h-4 mr-1" />Add Bill</Button>
             <Button onClick={() => openPayWith(null)} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="vendor-pay-button"><Wallet className="w-4 h-4 mr-1" />Pay</Button>
             {isAdmin && (
               <DropdownMenu>
@@ -111,10 +133,10 @@ export default function VendorDetailPage() {
       <PageBody>
         {/* Top KPI strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 grid-divider-x border border-stone-200 bg-stone-200">
-          <KpiCard label="Total Paid" value={formatINR(stats.total)} accent="text-stone-900" />
-          <KpiCard label="Payments" value={payments.length} accent="text-stone-900" />
+          <KpiCard label="Total Billed" value={formatINR(stats.totalBilled)} accent="text-stone-900" />
+          <KpiCard label="Total Paid" value={formatINR(stats.totalPaid)} accent="text-emerald-700" />
+          <KpiCard label="Balance Owed" value={formatINR(stats.owed)} accent={stats.owed > 0 ? "text-rose-700" : "text-stone-900"} />
           <KpiCard label="Projects" value={stats.byProject.length} accent="text-blue-700" />
-          <KpiCard label="Last Payment" value={payments[0] ? formatDate(payments[0].payment_date) : "—"} accent="text-stone-900" small />
         </div>
 
         {/* Main grid */}
@@ -131,21 +153,22 @@ export default function VendorDetailPage() {
             <Tabs defaultValue="ledger">
               <TabsList className="rounded-none bg-white border border-stone-300 p-0 h-10">
                 <TabsTrigger value="ledger" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-4 h-full" data-testid="tab-ledger">Project Ledger</TabsTrigger>
+                <TabsTrigger value="bills" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-4 h-full" data-testid="tab-bills">Work / Bills</TabsTrigger>
                 <TabsTrigger value="log" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-4 h-full" data-testid="tab-log">Payment Log</TabsTrigger>
               </TabsList>
 
               <TabsContent value="ledger" className="mt-4">
                 {stats.byProject.length === 0 ? (
-                  <EmptyHint label="No payments yet for this vendor" />
+                  <EmptyHint label="No bills or payments yet for this vendor" />
                 ) : (
                   <div className="bg-white border border-stone-200 overflow-x-auto">
                     <table className="w-full text-sm" data-testid="vendor-ledger-table">
                       <thead className="bg-stone-50 border-b border-stone-200">
                         <tr className="text-left">
                           <th className="px-4 py-3 label-uppercase">Project</th>
-                          <th className="px-4 py-3 label-uppercase">Last Payment</th>
-                          <th className="px-4 py-3 label-uppercase text-right">Payments</th>
-                          <th className="px-4 py-3 label-uppercase text-right">Total Paid</th>
+                          <th className="px-4 py-3 label-uppercase text-right">Billed</th>
+                          <th className="px-4 py-3 label-uppercase text-right">Paid</th>
+                          <th className="px-4 py-3 label-uppercase text-right">Balance Owed</th>
                           <th className="px-4 py-3 label-uppercase text-right">Action</th>
                         </tr>
                       </thead>
@@ -160,22 +183,77 @@ export default function VendorDetailPage() {
                               ) : (
                                 <span className="text-stone-500 italic">{p.name}</span>
                               )}
+                              <div className="text-[11px] text-stone-400 mt-0.5">Last payment {p.last ? formatDate(p.last) : "—"} · {p.count} payment(s)</div>
                             </td>
-                            <td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDate(p.last)}</td>
-                            <td className="px-4 py-3 text-right tabular-nums">{p.count}</td>
-                            <td className="px-4 py-3 text-right tabular-nums font-medium">{formatINR(p.total)}</td>
+                            <td className="px-4 py-3 text-right tabular-nums">{formatINR(p.billed)}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-emerald-700">{formatINR(p.paid)}</td>
+                            <td className={cn("px-4 py-3 text-right tabular-nums font-semibold", p.owed > 0 ? "text-rose-700" : "text-stone-500")}>{formatINR(p.owed)}</td>
                             <td className="px-4 py-3 text-right">
-                              <Button onClick={() => openPayWith(p.id)} variant="outline" size="sm" className="rounded-none border-stone-300 h-7 text-xs" data-testid={`ledger-pay-${p.id || "none"}`}>
-                                <Wallet className="w-3 h-3 mr-1" />Pay
-                              </Button>
+                              <div className="flex justify-end gap-1.5">
+                                <Button onClick={() => openBillWith(p.id)} variant="outline" size="sm" className="rounded-none border-stone-300 h-7 text-xs" data-testid={`ledger-bill-${p.id || "none"}`}>
+                                  <FileText className="w-3 h-3 mr-1" />Bill
+                                </Button>
+                                <Button onClick={() => openPayWith(p.id)} variant="outline" size="sm" className="rounded-none border-stone-300 h-7 text-xs" data-testid={`ledger-pay-${p.id || "none"}`}>
+                                  <Wallet className="w-3 h-3 mr-1" />Pay
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot className="bg-stone-900 text-white">
                         <tr>
-                          <td colSpan={3} className="px-4 py-3 label-uppercase text-stone-400">Total Paid</td>
-                          <td className="px-4 py-3 text-right font-display text-lg tabular-nums">{formatINR(stats.total)}</td>
+                          <td className="px-4 py-3 label-uppercase text-stone-400">Total</td>
+                          <td className="px-4 py-3 text-right font-display text-lg tabular-nums">{formatINR(stats.totalBilled)}</td>
+                          <td className="px-4 py-3 text-right font-display text-lg tabular-nums text-emerald-400">{formatINR(stats.totalPaid)}</td>
+                          <td className="px-4 py-3 text-right font-display text-lg tabular-nums text-rose-400">{formatINR(stats.owed)}</td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="bills" className="mt-4">
+                {bills.length === 0 ? (
+                  <EmptyHint label="No work/bills recorded yet — click Add Bill above to log one" />
+                ) : (
+                  <div className="bg-white border border-stone-200 overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="vendor-bills-table">
+                      <thead className="bg-stone-50 border-b border-stone-200">
+                        <tr className="text-left">
+                          <th className="px-4 py-3 label-uppercase">Date</th>
+                          <th className="px-4 py-3 label-uppercase">Title</th>
+                          <th className="px-4 py-3 label-uppercase">Project</th>
+                          <th className="px-4 py-3 label-uppercase text-right">Amount</th>
+                          <th className="px-4 py-3 label-uppercase text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="grid-divider-y">
+                        {bills.map((b) => (
+                          <tr key={b.id} className="hover:bg-stone-50" data-testid={`bill-row-${b.id}`}>
+                            <td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDate(b.bill_date)}</td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-stone-900">{b.title}</div>
+                              {b.description && <div className="text-xs text-stone-500 mt-0.5 whitespace-pre-wrap">{b.description}</div>}
+                            </td>
+                            <td className="px-4 py-3 text-stone-700">
+                              {b.project ? <Link to={`/projects/${b.project.id}`} className="hover:text-orange-600">{b.project.project_name}</Link> : <span className="text-stone-400">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums font-medium">{formatINR(b.amount)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button onClick={() => handleDeleteBill(b)} title="Delete" className="p-1 hover:bg-rose-50 text-stone-400 hover:text-rose-600" data-testid={`bill-delete-${b.id}`}>
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-stone-900 text-white">
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 label-uppercase text-stone-400">Total Billed</td>
+                          <td className="px-4 py-3 text-right font-display text-lg tabular-nums">{formatINR(stats.totalBilled)}</td>
                           <td />
                         </tr>
                       </tfoot>
@@ -194,6 +272,7 @@ export default function VendorDetailPage() {
                         <tr className="text-left">
                           <th className="px-4 py-3 label-uppercase">Date</th>
                           <th className="px-4 py-3 label-uppercase">Project</th>
+                          <th className="px-4 py-3 label-uppercase">For</th>
                           <th className="px-4 py-3 label-uppercase">Note</th>
                           <th className="px-4 py-3 label-uppercase text-right">Amount</th>
                           <th className="px-4 py-3 label-uppercase text-right">Action</th>
@@ -205,6 +284,17 @@ export default function VendorDetailPage() {
                             <td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDateTime(p.payment_date)}</td>
                             <td className="px-4 py-3 text-stone-700">
                               {p.project ? <Link to={`/projects/${p.project.id}`} className="hover:text-orange-600">{p.project.project_name}</Link> : <span className="text-stone-400">—</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              {p.payment_type === "against_bill" && p.bill ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-300 rounded" title={`Against: ${p.bill.title}`}>
+                                  Bill: {p.bill.title}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold tracking-wide bg-amber-50 text-amber-700 border border-amber-300 rounded">
+                                  Advance
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-stone-700">{p.note || "—"}</td>
                             <td className="px-4 py-3 text-right tabular-nums font-medium">{formatINR(p.amount)}</td>
@@ -229,6 +319,16 @@ export default function VendorDetailPage() {
       <VendorPaymentDialog
         open={payOpen}
         onOpenChange={setPayOpen}
+        vendors={[vendor]}
+        projects={projects}
+        defaultVendorId={vendor.id}
+        defaultProjectId={defaultProjectId}
+        lockVendor
+        onSaved={load}
+      />
+      <VendorBillDialog
+        open={billOpen}
+        onOpenChange={setBillOpen}
         vendors={[vendor]}
         projects={projects}
         defaultVendorId={vendor.id}

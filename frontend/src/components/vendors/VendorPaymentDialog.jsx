@@ -11,8 +11,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { createVendorPayment } from "@/services/vendorService";
-import { todayISO } from "@/utils/format";
+import { createVendorPayment, fetchVendorBills } from "@/services/vendorService";
+import { todayISO, formatINR } from "@/utils/format";
 import { toast } from "sonner";
 
 const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0";
@@ -25,7 +25,10 @@ export default function VendorPaymentDialog({
 }) {
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [bills, setBills] = useState([]);
   const { register, handleSubmit, reset, setValue, watch } = useForm();
+  const vendorId = watch("vendor_id");
+  const paymentType = watch("payment_type") || "advance";
 
   useEffect(() => {
     if (!open) return;
@@ -35,12 +38,22 @@ export default function VendorPaymentDialog({
       amount: "",
       payment_date: todayISO(),
       payment_mode: "upi",
+      payment_type: "advance",
+      bill_id: "",
       note: "",
     });
   }, [open, defaultVendorId, defaultProjectId, reset]);
 
+  // Load this vendor's bills (so "Against Bill" can offer a picker with each
+  // bill's remaining balance) whenever the selected vendor changes.
+  useEffect(() => {
+    if (!open || !vendorId) { setBills([]); return; }
+    fetchVendorBills(vendorId).then(setBills).catch(() => setBills([]));
+  }, [open, vendorId]);
+
   const onSubmit = async (values) => {
     if (!values.vendor_id) { toast.error("Select a vendor"); return; }
+    if (values.payment_type === "against_bill" && !values.bill_id) { toast.error("Select which bill this payment is against"); return; }
     setSubmitting(true);
     try {
       await createVendorPayment({
@@ -48,6 +61,8 @@ export default function VendorPaymentDialog({
         project_id: values.project_id || null,
         amount: Number(values.amount),
         payment_date: values.payment_date,
+        payment_type: values.payment_type || "advance",
+        bill_id: values.payment_type === "against_bill" ? values.bill_id : null,
         note: [values.payment_mode ? `[${values.payment_mode.toUpperCase()}]` : null, values.note].filter(Boolean).join(" "),
       }, user.id);
       toast.success("Payment recorded");
@@ -83,6 +98,39 @@ export default function VendorPaymentDialog({
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label className="label-uppercase">This payment is</Label>
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setValue("payment_type", "advance")}
+                className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "advance" ? "border-blue-700 bg-blue-50 text-blue-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`}
+                data-testid="payment-type-advance"
+              >
+                Advance <span className="text-[10px] font-normal">(no bill yet)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue("payment_type", "against_bill")}
+                className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "against_bill" ? "border-emerald-700 bg-emerald-50 text-emerald-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`}
+                data-testid="payment-type-against-bill"
+              >
+                Against a Bill
+              </button>
+            </div>
+          </div>
+          {paymentType === "against_bill" && (
+            <div>
+              <Label className="label-uppercase">Which Bill *</Label>
+              <Select value={watch("bill_id") || ""} onValueChange={(v) => setValue("bill_id", v)}>
+                <SelectTrigger className="rounded-none mt-1.5 border-stone-300" data-testid="payment-select-bill"><SelectValue placeholder={bills.length === 0 ? "No bills recorded for this vendor yet" : "Select bill"} /></SelectTrigger>
+                <SelectContent className="rounded-none">
+                  {bills.map((b) => <SelectItem key={b.id} value={b.id} className="rounded-none">{b.title} — {formatINR(b.amount)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {bills.length === 0 && <div className="text-[11px] text-stone-500 mt-1">Add a Work/Bill entry for this vendor first, then link payments to it.</div>}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="label-uppercase">Amount (₹) *</Label>

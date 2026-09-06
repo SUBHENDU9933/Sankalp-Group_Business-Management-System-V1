@@ -108,6 +108,7 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - Added authenticated Storage SELECT/INSERT/UPDATE/DELETE policies scoped to the vendor UUID in the first folder segment of each object path.
   - Added private `can_access_vendor(uuid)` helper so only Admins or the vendor creator can access these documents.
   - Preserved upsert support by allowing SELECT + INSERT + UPDATE for authorized vendor documents.
+  - Granted the authenticated role EXECUTE on the helper after verification showed that RLS evaluation requires the privilege; anonymous EXECUTE remains revoked.
 - **Application changes:**
   - Vendor documents are now read through short-lived signed URLs.
   - Uploads continue using the existing `{vendorId}/{kind}.{ext}` object-path convention.
@@ -115,6 +116,21 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - New uploads store the stable object URL reference but return a signed URL for immediate display.
 - **Preserved:** Existing vendor document objects were not deleted or moved; only access control was changed.
 - **Regression required:** Vendor document upload, replacement, viewing, and deletion must be tested after the new Vercel deployment becomes READY.
+
+### CHANGE #005 — Centralized UI Permission Matrix
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Central role/action authorization abstraction for the React UI.
+- **Application changes implemented:**
+  - Added `frontend/src/utils/permissions.js` with normalized Admin/RM/RE roles and separate VIEW/CREATE/EDIT/DELETE/ASSIGN/APPROVE/SEND/RESTORE/PURGE actions.
+  - Added conservative default resource permissions for RM and RE; Admin retains full UI permission.
+  - Added `frontend/src/hooks/usePermissions.js` exposing `can`, `canAny`, and `canAll` helpers to pages/components.
+  - Updated `AuthContext` to normalize legacy `manager`/`executive` role labels to RM/RE without changing stored role data.
+- **Security boundary:** This matrix is a UI authorization layer only. Supabase RLS remains the server-side enforcement boundary and is not weakened by these changes.
+- **Preserved:** Existing navigation and role flags; no database role data was remapped.
+- **Deployment:** GitHub changes are on `main`; Vercel deployment/regression remains pending.
 
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

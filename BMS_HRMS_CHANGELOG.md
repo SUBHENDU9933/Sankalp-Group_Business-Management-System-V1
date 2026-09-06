@@ -96,5 +96,25 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Preserved:** Admin/creator full vendor editing and creation workflows; vendor bills/payments remain project-scoped.
 - **Known follow-up:** The legacy `vendor-docs` Storage bucket is still public. A separate storage hardening step is required before treating vendor document confidentiality as fully complete, because changing it immediately would require coordinated signed-URL/UI changes.
 
+### CHANGE #004 — Private Vendor Document Storage
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED / APPLICATION DEPLOYMENT PENDING
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Vendor photos, ID cards and visiting cards stored in Supabase Storage.
+- **Database/Storage changes implemented:**
+  - Changed `vendor-docs` bucket from public to private.
+  - Removed the public-read storage policy.
+  - Added authenticated Storage SELECT/INSERT/UPDATE/DELETE policies scoped to the vendor UUID in the first folder segment of each object path.
+  - Added private `can_access_vendor(uuid)` helper so only Admins or the vendor creator can access these documents.
+  - Preserved upsert support by allowing SELECT + INSERT + UPDATE for authorized vendor documents.
+- **Application changes:**
+  - Vendor documents are now read through short-lived signed URLs.
+  - Uploads continue using the existing `{vendorId}/{kind}.{ext}` object-path convention.
+  - Existing stored public-style URLs remain usable as stable object references; they are converted to signed URLs at read time.
+  - New uploads store the stable object URL reference but return a signed URL for immediate display.
+- **Preserved:** Existing vendor document objects were not deleted or moved; only access control was changed.
+- **Regression required:** Vendor document upload, replacement, viewing, and deletion must be tested after the new Vercel deployment becomes READY.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

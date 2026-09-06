@@ -125,9 +125,12 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Scope:** Central role/action authorization abstraction for the React UI.
 - **Application changes implemented:**
   - Added `frontend/src/utils/permissions.js` with normalized Admin/RM/RE roles and separate VIEW/CREATE/EDIT/DELETE/ASSIGN/APPROVE/SEND/RESTORE/PURGE actions.
-  - Added conservative default resource permissions for RM and RE; Admin retains full UI permission.
   - Added `frontend/src/hooks/usePermissions.js` exposing `can`, `canAny`, and `canAll` helpers to pages/components.
   - Updated `AuthContext` to normalize legacy `manager`/`executive` role labels to RM/RE without changing stored role data.
+  - Added a reusable `PermissionRoute` guard.
+  - Applied VIEW guards to Leads, Customers, Estimates, Receipts, Projects, Vendors, Digital Approvals, Agreements and Reports; CREATE/EDIT guards were applied to Agreement editor routes.
+  - Kept existing Admin-only Team, Approvals, Agreement Templates, Audit Log and Super Admin notification routes intact.
+  - Preserved public verification/signing/approval routes and print-route placement.
 - **Security boundary:** This matrix is a UI authorization layer only. Supabase RLS remains the server-side enforcement boundary and is not weakened by these changes.
 - **Preserved:** Existing navigation and role flags; no database role data was remapped.
 - **Deployment:** GitHub changes are on `main`; Vercel deployment/regression remains pending.

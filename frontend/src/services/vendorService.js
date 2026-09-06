@@ -6,8 +6,12 @@ const VENDOR_FIELDS =
 const VENDOR_DIRECTORY_FIELDS =
   "id,name,type,phone,email,address,is_active,created_at,updated_at,created_by";
 
+const VENDOR_DOC_BUCKET = "vendor-docs";
+const VENDOR_DOC_FIELDS = ["photo_url", "id_card_url", "visiting_card_url"];
+const VENDOR_DOC_SIGNED_URL_TTL = 60 * 60;
+
 /**
- * Full vendor data is now restricted by RLS to Admins and the vendor creator.
+ * Full vendor data is restricted by RLS to Admins and the vendor creator.
  * The directory view contains only non-KYC fields and is available to all
  * authenticated users for operational vendor lookup.
  */
@@ -20,6 +24,38 @@ const tryFullElseBase = async (action) => {
     }
     throw e;
   }
+};
+
+const extractVendorDocPath = (value) => {
+  if (!value || typeof value !== "string") return null;
+
+  const marker = `/storage/v1/object/public/${VENDOR_DOC_BUCKET}/`;
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex >= 0) {
+    return decodeURIComponent(value.slice(markerIndex + marker.length).split("?")[0]);
+  }
+
+  return null;
+};
+
+const signVendorDocuments = async (vendor) => {
+  if (!vendor) return vendor;
+
+  const signed = { ...vendor };
+  await Promise.all(
+    VENDOR_DOC_FIELDS.map(async (field) => {
+      const path = extractVendorDocPath(vendor[field]);
+      if (!path) return;
+
+      const { data, error } = await supabase.storage
+        .from(VENDOR_DOC_BUCKET)
+        .createSignedUrl(path, VENDOR_DOC_SIGNED_URL_TTL);
+      if (error) throw error;
+      if (data?.signedUrl) signed[field] = data.signedUrl;
+    })
+  );
+
+  return signed;
 };
 
 export const fetchVendors = async () => {
@@ -41,7 +77,7 @@ export const fetchVendorById = async (id) => {
     if (error) throw error;
     return data;
   });
-  if (full) return full;
+  if (full) return signVendorDocuments(full);
 
   const { data, error } = await supabase
     .from("vendor_directory")
@@ -70,7 +106,7 @@ export const updateVendor = async (id, payload) => {
     .select("*")
     .single();
   if (error) throw error;
-  return data;
+  return signVendorDocuments(data);
 };
 
 export const deleteVendor = async (id, userId) => {
@@ -81,25 +117,33 @@ export const deleteVendor = async (id, userId) => {
 };
 
 /**
- * Upload a vendor doc (photo / id_card / visiting_card) to the public 'vendor-docs' bucket.
- * Path: {vendorId}/{kind}.{ext}. Persists the public URL on the vendor row.
+ * Upload a vendor doc (photo / id_card / visiting_card) to the private
+ * 'vendor-docs' bucket. Path: {vendorId}/{kind}.{ext}.
+ * The database keeps the stable object URL as a reference; the service
+ * converts it to a short-lived signed URL whenever the document is read.
  */
 export const uploadVendorDoc = async (vendorId, kind, file) => {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `${vendorId}/${kind}.${ext}`;
   const { error: upErr } = await supabase.storage
-    .from("vendor-docs")
+    .from(VENDOR_DOC_BUCKET)
     .upload(path, file, { upsert: true, contentType: file.type });
   if (upErr) throw upErr;
-  const { data: pub } = supabase.storage.from("vendor-docs").getPublicUrl(path);
-  const url = `${pub.publicUrl}?v=${Date.now()}`;
+
+  const { data: pub } = supabase.storage.from(VENDOR_DOC_BUCKET).getPublicUrl(path);
+  const stableUrl = pub?.publicUrl || null;
   const fieldMap = { photo: "photo_url", id_card: "id_card_url", visiting_card: "visiting_card_url" };
   const field = fieldMap[kind];
   if (field) {
-    const { error: updErr } = await supabase.from("vendors").update({ [field]: url }).eq("id", vendorId);
+    const { error: updErr } = await supabase.from("vendors").update({ [field]: stableUrl }).eq("id", vendorId);
     if (updErr) throw updErr;
   }
-  return url;
+
+  const { data: signed, error: signedErr } = await supabase.storage
+    .from(VENDOR_DOC_BUCKET)
+    .createSignedUrl(path, VENDOR_DOC_SIGNED_URL_TTL);
+  if (signedErr) throw signedErr;
+  return signed?.signedUrl || stableUrl;
 };
 
 // ---------- VENDOR PAYMENTS ----------

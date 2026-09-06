@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "@/components/ui/sonner";
 import { unlockAudioOnFirstInteraction } from "@/utils/chime";
+import PermissionRoute from "@/components/auth/PermissionRoute";
 import LoginPage from "@/pages/LoginPage";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardPage from "@/pages/DashboardPage";
@@ -56,7 +57,6 @@ const PublicOnly = () => {
 const AdminOnly = ({ children }) => {
   const { profile, isAdmin, loading } = useAuth();
   if (loading) return null;
-  // Profile may load slightly after session — wait for it before deciding role.
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-100">
@@ -69,8 +69,7 @@ const AdminOnly = ({ children }) => {
 };
 
 // The manual/scheduled broadcast tool is restricted to one specific account,
-// enforced server-side too (see admin_send_notification RPC) — this is just
-// the UI-level gate so it doesn't even show for other admins.
+// enforced server-side too (see admin_send_notification RPC).
 const SuperAdminOnly = ({ children }) => {
   const { profile, loading } = useAuth();
   if (loading) return null;
@@ -103,36 +102,55 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute />}>
-              <Route path="/receipts/:id/print" element={<ReceiptPrintPage />} />
-              <Route path="/agreements/:id/print" element={<AgreementPrintPage />} />
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardPage />} />
-                <Route path="/leads" element={<LeadsPage />} />
-                <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/estimates" element={<EstimatesPage />} />
                 <Route path="/profile" element={<ProfileSettingsPage />} />
-                <Route path="/receipts" element={<ReceiptsPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/:id" element={<ProjectDetailPage />} />
-                <Route path="/vendors" element={<VendorsPage />} />
-                <Route path="/vendors/:id" element={<VendorDetailPage />} />
+
+                <Route element={<PermissionRoute resource="leads" />}>
+                  <Route path="/leads" element={<LeadsPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="customers" />}>
+                  <Route path="/customers" element={<CustomersPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="estimates" />}>
+                  <Route path="/estimates" element={<EstimatesPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="receipts" />}>
+                  <Route path="/receipts" element={<ReceiptsPage />} />
+                  <Route path="/receipts/:id/print" element={<ReceiptPrintPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="projects" />}>
+                  <Route path="/projects" element={<ProjectsPage />} />
+                  <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="vendors" />}>
+                  <Route path="/vendors" element={<VendorsPage />} />
+                  <Route path="/vendors/:id" element={<VendorDetailPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="digital_approvals" />}>
+                  <Route path="/digital-approvals" element={<DigitalApprovalsPage />} />
+                </Route>
+                <Route element={<PermissionRoute resource="agreements" />}>
+                  <Route path="/agreements" element={<AgreementsPage />} />
+                  <Route path="/agreements/:id/edit" element={<PermissionRoute resource="agreements" action="edit"><AgreementEditorPage /></PermissionRoute>} />
+                  <Route path="/agreements/:id/print" element={<AgreementPrintPage />} />
+                </Route>
+                <Route path="/agreements/new" element={<PermissionRoute resource="agreements" action="create"><AgreementEditorPage /></PermissionRoute>} />
+
                 <Route path="/team" element={<AdminOnly><TeamPage /></AdminOnly>} />
                 <Route path="/approvals" element={<AdminOnly><ApprovalsPage /></AdminOnly>} />
-                <Route path="/digital-approvals" element={<DigitalApprovalsPage />} />
-                <Route path="/agreements" element={<AgreementsPage />} />
-                <Route path="/agreements/new" element={<AgreementEditorPage />} />
-                <Route path="/agreements/:id/edit" element={<AgreementEditorPage />} />
                 <Route path="/agreement-templates" element={<AdminOnly><AgreementTemplatesPage /></AdminOnly>} />
+                <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
+                <Route path="/admin-notify" element={<SuperAdminOnly><AdminNotifyPage /></SuperAdminOnly>} />
+
                 <Route path="/reports" element={
-                  <AdminOnly>
+                  <PermissionRoute resource="reports">
                     <Suspense fallback={<div className="p-16 text-center text-slate-400">Loading Reports…</div>}>
                       <ReportsPage />
                     </Suspense>
-                  </AdminOnly>
+                  </PermissionRoute>
                 } />
-                <Route path="/admin-notify" element={<SuperAdminOnly><AdminNotifyPage /></SuperAdminOnly>} />
                 <Route path="/trash" element={<TrashPage />} />
-                <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
               </Route>
             </Route>
 

@@ -102,6 +102,13 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute />}>
+              <Route element={<PermissionRoute resource="receipts" />}>
+                <Route path="/receipts/:id/print" element={<ReceiptPrintPage />} />
+              </Route>
+              <Route element={<PermissionRoute resource="agreements" />}>
+                <Route path="/agreements/:id/print" element={<AgreementPrintPage />} />
+              </Route>
+
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfileSettingsPage />} />
@@ -117,7 +124,6 @@ function App() {
                 </Route>
                 <Route element={<PermissionRoute resource="receipts" />}>
                   <Route path="/receipts" element={<ReceiptsPage />} />
-                  <Route path="/receipts/:id/print" element={<ReceiptPrintPage />} />
                 </Route>
                 <Route element={<PermissionRoute resource="projects" />}>
                   <Route path="/projects" element={<ProjectsPage />} />
@@ -133,7 +139,6 @@ function App() {
                 <Route element={<PermissionRoute resource="agreements" />}>
                   <Route path="/agreements" element={<AgreementsPage />} />
                   <Route path="/agreements/:id/edit" element={<PermissionRoute resource="agreements" action="edit"><AgreementEditorPage /></PermissionRoute>} />
-                  <Route path="/agreements/:id/print" element={<AgreementPrintPage />} />
                 </Route>
                 <Route path="/agreements/new" element={<PermissionRoute resource="agreements" action="create"><AgreementEditorPage /></PermissionRoute>} />
 

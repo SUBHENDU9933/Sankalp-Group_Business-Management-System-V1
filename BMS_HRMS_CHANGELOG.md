@@ -78,5 +78,23 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Regression required:** Vendor Bills, Vendor Payments, Receipts, delete-request notifications, Audit Log, and admin notifications must be tested in the live application.
 - **Next phase:** P1 relationship authorization for Customers/Estimates/Projects/Documents/Agreements/Digital Approvals, followed by UI permission abstraction and Admin permission overrides.
 
+### CHANGE #003 — Vendor Sensitive/KYC Access Hardening
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED / APPLICATION DEPLOYMENT IN PROGRESS
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Vendor master data and sensitive KYC/bank information.
+- **Database changes implemented:**
+  - Restricted direct `vendors` table SELECT to Admins and the vendor creator.
+  - Restricted vendor INSERT to the authenticated creator.
+  - Restricted vendor UPDATE to Admins/vendor creator and added WITH CHECK protection against changing ownership.
+  - Restricted vendor DELETE to Admins/vendor creator.
+  - Added `vendor_directory` with only operational/non-KYC fields for authenticated vendor lookup.
+  - Anonymous access to `vendor_directory` revoked; authenticated SELECT granted.
+- **Sensitive fields protected from ordinary vendor-directory reads:** PAN, Aadhaar, UPI, bank account, IFSC, bank name and vendor identity-card URL fields are not exposed through the directory view.
+- **Application changes:** Vendor service now uses the safe directory for general vendor lists and vendor lookups when the caller is not permitted to read the full vendor row. Vendor payment/bill lookups use the safe directory for vendor display data.
+- **Preserved:** Admin/creator full vendor editing and creation workflows; vendor bills/payments remain project-scoped.
+- **Known follow-up:** The legacy `vendor-docs` Storage bucket is still public. A separate storage hardening step is required before treating vendor document confidentiality as fully complete, because changing it immediately would require coordinated signed-URL/UI changes.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

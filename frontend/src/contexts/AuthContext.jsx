@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { normalizeRole } from "@/utils/permissions";
 
 const AuthContext = createContext(null);
 
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => supabase.auth.signInWithPassword({ email, password });
   const signOut = async () => { await supabase.auth.signOut(); setProfile(null); setSession(null); };
   const refreshProfile = () => loadProfile(session?.user?.id);
-  const role = profile?.role || null;
+  const role = normalizeRole(profile?.role);
 
   const value = {
     session, user: session?.user || null, profile, role,

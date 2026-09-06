@@ -3,9 +3,13 @@ import { supabase } from "@/lib/supabase";
 const VENDOR_FIELDS =
   "id,name,type,phone,email,address,gst_no,pan_no,aadhar_no,upi_id,account_holder,account_no,ifsc,bank_name,photo_url,id_card_url,visiting_card_url,notes,is_active,created_at,updated_at,created_by";
 
+const VENDOR_DIRECTORY_FIELDS =
+  "id,name,type,phone,email,address,is_active,created_at,updated_at,created_by";
+
 /**
- * Try the new schema (with v9 columns); fall back to base columns on error.
- * Lets the UI work before/after the migration is applied.
+ * Full vendor data is now restricted by RLS to Admins and the vendor creator.
+ * The directory view contains only non-KYC fields and is available to all
+ * authenticated users for operational vendor lookup.
  */
 const tryFullElseBase = async (action) => {
   try {
@@ -19,22 +23,16 @@ const tryFullElseBase = async (action) => {
 };
 
 export const fetchVendors = async () => {
-  return tryFullElseBase(async (sel) => {
-    let q = supabase
-      .from("vendors")
-      .select(sel)
-      .order("created_at", { ascending: false });
-    // Try with deleted_at filter first; fall back if column missing
-    const withFilter = await q.is("deleted_at", null);
-    if (!withFilter.error) return withFilter.data || [];
-    const { data, error } = await supabase.from("vendors").select(sel).order("created_at", { ascending: false });
-    if (error) throw error;
-    return data || [];
-  });
+  const { data, error } = await supabase
+    .from("vendor_directory")
+    .select(VENDOR_DIRECTORY_FIELDS)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
 };
 
 export const fetchVendorById = async (id) => {
-  return tryFullElseBase(async (sel) => {
+  const full = await tryFullElseBase(async (sel) => {
     const { data, error } = await supabase
       .from("vendors")
       .select(sel + ",creator:profiles!vendors_created_by_fkey(id,full_name,email)")
@@ -43,6 +41,15 @@ export const fetchVendorById = async (id) => {
     if (error) throw error;
     return data;
   });
+  if (full) return full;
+
+  const { data, error } = await supabase
+    .from("vendor_directory")
+    .select(VENDOR_DIRECTORY_FIELDS)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 };
 
 export const createVendor = async (payload, userId) => {
@@ -99,15 +106,21 @@ export const uploadVendorDoc = async (vendorId, kind, file) => {
 export const fetchVendorPayments = async (vendorId) => {
   let q = supabase
     .from("vendor_payments")
-    .select("*, vendor:vendors(id,name,type,phone), project:projects(id,project_name), bill:vendor_bills(id,title,amount)")
+    .select("*, project:projects(id,project_name), bill:vendor_bills(id,title,amount)")
     .order("payment_date", { ascending: false });
   if (vendorId) q = q.eq("vendor_id", vendorId);
-  // Try with deleted_at filter first
   const withFilter = await q.is("deleted_at", null);
-  if (!withFilter.error) return withFilter.data || [];
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
+  if (withFilter.error) throw withFilter.error;
+  const rows = withFilter.data || [];
+  const vendorIds = [...new Set(rows.map((r) => r.vendor_id).filter(Boolean))];
+  if (!vendorIds.length) return rows;
+  const { data: vendors, error: vendorError } = await supabase
+    .from("vendor_directory")
+    .select("id,name,type,phone")
+    .in("id", vendorIds);
+  if (vendorError) throw vendorError;
+  const byId = new Map((vendors || []).map((v) => [v.id, v]));
+  return rows.map((r) => ({ ...r, vendor: byId.get(r.vendor_id) || null }));
 };
 
 export const createVendorPayment = async (payload, userId) => {
@@ -128,20 +141,25 @@ export const deleteVendorPayment = async (id, userId) => {
 };
 
 // ---------- VENDOR WORK / BILLS ----------
-// What work was actually done and what it's worth — separate from
-// vendor_payments (money paid out). One bill can be a single final amount
-// (electrician-style) or you can add many small ones over time
-// (carpenter/painter-style weekly labor) — same table either way.
 export const fetchVendorBills = async (vendorId) => {
   let q = supabase
     .from("vendor_bills")
-    .select("*, vendor:vendors(id,name,type), project:projects(id,project_name)")
+    .select("*, project:projects(id,project_name)")
     .is("deleted_at", null)
     .order("bill_date", { ascending: false });
   if (vendorId) q = q.eq("vendor_id", vendorId);
   const { data, error } = await q;
   if (error) throw error;
-  return data || [];
+  const rows = data || [];
+  const vendorIds = [...new Set(rows.map((r) => r.vendor_id).filter(Boolean))];
+  if (!vendorIds.length) return rows;
+  const { data: vendors, error: vendorError } = await supabase
+    .from("vendor_directory")
+    .select("id,name,type")
+    .in("id", vendorIds);
+  if (vendorError) throw vendorError;
+  const byId = new Map((vendors || []).map((v) => [v.id, v]));
+  return rows.map((r) => ({ ...r, vendor: byId.get(r.vendor_id) || null }));
 };
 
 export const createVendorBill = async (payload, userId) => {

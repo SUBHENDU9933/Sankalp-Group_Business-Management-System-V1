@@ -171,5 +171,23 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Deployment:** Vercel production deployment was triggered automatically by the Git-connected repository and is currently pending/queued. It must be verified READY before calling this change deployed.
 - **Next:** Receipts, Projects, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
 
+### CHANGE #008 — Project Action-Level Permission Controls
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Project create/edit/delete controls and form enforcement.
+- **Application changes implemented:**
+  - Project New/Create controls now require `projects:create`.
+  - Project Edit controls require `projects:edit`.
+  - Project Delete is enforced through `projects:delete` rather than a standalone UI `isAdmin` check.
+  - Project form submission independently validates CREATE vs EDIT permission before calling the service.
+  - Unauthorized project action menus are hidden.
+  - Existing project VIEW route and project membership behavior are preserved.
+- **Security boundary:** UI/action checks are layered over Supabase RLS and do not replace database enforcement.
+- **Files changed:** `frontend/src/pages/ProjectsPage.jsx`, `frontend/src/components/projects/ProjectFormDialog.jsx`.
+- **Deployment:** Vercel is automatically deploying the Git-connected commits; the latest deployment is currently queued and must reach READY before being considered production-deployed.
+- **Next:** Receipts, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

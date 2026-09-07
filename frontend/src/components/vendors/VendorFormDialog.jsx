@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { createVendor, updateVendor } from "@/services/vendorService";
 import { VENDOR_TYPES } from "@/utils/format";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focu
 
 export default function VendorFormDialog({ open, onOpenChange, vendor, onSaved }) {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const isEdit = Boolean(vendor?.id);
   const [submitting, setSubmitting] = useState(false);
   const { register, handleSubmit, reset, setValue, watch } = useForm();
@@ -44,6 +46,11 @@ export default function VendorFormDialog({ open, onOpenChange, vendor, onSaved }
   }, [open, vendor, reset]);
 
   const onSubmit = async (values) => {
+    const action = isEdit ? "edit" : "create";
+    if (!can("vendors", action)) {
+      toast.error(`You do not have permission to ${action} vendors.`);
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = Object.fromEntries(
@@ -74,7 +81,6 @@ export default function VendorFormDialog({ open, onOpenChange, vendor, onSaved }
           <DialogDescription className="sr-only">Vendor profile, KYC, and payment details.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid md:grid-cols-2 gap-0 grid-divider-x">
-          {/* LEFT — Profile + KYC */}
           <div className="p-6 space-y-4">
             <SectionTitle>Profile</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
@@ -122,7 +128,6 @@ export default function VendorFormDialog({ open, onOpenChange, vendor, onSaved }
             </div>
           </div>
 
-          {/* RIGHT — Payment Details + Notes */}
           <div className="p-6 space-y-4">
             <SectionTitle>Payment Details</SectionTitle>
             <div>

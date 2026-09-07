@@ -206,7 +206,19 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Security boundary:** UI/action checks are layered over Supabase RLS and do not replace database enforcement.
 - **Files changed:** `frontend/src/pages/AgreementsPage.jsx`.
 - **Deployment:** Vercel production deployment for commit `aba35768acfede1b9384401d4f1a46597d099edc` is confirmed READY.
-- **Next:** Receipts, Vendors, Vendor Bills/Payments, Expenses and Digital Approvals, followed by full regression/security verification.
+
+### CHANGE #010 — Service-Level Action Authorization: Receipts, Vendors and Digital Approvals
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Enforce the centralized Admin/RM/RE action matrix at service-call boundaries in addition to UI controls and Supabase RLS.
+- **Receipt service:** Receipt create/edit/delete operations now verify the caller's current role/action before database mutation; existing RLS remains authoritative.
+- **Vendor service:** Vendor master CREATE/EDIT/DELETE remains Admin-only; vendor payments and bills allow Admin/RM/RE CREATE, Admin/RM EDIT and Admin-only DELETE; safe vendor-directory reads and private vendor document signed URLs remain preserved.
+- **Digital Approval service:** VIEW is available to Admin/RM/RE; CREATE/EDIT/SEND are Admin/RM; DELETE is Admin-only. Public customer magic-link response/signing RPCs remain untouched.
+- **Security boundary:** These client service checks are defense-in-depth and do not replace database RLS.
+- **Verified deployment:** Vercel Production deployment for commit `7d459e0f02ed21a3d64961f6cd6c2cb992b758ae` is confirmed READY.
+- **Next:** Finish remaining action-level UI/service coverage, then perform end-to-end regression across Admin/RM/RE and review remaining sensitive storage/data paths.
 
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

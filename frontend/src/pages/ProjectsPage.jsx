@@ -210,6 +210,7 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
+      </PageBody>
 
       <ProjectFormDialog
         open={open}

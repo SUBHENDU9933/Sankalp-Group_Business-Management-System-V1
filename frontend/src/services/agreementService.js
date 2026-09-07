@@ -1,7 +1,30 @@
 import { supabase } from "@/lib/supabase";
 import { pushToAllAdmins } from "@/services/notificationService";
 
+const ACTIONS = Object.freeze({ VIEW: "view", CREATE: "create", EDIT: "edit", DELETE: "delete", SEND: "send" });
+
+const normalizeRole = (role) => {
+  const value = String(role || "").trim().toLowerCase();
+  if (value === "admin") return "admin";
+  if (value === "rm" || value === "manager") return "rm";
+  if (value === "re" || value === "executive") return "re";
+  return value;
+};
+
+const assertPermission = async (action) => {
+  const { data: { user } = {} } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required");
+  const { data: profile, error } = await supabase.from("profiles").select("role,is_admin").eq("id", user.id).maybeSingle();
+  if (error) throw error;
+  const role = profile?.is_admin ? "admin" : normalizeRole(profile?.role);
+  const allowed = role === "admin"
+    || (role === "rm" && [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND].includes(action))
+    || (role === "re" && action === ACTIONS.VIEW);
+  if (!allowed) throw new Error(`You do not have permission to ${action} agreements.`);
+};
+
 export const fetchAgreements = async () => {
+  await assertPermission(ACTIONS.VIEW);
   const { data, error } = await supabase
     .from("agreements")
     .select(
@@ -14,6 +37,7 @@ export const fetchAgreements = async () => {
 };
 
 export const fetchAgreementById = async (id) => {
+  await assertPermission(ACTIONS.VIEW);
   const { data, error } = await supabase
     .from("agreements")
     .select("*")
@@ -24,6 +48,7 @@ export const fetchAgreementById = async (id) => {
 };
 
 export const createAgreement = async (payload, userId) => {
+  await assertPermission(ACTIONS.CREATE);
   const { data, error } = await supabase
     .from("agreements")
     .insert([{ ...payload, created_by: userId }])
@@ -34,6 +59,7 @@ export const createAgreement = async (payload, userId) => {
 };
 
 export const updateAgreement = async (id, payload) => {
+  await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase
     .from("agreements")
     .update(payload)
@@ -45,6 +71,7 @@ export const updateAgreement = async (id, payload) => {
 };
 
 export const softDeleteAgreement = async (id, userId) => {
+  await assertPermission(ACTIONS.DELETE);
   const { error } = await supabase
     .from("agreements")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
@@ -56,6 +83,7 @@ export const softDeleteAgreement = async (id, userId) => {
 // `snapshot` (optional) is the fully-resolved [{title, body}] clause list — frozen
 // at send-time so the public /sign/:token page never needs authenticated template access.
 export const sendForDigitalSignature = async (id, { expiryDays = 7, snapshot } = {}) => {
+  await assertPermission(ACTIONS.SEND);
   const token = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
   const expires_at = new Date(Date.now() + expiryDays * 86400000).toISOString();
   const patch = { status: "sent", signing_mode: "digital", token, expires_at };
@@ -70,8 +98,10 @@ export const sendForDigitalSignature = async (id, { expiryDays = 7, snapshot } =
   return data;
 };
 
-// Mark as physically signed + attach the uploaded scanned copy URL
+// Mark as physically signed + attach the uploaded scanned copy URL.
+// This remains an authenticated edit operation; database RLS is authoritative.
 export const markSignedPhysical = async (id, signedFileUrl) => {
+  await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase
     .from("agreements")
     .update({ status: "signed_physical", signing_mode: "physical", signed_file_url: signedFileUrl, signed_at: new Date().toISOString() })
@@ -83,6 +113,7 @@ export const markSignedPhysical = async (id, signedFileUrl) => {
 };
 
 export const voidAgreement = async (id) => {
+  await assertPermission(ACTIONS.DELETE);
   const { error } = await supabase.from("agreements").update({ status: "void" }).eq("id", id);
   if (error) throw error;
 };
@@ -166,6 +197,7 @@ export const submitAgreementSignature = async ({ token, signerName, signatureUrl
 // Customer ID-proof documents (Aadhaar, PAN, etc.) uploaded during agreement
 // creation — same "attachments" bucket used everywhere else in the app.
 export const setIdProofUrls = async (id, idProofUrls) => {
+  await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase
     .from("agreements")
     .update({ id_proof_urls: idProofUrls })

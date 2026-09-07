@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { createProject, updateProject } from "@/services/projectService";
 import { PROJECT_STATUSES, todayISO } from "@/utils/format";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focu
 
 export default function ProjectFormDialog({ open, onOpenChange, customers, project, onSaved }) {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const isEdit = Boolean(project?.id);
   const [submitting, setSubmitting] = useState(false);
   const { register, handleSubmit, reset, setValue, watch } = useForm();
@@ -36,6 +38,11 @@ export default function ProjectFormDialog({ open, onOpenChange, customers, proje
   }, [open, project, reset]);
 
   const onSubmit = async (values) => {
+    const action = isEdit ? "edit" : "create";
+    if (!can("projects", action)) {
+      toast.error(`You do not have permission to ${action} projects.`);
+      return;
+    }
     if (!values.customer_id) { toast.error("Select a customer"); return; }
     setSubmitting(true);
     try {

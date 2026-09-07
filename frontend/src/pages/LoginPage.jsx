@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, Loader2,
   Users, UserCheck, FileText, Briefcase, Truck, BarChart3 } from "lucide-react";
-import { Logo, SANKALP_TAGLINE_BN } from "@/lib/brand";
+import { SANKALP_TAGLINE_BN } from "@/lib/brand";
 
+const LOGIN_LOGO = "https://emp.sankalpdesign.com/sankalp-group-logo-email.png";
 const HERO_BG =
   "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
@@ -43,7 +44,7 @@ export default function LoginPage() {
       {/* LEFT — branded hero */}
       <div className="relative bg-white p-8 sm:p-12 flex flex-col overflow-hidden">
         <div className="inline-flex items-center justify-center bg-white rounded-2xl shadow-sm border border-slate-100 p-3 w-fit">
-          <Logo className="h-14 w-auto" />
+          <img src={LOGIN_LOGO} alt="Sankalp Group & Business Solutions" className="h-14 sm:h-16 w-auto object-contain" />
         </div>
 
         <div className="mt-10">

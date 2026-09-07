@@ -15,6 +15,7 @@ import {
 import { Plus, Search, MoreVertical, Pencil, Trash2, ReceiptText, Phone, X } from "lucide-react";
 import { fetchCustomers, createCustomer, updateCustomer, requestDeleteCustomer, cancelDeleteCustomer } from "@/services/customerService";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { formatDate } from "@/utils/format";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function CustomersPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const nav = useNavigate();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +58,11 @@ export default function CustomersPage() {
         subtitle="Phase 3"
         title="Customer Management"
         actions={
-          <Button onClick={() => { setEdit(null); setOpen(true); }} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="customer-add-button">
-            <Plus className="w-4 h-4" />New Customer
-          </Button>
+          can("customers", "create") ? (
+            <Button onClick={() => { setEdit(null); setOpen(true); }} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="customer-add-button">
+              <Plus className="w-4 h-4" />New Customer
+            </Button>
+          ) : null
         }
       />
       <PageBody>
@@ -108,12 +112,12 @@ export default function CustomersPage() {
                             <Button variant="ghost" size="icon" className="rounded-none h-8 w-8" data-testid={`customer-actions-${c.id}`}><MoreVertical className="w-4 h-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-none border-stone-300">
-                            <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => nav(`/receipts?customer=${c.id}`)}><ReceiptText className="w-4 h-4 mr-2" />New Receipt</DropdownMenuItem>
+                            {can("customers", "edit") && <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => { setEdit(c); setOpen(true); }}><Pencil className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>}
+                            {can("receipts", "create") && <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => nav(`/receipts?customer=${c.id}`)}><ReceiptText className="w-4 h-4 mr-2" />New Receipt</DropdownMenuItem>}
                             {c.delete_request ? (
                               <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => handleCancelDelete(c)}><X className="w-4 h-4 mr-2" />Cancel Delete</DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleRequestDelete(c)} data-testid={`customer-delete-${c.id}`}><Trash2 className="w-4 h-4 mr-2" />Request Delete</DropdownMenuItem>
+                              can("customers", "delete") && <DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleRequestDelete(c)} data-testid={`customer-delete-${c.id}`}><Trash2 className="w-4 h-4 mr-2" />Request Delete</DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -134,21 +138,18 @@ export default function CustomersPage() {
 
 function CustomerFormDialog({ open, onOpenChange, customer, onSaved }) {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const isEdit = Boolean(customer?.id);
   const [submitting, setSubmitting] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
     if (!open) return;
-    reset({
-      name: customer?.name || "",
-      phone: customer?.phone || "",
-      address: customer?.address || "",
-      project_details: customer?.project_details || "",
-    });
+    reset({ name: customer?.name || "", phone: customer?.phone || "", address: customer?.address || "", project_details: customer?.project_details || "" });
   }, [open, customer, reset]);
 
   const onSubmit = async (values) => {
+    if (!can("customers", isEdit ? "edit" : "create")) return;
     setSubmitting(true);
     try {
       if (isEdit) await updateCustomer(customer.id, values);
@@ -169,27 +170,13 @@ function CustomerFormDialog({ open, onOpenChange, customer, onSaved }) {
           <DialogDescription className="sr-only">Customer details: name, phone, address and project notes.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <div>
-            <Label className="label-uppercase">Name *</Label>
-            <Input className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("name", { required: true })} data-testid="customer-input-name" />
-            {errors.name && <span className="text-xs text-rose-600">Required</span>}
-          </div>
-          <div>
-            <Label className="label-uppercase">Phone *</Label>
-            <Input className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("phone", { required: true })} data-testid="customer-input-phone" />
-            {errors.phone && <span className="text-xs text-rose-600">Required</span>}
-          </div>
-          <div>
-            <Label className="label-uppercase">Address</Label>
-            <Textarea className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("address")} data-testid="customer-input-address" />
-          </div>
-          <div>
-            <Label className="label-uppercase">Project Details</Label>
-            <Textarea className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0 min-h-[80px]" {...register("project_details")} data-testid="customer-input-project" />
-          </div>
+          <div><Label className="label-uppercase">Name *</Label><Input className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("name", { required: true })} data-testid="customer-input-name" />{errors.name && <span className="text-xs text-rose-600">Required</span>}</div>
+          <div><Label className="label-uppercase">Phone *</Label><Input className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("phone", { required: true })} data-testid="customer-input-phone" />{errors.phone && <span className="text-xs text-rose-600">Required</span>}</div>
+          <div><Label className="label-uppercase">Address</Label><Textarea className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0" {...register("address")} data-testid="customer-input-address" /></div>
+          <div><Label className="label-uppercase">Project Details</Label><Textarea className="rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0 min-h-[80px]" {...register("project_details")} data-testid="customer-input-project" /></div>
           <DialogFooter className="-mx-6 -mb-6 px-6 py-4 border-t border-stone-200 bg-stone-50">
             <Button type="button" variant="outline" className="rounded-none border-stone-300" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="customer-form-submit">{submitting ? "Saving…" : isEdit ? "Save" : "Create"}</Button>
+            <Button type="submit" disabled={submitting || !can("customers", isEdit ? "edit" : "create")} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="customer-form-submit">{submitting ? "Saving…" : isEdit ? "Save" : "Create"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

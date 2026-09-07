@@ -9,12 +9,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Search, MoreVertical, Eye, Pencil, Trash2, FileSignature, Send, Ban, Settings2 } from "lucide-react";
 import { fetchAgreements, softDeleteAgreement, voidAgreement } from "@/services/agreementService";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { formatINR, formatDateTime, AGREEMENT_STATUSES } from "@/utils/format";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export default function AgreementsPage() {
   const { user, isAdmin } = useAuth();
+  const { can } = usePermissions();
   const nav = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,16 +43,23 @@ export default function AgreementsPage() {
   }, [rows, search, statusFilter]);
 
   const handleVoid = async (row) => {
+    if (!isAdmin) return;
     if (!window.confirm(`Void agreement "${row.title}"? It will no longer be signable.`)) return;
     try { await voidAgreement(row.id); toast.success("Agreement voided"); load(); }
     catch (e) { toast.error(e.message); }
   };
 
   const handleDelete = async (row) => {
+    if (!can("agreements", "delete")) return;
     if (!window.confirm(`Move "${row.title}" to Trash?`)) return;
     try { await softDeleteAgreement(row.id, user.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
   };
+
+  const canCreate = can("agreements", "create");
+  const canEdit = can("agreements", "edit");
+  const canSend = can("agreements", "send");
+  const canDelete = can("agreements", "delete");
 
   return (
     <>
@@ -65,9 +73,11 @@ export default function AgreementsPage() {
                 <Settings2 className="w-4 h-4 mr-1.5" /> Templates
               </Button>
             )}
-            <Button className="rounded-lg bg-blue-700 hover:bg-blue-800 text-white" onClick={() => nav("/agreements/new")} data-testid="agreements-new-button">
-              <Plus className="w-4 h-4 mr-1.5" /> New Agreement
-            </Button>
+            {canCreate && (
+              <Button className="rounded-lg bg-blue-700 hover:bg-blue-800 text-white" onClick={() => nav("/agreements/new")} data-testid="agreements-new-button">
+                <Plus className="w-4 h-4 mr-1.5" /> New Agreement
+              </Button>
+            )}
           </>
         }
       />
@@ -102,9 +112,11 @@ export default function AgreementsPage() {
           <div className="text-center py-16 border border-dashed border-slate-300 rounded-2xl">
             <FileSignature className="w-10 h-10 mx-auto text-slate-300 mb-2" />
             <div className="text-slate-500">No agreements yet.</div>
-            <Button className="mt-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-white" onClick={() => nav("/agreements/new")}>
-              <Plus className="w-4 h-4 mr-1.5" /> Create your first agreement
-            </Button>
+            {canCreate && (
+              <Button className="mt-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-white" onClick={() => nav("/agreements/new")}>
+                <Plus className="w-4 h-4 mr-1.5" /> Create your first agreement
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -128,30 +140,40 @@ export default function AgreementsPage() {
                     <Button variant="outline" size="sm" className="rounded-lg" onClick={() => nav(`/agreements/${r.id}/print`)} data-testid={`agreement-view-${r.id}`}>
                       <Eye className="w-4 h-4 mr-1" /> View / PDF
                     </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-lg"><MoreVertical className="w-4 h-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => nav(`/agreements/${r.id}/edit`)} data-testid={`agreement-edit-${r.id}`}>
-                          <Pencil className="w-4 h-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        {r.status === "draft" && (
-                          <DropdownMenuItem onClick={() => nav(`/agreements/${r.id}/print`)} data-testid={`agreement-send-${r.id}`}>
-                            <Send className="w-4 h-4 mr-2" /> Send for Digital Signature
-                          </DropdownMenuItem>
-                        )}
-                        {r.status !== "void" && (
-                          <DropdownMenuItem onClick={() => handleVoid(r)} className="text-amber-700">
-                            <Ban className="w-4 h-4 mr-2" /> Void
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDelete(r)} className="text-rose-600" data-testid={`agreement-delete-${r.id}`}>
-                          <Trash2 className="w-4 h-4 mr-2" /> Move to Trash
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {(canEdit || (r.status === "draft" && canSend) || isAdmin || canDelete) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="rounded-lg"><MoreVertical className="w-4 h-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {canEdit && (
+                            <DropdownMenuItem onClick={() => nav(`/agreements/${r.id}/edit`)} data-testid={`agreement-edit-${r.id}`}>
+                              <Pencil className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                          )}
+                          {r.status === "draft" && canSend && (
+                            <DropdownMenuItem onClick={() => nav(`/agreements/${r.id}/print`)} data-testid={`agreement-send-${r.id}`}>
+                              <Send className="w-4 h-4 mr-2" /> Send for Digital Signature
+                            </DropdownMenuItem>
+                          )}
+                          {r.status !== "void" && isAdmin && (
+                            <DropdownMenuItem onClick={() => handleVoid(r)} className="text-amber-700">
+                              <Ban className="w-4 h-4 mr-2" /> Void
+                            </DropdownMenuItem>
+                          )}
+                          {(canDelete || isAdmin) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              {canDelete && (
+                                <DropdownMenuItem onClick={() => handleDelete(r)} className="text-rose-600" data-testid={`agreement-delete-${r.id}`}>
+                                  <Trash2 className="w-4 h-4 mr-2" /> Move to Trash
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               );

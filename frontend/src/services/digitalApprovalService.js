@@ -1,7 +1,34 @@
 import { supabase } from "@/lib/supabase";
 
-// Fetches all approvals visible to the caller (admin sees all, RM sees own)
+const ACTIONS = Object.freeze({ VIEW: "view", CREATE: "create", EDIT: "edit", DELETE: "delete", SEND: "send" });
+
+const normalizeRole = (role) => {
+  const value = String(role || "").trim().toLowerCase();
+  if (value === "admin") return "admin";
+  if (value === "rm" || value === "manager") return "rm";
+  if (value === "re" || value === "executive") return "re";
+  return value;
+};
+
+const assertPermission = async (action) => {
+  const { data: { user } = {} } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required");
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role,is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (error) throw error;
+  const role = profile?.is_admin ? "admin" : normalizeRole(profile?.role);
+  const allowed = role === "admin"
+    || (role === "rm" && [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND].includes(action))
+    || (role === "re" && action === ACTIONS.VIEW);
+  if (!allowed) throw new Error(`You do not have permission to ${action} digital approvals.`);
+};
+
+// Fetches all approvals visible to the caller; final row-level scope is enforced by Supabase RLS.
 export const fetchApprovals = async ({ status, search } = {}) => {
+  await assertPermission(ACTIONS.VIEW);
   let q = supabase
     .from("digital_approvals")
     .select("*, creator:profiles!digital_approvals_created_by_fkey(id,full_name,email), customer:customers!digital_approvals_customer_id_fkey(id,name), project:projects!digital_approvals_project_id_fkey(id,project_name)")
@@ -22,6 +49,7 @@ export const fetchApprovals = async ({ status, search } = {}) => {
 };
 
 export const createApproval = async (payload) => {
+  await assertPermission(ACTIONS.CREATE);
   const { data, error } = await supabase.from("digital_approvals").insert(payload).select().single();
   if (error) throw error;
   return data;
@@ -31,6 +59,7 @@ export const createApproval = async (payload) => {
 // customer has responded (approved/rejected), the record is evidence and
 // must stay exactly as it was when they signed it.
 export const updateApproval = async (id, payload) => {
+  await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase
     .from("digital_approvals")
     .update(payload)
@@ -44,6 +73,7 @@ export const updateApproval = async (id, payload) => {
 };
 
 export const softDeleteApproval = async (id, userId) => {
+  await assertPermission(ACTIONS.DELETE);
   const { data, error } = await supabase.from("digital_approvals")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq("id", id)

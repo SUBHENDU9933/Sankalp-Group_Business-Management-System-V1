@@ -157,13 +157,15 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* P/L */}
-        <div className={cn("mt-0 px-6 py-4 border border-t-0 border-stone-200", profit >= 0 ? "bg-emerald-50" : "bg-rose-50")}>
-          <div className="flex items-center justify-between">
-            <div className="label-uppercase text-stone-700">Net (Receipts − Expenses)</div>
-            <div className={cn("font-display text-2xl font-bold tabular-nums", profit >= 0 ? "text-emerald-800" : "text-rose-800")}>{formatINR(profit)}</div>
+        {/* P/L - Admin only */}
+        {isAdmin && (
+          <div className={cn("mt-0 px-6 py-4 border border-t-0 border-stone-200", profit >= 0 ? "bg-emerald-50" : "bg-rose-50")}>
+            <div className="flex items-center justify-between">
+              <div className="label-uppercase text-stone-700">Net (Receipts − Expenses)</div>
+              <div className={cn("font-display text-2xl font-bold tabular-nums", profit >= 0 ? "text-emerald-800" : "text-rose-800")}>{formatINR(profit)}</div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Members + Receipts/Expenses log layout */}
         <div className="grid lg:grid-cols-[360px_1fr] gap-6 mt-8">

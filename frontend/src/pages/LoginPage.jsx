@@ -12,14 +12,40 @@ import {
   ShieldCheck,
   Loader2,
   ArrowRight,
-  Building2,
-  CircleCheck,
-  KeyRound,
-  Sparkles,
+  House,
+  PencilRuler,
+  Settings2,
+  BriefcaseBusiness,
+  TrendingUp,
+  Users,
+  UserRound,
+  FileText,
+  Receipt,
+  Truck,
+  BarChart3,
 } from "lucide-react";
 import { SANKALP_TAGLINE_BN } from "@/lib/brand";
 
 const LOGIN_LOGO = "https://emp.sankalpdesign.com/sankalp-group-logo-email.png";
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=2400&q=88";
+
+const SERVICE_STEPS = [
+  { icon: House, label: "Plan" },
+  { icon: PencilRuler, label: "Design" },
+  { icon: Settings2, label: "Execute" },
+  { icon: BriefcaseBusiness, label: "Manage" },
+  { icon: TrendingUp, label: "Grow" },
+];
+
+const MODULES = [
+  { icon: Users, title: "Lead Management", desc: "Track and manage leads effectively", tone: "blue" },
+  { icon: UserRound, title: "Customer Management", desc: "Manage customer relationships", tone: "orange" },
+  { icon: FileText, title: "Project Management", desc: "Plan, execute and deliver projects", tone: "blue" },
+  { icon: Receipt, title: "Receipt Management", desc: "Generate and track payment receipts", tone: "orange" },
+  { icon: Truck, title: "Vendor Management", desc: "Manage vendors and suppliers", tone: "green" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "Get insights and make better decisions", tone: "orange" },
+];
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -43,184 +69,195 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="h-[100svh] w-full overflow-hidden bg-[#071225] text-slate-900">
-      <div className="relative h-full min-h-0 overflow-hidden lg:p-4 xl:p-5">
-        {/* Ambient background — intentionally subtle so the authentication task stays dominant. */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_15%,rgba(31,78,150,.28),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(216,133,43,.13),transparent_28%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.9)_1px,transparent_1px)] [background-size:52px_52px]" />
+    <main className="h-[100svh] w-full overflow-hidden bg-white text-[#10213f]">
+      <div className="flex h-full min-h-0 flex-col">
+        {/* Premium visual hero */}
+        <section className="relative min-h-0 flex-1 overflow-hidden lg:flex-[0_0_74%]">
+          <img
+            src={HERO_IMAGE}
+            alt="Premium Sankalp workspace interior"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#f8f5ef]/98 via-[#f8f5ef]/78 via-[42%] to-[#081b35]/28" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#071a31]/55 via-transparent to-transparent" />
 
-        <div className="relative mx-auto grid h-full min-h-0 max-w-[1440px] overflow-hidden bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)] lg:h-[calc(100svh-2rem)] lg:min-h-[620px] lg:grid-cols-[1.02fr_.98fr] lg:rounded-[28px] xl:h-[calc(100svh-2.5rem)]">
-          {/* BRAND / PRODUCT PANEL */}
-          <section className="relative min-h-0 overflow-hidden bg-[#f8fafc] px-6 py-5 sm:px-9 sm:py-6 lg:px-10 lg:py-9 xl:px-14 xl:py-10">
-            <div className="pointer-events-none absolute -left-24 top-28 h-72 w-72 rounded-full bg-blue-100/50 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-28 right-0 h-80 w-80 rounded-full bg-amber-100/35 blur-3xl" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-[72%] w-[46%] opacity-[0.035] [background-image:linear-gradient(135deg,transparent_49.6%,#12305c_49.8%,#12305c_50.2%,transparent_50.4%)] [background-size:74px_74px]" />
-
-            <div className="relative z-10 flex h-full min-h-0 flex-col">
-              <div className="flex shrink-0 items-center justify-between gap-4">
-                <div className="flex h-12 items-center rounded-xl border border-slate-200/90 bg-white px-3 shadow-[0_5px_18px_rgba(15,23,42,.06)] sm:h-14 sm:px-4">
-                  <img
-                    src={LOGIN_LOGO}
-                    alt="Sankalp Group & Business Solutions"
-                    className="h-8 w-auto max-w-[220px] object-contain sm:h-9 sm:max-w-[250px]"
-                  />
-                </div>
-                <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500 shadow-sm sm:flex">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Secure Workspace
-                </div>
+          <div className="relative z-10 mx-auto flex h-full min-h-0 max-w-[1700px] flex-col px-5 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-7 xl:px-12">
+            {/* Brand */}
+            <div className="flex shrink-0 items-start justify-between gap-4">
+              <div className="rounded-xl bg-white/94 px-3 py-2 shadow-[0_10px_35px_rgba(12,34,64,.12)] ring-1 ring-white/70 backdrop-blur-sm sm:px-4 sm:py-2.5">
+                <img
+                  src={LOGIN_LOGO}
+                  alt="Sankalp Group & Business Solutions"
+                  className="h-8 w-auto max-w-[205px] object-contain sm:h-10 sm:max-w-[245px]"
+                />
               </div>
-
-              <div className="min-h-0 flex-1 flex items-center py-5 sm:py-7 lg:py-5">
-                <div className="max-w-[610px]">
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#174ea6] shadow-sm sm:text-[10px]">
-                    <Sparkles className="h-3 w-3" />
-                    Business Management System · V1
-                  </div>
-
-                  <h1 className="font-display text-[2.25rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#081326] sm:text-[3.1rem] lg:text-[3.25rem] xl:text-[3.75rem]">
-                    Your business,
-                    <span className="block text-[#174ea6]">beautifully connected.</span>
-                  </h1>
-
-                  <p className="mt-4 max-w-[540px] text-sm leading-6 text-slate-500 sm:text-[15px] lg:mt-3">
-                    One secure workspace for leads, customers, estimates, projects, collections, vendors and business intelligence.
-                  </p>
-
-                  <div className="mt-5 grid max-w-[520px] grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-                    {[
-                      [Building2, "Operations"],
-                      [CircleCheck, "Control"],
-                      [KeyRound, "Access"],
-                      [ShieldCheck, "Security"],
-                    ].map(([Icon, label]) => (
-                      <div key={label} className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-2.5 py-2 text-[10px] font-semibold text-slate-600 shadow-sm sm:px-3 sm:py-2.5 sm:text-[11px]">
-                        <Icon className="h-3.5 w-3.5 shrink-0 text-[#174ea6]" strokeWidth={2} />
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="hidden shrink-0 border-t border-slate-200/80 pt-4 sm:block lg:pt-3">
-                <div className="flex items-end justify-between gap-6">
-                  <div>
-                    <div className="font-bengali text-xs text-slate-600">"{SANKALP_TAGLINE_BN}"</div>
-                    <div className="mt-1 text-[10px] text-slate-400">We Build Spaces. We Manage Business.</div>
-                  </div>
-                  <div className="text-right text-[10px] text-slate-400">© 2026 Sankalp Group<br />All rights reserved.</div>
-                </div>
+              <div className="hidden items-center gap-2 rounded-full bg-white/80 px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#18345b] shadow-sm backdrop-blur-md sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Secure Business Portal
               </div>
             </div>
-          </section>
 
-          {/* AUTHENTICATION PANEL */}
-          <section className="relative flex min-h-0 items-center justify-center overflow-hidden bg-[#071225] px-5 py-6 sm:px-8 lg:px-10 xl:px-14">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(39,91,181,.28),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(221,139,42,.11),transparent_27%)]" />
-            <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:46px_46px]" />
+            <div className="flex min-h-0 flex-1 items-center justify-between gap-5 lg:gap-10">
+              {/* Left brand story */}
+              <div className="hidden max-w-[430px] shrink-0 lg:block">
+                <div className="mb-4 font-script text-[2.7rem] leading-[0.9] text-[#071b38] xl:text-[3.35rem]">
+                  Building
+                  <br />
+                  Better Spaces
+                  <br />
+                  <span className="relative inline-block">Together<span className="absolute -bottom-1 left-0 h-1 w-20 -rotate-[8deg] bg-[#f4771a]" /></span>
+                </div>
 
-            <div className="relative z-10 w-full max-w-[440px]">
-              <div className="mb-3 flex items-center justify-between px-1 text-[9px] font-medium uppercase tracking-[0.14em] text-white/45 sm:mb-4 sm:text-[10px]">
-                <span>Employee Portal</span>
-                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Protected access</span>
+                <div className="mt-7 space-y-3">
+                  {SERVICE_STEPS.map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-3 text-[13px] font-semibold text-[#112846]">
+                      <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/78 shadow-sm ring-1 ring-white/80 backdrop-blur-sm">
+                        <Icon className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#17375f]/70">
+                  Interiors&nbsp;&nbsp;|&nbsp;&nbsp;Infrastructure&nbsp;&nbsp;|&nbsp;&nbsp;Business Solutions
+                </div>
               </div>
 
-              <div className="overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_80px_rgba(0,0,0,.36)]">
-                <div className="h-1 bg-gradient-to-r from-[#174ea6] via-[#2d67cf] to-[#d68a2d]" />
-                <div className="p-6 sm:p-8 lg:p-9">
-                  <div className="mb-6 sm:mb-7">
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#edf4ff] text-[#174ea6] ring-1 ring-blue-100">
-                      <Lock className="h-5 w-5" strokeWidth={2.1} />
-                    </div>
-                    <h2 className="font-display text-[1.9rem] font-bold tracking-[-0.035em] text-[#081326] sm:text-[2rem]">Welcome back.</h2>
-                    <p className="mt-1.5 text-sm text-slate-500">Sign in to access your business workspace.</p>
+              {/* Login card */}
+              <div className="flex w-full justify-center lg:justify-end">
+                <div className="w-full max-w-[410px] rounded-[22px] bg-white/96 p-5 shadow-[0_28px_80px_rgba(8,27,53,.26)] ring-1 ring-white/80 backdrop-blur-md sm:p-7 lg:max-w-[405px] lg:p-7 xl:max-w-[420px] xl:p-8">
+                  <div className="text-center">
+                    <img
+                      src={LOGIN_LOGO}
+                      alt="Sankalp Group"
+                      className="mx-auto h-12 w-auto max-w-[245px] object-contain sm:h-14"
+                    />
+                    <h1 className="mt-4 font-display text-[1.65rem] font-bold tracking-[-0.03em] text-[#10213f] sm:text-[1.8rem]">
+                      Welcome Back!
+                    </h1>
+                    <p className="mt-1 text-xs text-[#6b7d98] sm:text-sm">Login to your Business Management System</p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
-                    <div>
-                      <label htmlFor="login-email" className="text-xs font-semibold text-slate-700 sm:text-sm">Email address</label>
-                      <div className="relative mt-1.5">
-                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          id="login-email"
-                          type="email"
-                          required
-                          autoFocus
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@company.com"
-                          autoComplete="email"
-                          className="h-12 rounded-xl border-slate-200 bg-slate-50 pl-10 text-sm shadow-none transition-all placeholder:text-slate-400 focus-visible:border-[#174ea6] focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-blue-600/10 sm:pl-11 sm:text-[15px]"
-                          data-testid="login-email-input"
-                        />
-                      </div>
+                  <form onSubmit={handleSubmit} className="mt-5 space-y-3.5 sm:mt-6 sm:space-y-4" data-testid="login-form">
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#607895]" />
+                      <Input
+                        id="login-email"
+                        type="email"
+                        required
+                        autoFocus
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email address"
+                        autoComplete="email"
+                        className="h-11 rounded-xl border-0 bg-[#edf4fc] pl-10 text-sm text-[#10213f] shadow-none placeholder:text-[#6c7f9b] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2a67c7]/25 sm:h-12 sm:pl-11"
+                        data-testid="login-email-input"
+                      />
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between gap-3">
-                        <label htmlFor="login-password" className="text-xs font-semibold text-slate-700 sm:text-sm">Password</label>
-                        <button
-                          type="button"
-                          className="text-[10px] font-semibold text-[#174ea6] hover:text-[#0e3470] hover:underline sm:text-xs"
-                          onClick={() => toast.info("Please contact your administrator to reset your password.")}
-                        >
-                          Forgot password?
-                        </button>
-                      </div>
-                      <div className="relative mt-1.5">
-                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          id="login-password"
-                          type={showPwd ? "text" : "password"}
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter your password"
-                          autoComplete="current-password"
-                          className="h-12 rounded-xl border-slate-200 bg-slate-50 pl-10 pr-11 text-sm shadow-none transition-all placeholder:text-slate-400 focus-visible:border-[#174ea6] focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-blue-600/10 sm:pl-11 sm:text-[15px]"
-                          data-testid="login-password-input"
-                        />
-                        <button
-                          type="button"
-                          aria-label={showPwd ? "Hide password" : "Show password"}
-                          onClick={() => setShowPwd(!showPwd)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                        >
-                          {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#607895]" />
+                      <Input
+                        id="login-password"
+                        type={showPwd ? "text" : "password"}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        autoComplete="current-password"
+                        className="h-11 rounded-xl border-0 bg-[#edf4fc] pl-10 pr-11 text-sm text-[#10213f] shadow-none placeholder:text-[#6c7f9b] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2a67c7]/25 sm:h-12 sm:pl-11"
+                        data-testid="login-password-input"
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPwd ? "Hide password" : "Show password"}
+                        onClick={() => setShowPwd(!showPwd)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#607895] hover:bg-white hover:text-[#10213f]"
+                      >
+                        {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        className="text-[10px] font-semibold text-[#1858b4] hover:underline sm:text-xs"
+                        onClick={() => toast.info("Please contact your administrator to reset your password.")}
+                      >
+                        Forgot Password?
+                      </button>
                     </div>
 
                     <Button
                       type="submit"
                       disabled={submitting}
-                      className="group h-12 w-full rounded-xl bg-[#174ea6] text-white shadow-[0_10px_24px_rgba(23,78,166,.24)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#123f8b] hover:shadow-[0_14px_30px_rgba(23,78,166,.3)] disabled:translate-y-0"
+                      className="group h-11 w-full rounded-xl bg-[#f87818] text-sm font-bold text-white shadow-[0_9px_20px_rgba(248,120,24,.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#ed690b] hover:shadow-[0_13px_25px_rgba(248,120,24,.32)] sm:h-12"
                       data-testid="login-submit-button"
                     >
-                      {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="inline-flex items-center gap-2">Sign in <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" /></span>}
+                      {submitting ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <span className="inline-flex items-center gap-2">Login <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                      )}
                     </Button>
 
-                    <div className="flex items-center gap-3 pt-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400 sm:text-[10px]">
-                      <div className="h-px flex-1 bg-slate-100" />
-                      <span>Authorized users only</span>
-                      <div className="h-px flex-1 bg-slate-100" />
+                    <div className="flex items-center gap-3 text-[10px] text-[#7a8ba4]">
+                      <div className="h-px flex-1 bg-[#e5eaf1]" />
+                      <span>or</span>
+                      <div className="h-px flex-1 bg-[#e5eaf1]" />
                     </div>
 
-                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-center text-[10px] text-slate-500 sm:text-xs">
-                      Need access? <span className="font-semibold text-[#174ea6]">Contact your administrator</span>
+                    <button
+                      type="button"
+                      onClick={() => toast.info("Google sign-in is not enabled for this Business Management System.")}
+                      className="h-10 w-full rounded-xl border border-[#cfd9e6] bg-white text-xs font-semibold text-[#233b5d] transition-colors hover:bg-[#f8fafc] sm:h-11"
+                    >
+                      <span className="inline-flex items-center gap-2.5">
+                        <span className="font-bold text-[15px]">G</span>
+                        Continue with Google
+                      </span>
+                    </button>
+
+                    <div className="pt-1 text-center text-[10px] text-[#71839c] sm:text-xs">
+                      Don&apos;t have an account? <span className="font-semibold text-[#f26f16]">Contact Admin</span>
                     </div>
                   </form>
                 </div>
               </div>
-
-              <div className="mt-3 flex items-center justify-center gap-2 text-[9px] text-white/40 sm:mt-4 sm:text-[10px]">
-                <ShieldCheck className="h-3 w-3" />
-                Secure authentication <span>•</span> Sankalp Group
-              </div>
             </div>
-          </section>
-        </div>
+
+            <div className="hidden shrink-0 items-center justify-between text-[9px] text-white/85 sm:flex lg:text-[10px]">
+              <span className="rounded-md bg-black/15 px-2 py-1 backdrop-blur-sm">© 2026 Sankalp Group · All rights reserved.</span>
+              <span className="rounded-md bg-black/15 px-2 py-1 backdrop-blur-sm">Secure&nbsp;&nbsp;•&nbsp;&nbsp;Reliable&nbsp;&nbsp;•&nbsp;&nbsp;Efficient</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Product capability strip */}
+        <section className="relative z-20 shrink-0 bg-white lg:flex-[0_0_26%]">
+          <div className="mx-auto grid h-full max-w-[1700px] grid-cols-2 divide-x divide-y divide-[#dfe6ef] sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0">
+            {MODULES.map(({ icon: Icon, title, desc, tone }) => (
+              <div key={title} className="flex min-h-0 items-center justify-center px-3 py-3 text-center sm:px-4 lg:px-5 xl:px-7">
+                <div>
+                  <div
+                    className={`mx-auto mb-2 grid h-9 w-9 place-items-center rounded-xl ${
+                      tone === "orange" ? "bg-orange-50 text-[#f4771a]" : tone === "green" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-[#1760c3]"
+                    }`}
+                  >
+                    <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+                  </div>
+                  <div className="text-[10px] font-bold leading-4 text-[#10213f] sm:text-[11px] lg:text-xs">{title}</div>
+                  <div className="mx-auto mt-0.5 max-w-[175px] text-[9px] leading-3.5 text-[#71839c] sm:text-[10px]">{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden h-7 items-center justify-between border-t border-[#e8edf3] px-5 text-[9px] text-[#71839c] lg:flex xl:px-8">
+            <span className="font-bengali">"{SANKALP_TAGLINE_BN}"</span>
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Secure · Reliable · Efficient</span>
+          </div>
+        </section>
       </div>
     </main>
   );

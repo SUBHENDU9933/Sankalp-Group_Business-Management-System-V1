@@ -124,7 +124,7 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Approved:** Yes — explicit user authorization received.
 - **Scope:** Central role/action authorization abstraction for the React UI.
 - **Application changes implemented:**
-  - Added `frontend/src/utils/permissions.js` with normalized Admin/RM/RE roles and separate VIEW/CREATE/EDIT/DELETE/ASSIGN/APPROVE/SEND/RESTORE/PURGE actions.
+  - Added `frontend/src/utils/permissions.js` with normalized Admin/RM/RE roles and separate VIEW/CREATE/EDIT/DELETE/ASSIGN/SEND/RESTORE/PURGE actions.
   - Added `frontend/src/hooks/usePermissions.js` exposing `can`, `canAny`, and `canAll` helpers to pages/components.
   - Updated `AuthContext` to normalize legacy `manager`/`executive` role labels to RM/RE without changing stored role data.
   - Added a reusable `PermissionRoute` guard and verified it supports both nested routes and direct children.
@@ -154,7 +154,7 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 ### CHANGE #007 — Lead Action-Level Permission Controls
 - **Date:** 2026-09-07
 - **System:** BMS
-- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
 - **Approved:** Yes — explicit user authorization received.
 - **Scope:** Lead create/edit/status/assignment/conversion/bulk actions.
 - **Application changes implemented:**
@@ -168,13 +168,13 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - Bulk action bar now hides unavailable actions instead of exposing unauthorized controls.
 - **Security boundary:** These are UI/action checks layered over the existing Supabase RLS policies; they do not replace database authorization.
 - **Files changed:** `frontend/src/pages/LeadsPage.jsx`, `frontend/src/components/leads/LeadFormDialog.jsx`, `frontend/src/components/leads/LeadBulkActionBar.jsx`.
-- **Deployment:** Vercel production deployment was triggered automatically by the Git-connected repository and is currently pending/queued. It must be verified READY before calling this change deployed.
-- **Next:** Receipts, Projects, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
+- **Deployment:** Vercel production deployment is confirmed READY on the subsequent stable production build.
+- **Next:** Receipts, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
 
 ### CHANGE #008 — Project Action-Level Permission Controls
 - **Date:** 2026-09-07
 - **System:** BMS
-- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
 - **Approved:** Yes — explicit user authorization received.
 - **Scope:** Project create/edit/delete controls and form enforcement.
 - **Application changes implemented:**
@@ -186,8 +186,27 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - Existing project VIEW route and project membership behavior are preserved.
 - **Security boundary:** UI/action checks are layered over Supabase RLS and do not replace database enforcement.
 - **Files changed:** `frontend/src/pages/ProjectsPage.jsx`, `frontend/src/components/projects/ProjectFormDialog.jsx`.
-- **Deployment:** Vercel is automatically deploying the Git-connected commits; the latest deployment is currently queued and must reach READY before being considered production-deployed.
+- **Deployment:** Vercel production deployment for the corrected build commit `9f07e8dee8604879490eedd41f74cb6a791b4b55` is confirmed READY. Historical failed builds were caused by the missing `PageBody` closing tag and are not the active production version.
 - **Next:** Receipts, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
+
+### CHANGE #009 — Agreement Action-Level Permission Controls
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Agreement create/edit/send/void/delete UI actions.
+- **Application changes implemented:**
+  - New Agreement controls require `agreements:create`.
+  - Agreement Edit requires `agreements:edit`.
+  - Send-for-Digital-Signature is controlled by `agreements:send`.
+  - Void and Move-to-Trash remain Admin-only through the current permission matrix.
+  - Agreement Templates remain Admin-only.
+  - View/PDF remains available to users with `agreements:view`.
+  - Existing route guards, public signing/token workflows and database RLS remain preserved.
+- **Security boundary:** UI/action checks are layered over Supabase RLS and do not replace database enforcement.
+- **Files changed:** `frontend/src/pages/AgreementsPage.jsx`.
+- **Deployment:** Vercel production deployment for commit `aba35768acfede1b9384401d4f1a46597d099edc` is confirmed READY.
+- **Next:** Receipts, Vendors, Vendor Bills/Payments, Expenses and Digital Approvals, followed by full regression/security verification.
 
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

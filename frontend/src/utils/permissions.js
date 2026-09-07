@@ -16,12 +16,10 @@ export const ACTIONS = Object.freeze({
   PURGE: "purge",
 });
 
-// UI authorization is intentionally conservative. Supabase RLS remains the
-// security boundary; this matrix controls what the interface exposes.
 const RM_RESOURCES = {
   leads: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.ASSIGN, ACTIONS.SEND],
   customers: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
-  estimates: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
+  estimates: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.SEND],
   projects: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
   receipts: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
   vendors: [ACTIONS.VIEW],
@@ -34,12 +32,10 @@ const RM_RESOURCES = {
   notifications: [ACTIONS.VIEW],
 };
 
-// RE has full normal operational Lead access within the Leads the database
-// authorizes for that RE. DELETE/PURGE remain outside normal Lead operations.
 const RE_RESOURCES = {
   leads: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.ASSIGN, ACTIONS.SEND],
   customers: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
-  estimates: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
+  estimates: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE],
   projects: [ACTIONS.VIEW],
   receipts: [ACTIONS.VIEW, ACTIONS.CREATE],
   vendors: [ACTIONS.VIEW],

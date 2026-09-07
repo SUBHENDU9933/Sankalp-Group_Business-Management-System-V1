@@ -16,6 +16,7 @@ import {
 import { fetchProjects, deleteProject } from "@/services/projectService";
 import { fetchCustomers } from "@/services/customerService";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { formatINR, formatDate, PROJECT_STATUSES } from "@/utils/format";
 import ProjectFormDialog from "@/components/projects/ProjectFormDialog";
 import { toast } from "sonner";
@@ -30,7 +31,8 @@ const statusColor = (s) => ({
 }[s] || "bg-stone-100 text-stone-900 border-stone-300");
 
 export default function ProjectsPage() {
-  const { isAdmin, user } = useAuth();
+  const { user } = useAuth();
+  const { can } = usePermissions();
   const [list, setList] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,9 +59,22 @@ export default function ProjectsPage() {
   }), [list, search, statusFilter]);
 
   const handleDelete = async (project) => {
+    if (!can("projects", "delete")) {
+      toast.error("You do not have permission to delete projects.");
+      return;
+    }
     if (!window.confirm(`Permanently delete "${project.project_name}"? This will also delete all related expenses. This cannot be undone.`)) return;
     try { await deleteProject(project.id, user?.id); toast.success("Moved to Trash"); load(); }
     catch (e) { toast.error(e.message); }
+  };
+
+  const openNew = () => {
+    if (!can("projects", "create")) return;
+    setEditProject(null); setOpen(true);
+  };
+  const openEdit = (project) => {
+    if (!can("projects", "edit")) return;
+    setEditProject(project); setOpen(true);
   };
 
   return (
@@ -67,11 +82,11 @@ export default function ProjectsPage() {
       <PageHeader
         subtitle="Phase 5"
         title="Projects &amp; Expenses"
-        actions={
-          <Button onClick={() => { setEditProject(null); setOpen(true); }} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="project-add-button">
+        actions={can("projects", "create") ? (
+          <Button onClick={openNew} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="project-add-button">
             <Plus className="w-4 h-4" />New Project
           </Button>
-        }
+        ) : null}
       />
       <PageBody>
         <div className="bg-white border border-stone-200 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-0 grid-divider-x">
@@ -100,6 +115,11 @@ export default function ProjectsPage() {
               <Hammer className="w-10 h-10 mx-auto text-stone-300" />
               <div className="font-display text-xl font-bold tracking-tight mt-3">No projects yet</div>
               <p className="text-sm text-stone-500 mt-2">{list.length === 0 ? "Create a project to start tracking expenses and progress." : "No projects match the filters."}</p>
+              {list.length === 0 && can("projects", "create") && (
+                <Button onClick={openNew} className="mt-4 rounded-none bg-orange-500 hover:bg-orange-600 text-white" data-testid="project-empty-create-button">
+                  <Plus className="w-4 h-4 mr-1" />Create Project
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-0 grid-divider-x grid-divider-y border border-stone-200 bg-stone-200">
@@ -112,24 +132,28 @@ export default function ProjectsPage() {
                       <div className="text-xs text-stone-500 mt-1">{p.location || "—"}</div>
                     </Link>
                     <div className="flex items-center gap-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 hover:bg-stone-100" data-testid={`project-actions-${p.id}`}><MoreVertical className="w-4 h-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-none border-stone-300">
-                          <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => { setEditProject(p); setOpen(true); }} data-testid={`project-edit-${p.id}`}>
-                            <Pencil className="w-4 h-4 mr-2" />Edit
-                          </DropdownMenuItem>
-                          {isAdmin && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleDelete(p)} data-testid={`project-delete-${p.id}`}>
-                                <Trash2 className="w-4 h-4 mr-2" />Delete
+                      {(can("projects", "edit") || can("projects", "delete")) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 hover:bg-stone-100" data-testid={`project-actions-${p.id}`}><MoreVertical className="w-4 h-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-none border-stone-300">
+                            {can("projects", "edit") && (
+                              <DropdownMenuItem className="rounded-none cursor-pointer" onClick={() => openEdit(p)} data-testid={`project-edit-${p.id}`}>
+                                <Pencil className="w-4 h-4 mr-2" />Edit
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            )}
+                            {can("projects", "delete") && (
+                              <>
+                                {can("projects", "edit") && <DropdownMenuSeparator />}
+                                <DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleDelete(p)} data-testid={`project-delete-${p.id}`}>
+                                  <Trash2 className="w-4 h-4 mr-2" />Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                       <ArrowRight className="w-4 h-4 text-stone-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
@@ -141,7 +165,6 @@ export default function ProjectsPage() {
                     {p.start_date && <Chip>Start: {formatDate(p.start_date)}</Chip>}
                   </div>
 
-                  {/* Members */}
                   <div className="flex items-center gap-2 mt-3">
                     <div className="flex -space-x-2">
                       {(p.members || []).slice(0, 4).map((m) => (
@@ -187,7 +210,6 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
-      </PageBody>
 
       <ProjectFormDialog
         open={open}

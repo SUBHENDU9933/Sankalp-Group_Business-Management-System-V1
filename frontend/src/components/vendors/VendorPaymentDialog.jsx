@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { createVendorPayment, fetchVendorBills } from "@/services/vendorService";
 import { todayISO, formatINR } from "@/utils/format";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ export default function VendorPaymentDialog({
   onSaved,
 }) {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [submitting, setSubmitting] = useState(false);
   const [bills, setBills] = useState([]);
   const { register, handleSubmit, reset, setValue, watch } = useForm();
@@ -44,14 +46,16 @@ export default function VendorPaymentDialog({
     });
   }, [open, defaultVendorId, defaultProjectId, reset]);
 
-  // Load this vendor's bills (so "Against Bill" can offer a picker with each
-  // bill's remaining balance) whenever the selected vendor changes.
   useEffect(() => {
     if (!open || !vendorId) { setBills([]); return; }
     fetchVendorBills(vendorId).then(setBills).catch(() => setBills([]));
   }, [open, vendorId]);
 
   const onSubmit = async (values) => {
+    if (!can("vendor_payments", "create")) {
+      toast.error("You do not have permission to record vendor payments.");
+      return;
+    }
     if (!values.vendor_id) { toast.error("Select a vendor"); return; }
     if (values.payment_type === "against_bill" && !values.bill_id) { toast.error("Select which bill this payment is against"); return; }
     setSubmitting(true);
@@ -101,20 +105,10 @@ export default function VendorPaymentDialog({
           <div>
             <Label className="label-uppercase">This payment is</Label>
             <div className="flex gap-2 mt-1.5">
-              <button
-                type="button"
-                onClick={() => setValue("payment_type", "advance")}
-                className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "advance" ? "border-blue-700 bg-blue-50 text-blue-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`}
-                data-testid="payment-type-advance"
-              >
+              <button type="button" onClick={() => setValue("payment_type", "advance")} className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "advance" ? "border-blue-700 bg-blue-50 text-blue-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`} data-testid="payment-type-advance">
                 Advance <span className="text-[10px] font-normal">(no bill yet)</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setValue("payment_type", "against_bill")}
-                className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "against_bill" ? "border-emerald-700 bg-emerald-50 text-emerald-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`}
-                data-testid="payment-type-against-bill"
-              >
+              <button type="button" onClick={() => setValue("payment_type", "against_bill")} className={`flex-1 rounded-none border px-3 py-2 text-sm font-medium transition-colors ${paymentType === "against_bill" ? "border-emerald-700 bg-emerald-50 text-emerald-800" : "border-stone-300 text-stone-500 hover:bg-stone-50"}`} data-testid="payment-type-against-bill">
                 Against a Bill
               </button>
             </div>

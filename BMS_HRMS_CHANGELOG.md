@@ -220,5 +220,24 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Verified deployment:** Vercel Production deployment for commit `7d459e0f02ed21a3d64961f6cd6c2cb992b758ae` is confirmed READY.
 - **Next:** Finish remaining action-level UI/service coverage, then perform end-to-end regression across Admin/RM/RE and review remaining sensitive storage/data paths.
 
+### CHANGE #011 — Final Authorization Regression Hardening
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED / REGRESSION IN PROGRESS
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Close remaining direct database/RPC bypasses discovered during final regression.
+- **Database changes implemented:**
+  - Vendor master INSERT/UPDATE/DELETE locked to Admin.
+  - Estimate, Expense, Agreement, Digital Approval and Vendor Payment DELETE locked to Admin.
+  - Receipt attachment INSERT/SELECT/UPDATE/DELETE now follows the underlying receipt relationship/ownership rules.
+  - Lead/Customer/Receipt delete-request and cancellation RPCs now authenticate and enforce requester/admin/scope rules.
+  - Internal expiration/reminder scheduler RPC execution removed from end users.
+  - `get_receipt_attachments_by_receipt(uuid)` can no longer be executed by anon or authenticated users; the previous public function could retrieve attachments using only a receipt UUID and was therefore treated as an unnecessary direct-access path. The public QR verification page uses `verify_receipt` and does not require this attachment RPC.
+  - Vendor direct SELECT remains Admin-only; RM/RE use the safe non-KYC vendor directory.
+- **Verification:** Critical RLS policies were re-read after migration. Admin-only destructive operations and relationship-scoped reads/writes are present.
+- **Supabase advisor:** Remaining warnings are primarily intentional public token/signature/verification SECURITY DEFINER RPCs, controlled authenticated helper RPCs, the intentionally security-definer `vendor_directory` view, and leaked-password protection being disabled. These require targeted review rather than blanket revocation because several are part of working customer/public workflows.
+- **Production:** Latest BMS Vercel deployment `dpl_Hv3rhjUzqPTNc7uxo34eBDb31zay` remains READY/Production on commit `fe7099564a528e5a69c72e690a5ff21628ad2419`; runtime error query returned no logs for the checked criteria.
+- **Next:** Complete Vendor/Digital Approval UI action cleanup where safely possible, then run full Admin/RM/RE + direct-Supabase + public-workflow regression, followed by HRMS deep security hardening.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

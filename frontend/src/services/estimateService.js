@@ -16,15 +16,16 @@ export const buildEstimatorUrl = ({ leadId, estimateId } = {}) => {
 };
 
 export const fetchEstimates = async () => {
+  const select = "*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name,assigned_to,assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email,role))";
   const withFilter = await supabase
     .from("estimates")
-    .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name)")
+    .select(select)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (!withFilter.error) return withFilter.data || [];
   const { data, error } = await supabase
     .from("estimates")
-    .select("*, creator:profiles!estimates_created_by_fkey(id,full_name,email), lead:leads!estimates_lead_id_fkey(id,name)")
+    .select(select)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];

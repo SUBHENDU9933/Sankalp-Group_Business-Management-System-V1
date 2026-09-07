@@ -155,7 +155,7 @@ function App() {
                     </Suspense>
                   </PermissionRoute>
                 } />
-                <Route path="/trash" element={<TrashPage />} />
+                <Route path="/trash" element={<AdminOnly><TrashPage /></AdminOnly>} />
               </Route>
             </Route>
 

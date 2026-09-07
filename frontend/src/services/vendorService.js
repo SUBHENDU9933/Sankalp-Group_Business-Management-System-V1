@@ -2,14 +2,11 @@ import { supabase } from "@/lib/supabase";
 
 const VENDOR_FIELDS =
   "id,name,type,phone,email,address,gst_no,pan_no,aadhar_no,upi_id,account_holder,account_no,ifsc,bank_name,photo_url,id_card_url,visiting_card_url,notes,is_active,created_at,updated_at,created_by";
-
 const VENDOR_DIRECTORY_FIELDS =
   "id,name,type,phone,email,address,is_active,created_at,updated_at,created_by";
-
 const VENDOR_DOC_BUCKET = "vendor-docs";
 const VENDOR_DOC_FIELDS = ["photo_url", "id_card_url", "visiting_card_url"];
 const VENDOR_DOC_SIGNED_URL_TTL = 60 * 60;
-
 const ACTIONS = Object.freeze({ CREATE: "create", EDIT: "edit", DELETE: "delete" });
 
 const normalizeRole = (role) => {
@@ -23,32 +20,20 @@ const normalizeRole = (role) => {
 const assertPermission = async (resource, action) => {
   const { data: { user } = {} } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required");
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role,is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: profile, error } = await supabase.from("profiles").select("role,is_admin").eq("id", user.id).maybeSingle();
   if (error) throw error;
-
   const role = profile?.is_admin ? "admin" : normalizeRole(profile?.role);
-  const adminOnly = resource === "vendors";
-  const allowed = role === "admin" || (!adminOnly && role === "rm" && [ACTIONS.CREATE, ACTIONS.EDIT].includes(action));
+  let allowed = role === "admin";
+  if (resource === "vendors") allowed = role === "admin";
+  if (resource === "vendor_payments") allowed = role === "admin" || (role === "rm" && [ACTIONS.CREATE, ACTIONS.EDIT].includes(action)) || (role === "re" && action === ACTIONS.CREATE);
+  if (resource === "vendor_bills") allowed = role === "admin" || (role === "rm" && [ACTIONS.CREATE, ACTIONS.EDIT].includes(action)) || (role === "re" && action === ACTIONS.CREATE);
   if (!allowed) throw new Error(`You do not have permission to ${action} ${resource}.`);
 };
 
-/**
- * Full vendor data is restricted by RLS to Admins and the vendor creator.
- * The directory view contains only non-KYC fields and is available to all
- * authenticated users for operational vendor lookup.
- */
 const tryFullElseBase = async (action) => {
-  try {
-    return await action(VENDOR_FIELDS);
-  } catch (e) {
-    if ((e?.message || "").match(/column .* does not exist/i)) {
-      return await action("*");
-    }
+  try { return await action(VENDOR_FIELDS); }
+  catch (e) {
+    if ((e?.message || "").match(/column .* does not exist/i)) return await action("*");
     throw e;
   }
 };

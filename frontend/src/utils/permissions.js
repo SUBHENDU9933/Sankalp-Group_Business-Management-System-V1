@@ -30,6 +30,7 @@ const RM_RESOURCES = {
   agreements: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
   digital_approvals: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
   notifications: [ACTIONS.VIEW],
+  reports: [ACTIONS.VIEW],
 };
 
 const RE_RESOURCES = {
@@ -46,6 +47,7 @@ const RE_RESOURCES = {
   agreements: [ACTIONS.VIEW],
   digital_approvals: [ACTIONS.VIEW],
   notifications: [ACTIONS.VIEW],
+  reports: [ACTIONS.VIEW],
 };
 
 const MATRIX = Object.freeze({ rm: RM_RESOURCES, re: RE_RESOURCES });

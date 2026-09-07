@@ -133,13 +133,13 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - Preserved public verification/signing/approval routes and print-route placement.
 - **Security boundary:** This matrix is a UI authorization layer only. Supabase RLS remains the server-side enforcement boundary and is not weakened by these changes.
 - **Conservative adjustment:** Broad Reports VIEW access was removed from RM/RE; Reports remain Admin-only because report sensitivity has not yet been fully verified.
-- **Deployment:** Latest production deployment for commit `3f7a3ed201f0283b0131fd16386a5cfff1e95` is READY. Build completed successfully; only a pre-existing React Hook dependency warning was reported.
+- **Deployment:** Latest production deployment for commit `3f7a3ed201f0283b0131fd16386a5cfff1301e95` is READY. Build completed successfully; only a pre-existing React Hook dependency warning was reported.
 - **Preserved:** Existing navigation and role flags; no database role data was remapped.
 
 ### CHANGE #006 — Reusable Action Permission Gate / Customer Actions
 - **Date:** 2026-09-07
 - **System:** BMS
-- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
 - **Approved:** Yes — explicit user authorization received.
 - **Scope:** Move authorization from route-only protection toward action-level UI controls.
 - **Application changes implemented:**
@@ -150,7 +150,26 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   - Customer delete-request control is shown only when DELETE is allowed.
   - Customer form submit is guarded by the matching CREATE/EDIT permission in addition to the UI visibility check.
 - **Security boundary:** UI checks do not replace Supabase RLS. Existing database enforcement remains authoritative.
-- **Next:** Apply the same action-level pattern to Leads, Estimates, Receipts, Projects, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, then perform regression testing.
+
+### CHANGE #007 — Lead Action-Level Permission Controls
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Lead create/edit/status/assignment/conversion/bulk actions.
+- **Application changes implemented:**
+  - Lead page New Lead and empty-state Create Lead controls now require `leads:create`.
+  - Lead import now requires `leads:create`; export remains available to users with `leads:view`.
+  - Lead form independently enforces CREATE vs EDIT before saving.
+  - Lead status and bulk priority/status changes require EDIT.
+  - Primary/co-assignee bulk actions require ASSIGN.
+  - Lead conversion requires customer CREATE permission.
+  - Delete-request and cancel-delete actions require DELETE.
+  - Bulk action bar now hides unavailable actions instead of exposing unauthorized controls.
+- **Security boundary:** These are UI/action checks layered over the existing Supabase RLS policies; they do not replace database authorization.
+- **Files changed:** `frontend/src/pages/LeadsPage.jsx`, `frontend/src/components/leads/LeadFormDialog.jsx`, `frontend/src/components/leads/LeadBulkActionBar.jsx`.
+- **Deployment:** Vercel production deployment was triggered automatically by the Git-connected repository and is currently pending/queued. It must be verified READY before calling this change deployed.
+- **Next:** Receipts, Projects, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, followed by full regression/security verification.
 
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

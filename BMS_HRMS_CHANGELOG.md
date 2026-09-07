@@ -239,5 +239,23 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Production:** Latest BMS Vercel deployment `dpl_Hv3rhjUzqPTNc7uxo34eBDb31zay` remains READY/Production on commit `fe7099564a528e5a69c72e690a5ff21628ad2419`; runtime error query returned no logs for the checked criteria.
 - **Next:** Complete Vendor/Digital Approval UI action cleanup where safely possible, then run full Admin/RM/RE + direct-Supabase + public-workflow regression, followed by HRMS deep security hardening.
 
+### CHANGE #012 — RM Lead Team Visibility + Webhook Unassigned Leads
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED / APPLICATION COMMIT READY
+- **Approved:** Yes — explicit user implementation request.
+- **Scope:** Relationship Manager lead visibility and RM → RE co-assignment.
+- **Requirement implemented:** An RM can access leads created by the RM, leads directly assigned to the RM, leads assigned/co-assigned to an RE in that RM's active `rm_re_assignments` team, and webhook/system-created leads that are still unassigned (`created_by IS NULL` and `assigned_to IS NULL`).
+- **Database changes:**
+  - Expanded `private.can_access_lead(uuid)` with the webhook-unassigned scope while retaining existing creator/primary/co-assignee and RM→RE relationship logic.
+  - `leads_select` and `leads_update` now use the centralized relationship-aware lead access helper.
+  - `lead_assignees_select` now follows the same lead scope so RM team leads include their assignee details.
+  - `lead_assignees_insert/delete` now explicitly allow an RM to manage a team RE on an accessible lead, while preserving existing admin/creator/primary/co-assignee behavior.
+- **Live team mapping verified:** Both Soumen Biswas and Arijit Roy are currently RMs. The live `rm_re_assignments` table currently maps each of them to the active REs Amit Ray, Sarmistha Halder and Soumit Ghosh.
+- **Current live-scope regression counts:** Arijit has 782 leads in the new relationship-aware scope; Soumen has 628. These totals include overlaps and are not simple sums of the individual categories.
+- **Application changes:** `AssigneeManager.jsx` now identifies the logged-in RM's active team REs and limits RM co-assignment candidates to those REs. Labels were updated from RM-specific wording to team-assignee wording.
+- **Preserved:** Existing `lead_assignees` multi-assignment infrastructure, admin controls, RE relationships, lead creation/update behavior, and BMS/HRMS separation.
+- **Validation:** Live RLS policies were re-read after migration. The production frontend commit still requires Vercel deployment/READY verification before treating the UI portion as live.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

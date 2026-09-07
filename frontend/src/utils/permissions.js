@@ -34,8 +34,10 @@ const RM_RESOURCES = {
   notifications: [ACTIONS.VIEW],
 };
 
+// RE has full normal operational Lead access within the Leads the database
+// authorizes for that RE. DELETE/PURGE remain outside normal Lead operations.
 const RE_RESOURCES = {
-  leads: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
+  leads: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.ASSIGN, ACTIONS.SEND],
   customers: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
   estimates: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
   projects: [ACTIONS.VIEW],

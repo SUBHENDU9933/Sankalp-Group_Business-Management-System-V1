@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, testid: "nav-dashboard" },
+  { to: "/reports", label: "Reports", icon: BarChart3, testid: "nav-reports" },
   { to: "/leads", label: "Leads", icon: Users, testid: "nav-leads" },
   { to: "/estimates", label: "Estimates", icon: Calculator, testid: "nav-estimates" },
   { to: "/customers", label: "Customers", icon: UserCheck, testid: "nav-customers" },
@@ -47,7 +48,7 @@ export default function DashboardLayout() {
           {NAV.map((item) => <NavLink key={item.to} to={item.to} end={item.exact} data-testid={item.testid} className={({ isActive }) => cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors", isActive ? "bg-blue-700 text-white shadow-sm shadow-blue-700/20" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}><item.icon className="w-4 h-4" /><span className="flex-1 font-medium">{item.label}</span></NavLink>)}
           {isAdmin && <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
             <div className="px-3 py-1.5 label-uppercase text-slate-400">Admin</div>
-            {[ ["/team","Team",UsersRound,"nav-team"],["/reports","Reports",BarChart3,"nav-reports"],["/agreement-templates","Agreement Templates",FileSignature,"nav-agreement-templates"],["/approvals","Delete Approvals",ShieldCheck,"nav-approvals"],["/audit-log","Audit Log",Activity,"nav-audit-log"],["/trash","Trash",Trash2,"nav-trash"] ].map(([to,label,Icon,testid]) => <NavLink key={to} to={to} data-testid={testid} className={({ isActive }) => cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors", isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}><Icon className="w-4 h-4" /><span className="flex-1 font-medium">{label}</span></NavLink>)}
+            {[ ["/team","Team",UsersRound,"nav-team"],["/agreement-templates","Agreement Templates",FileSignature,"nav-agreement-templates"],["/approvals","Delete Approvals",ShieldCheck,"nav-approvals"],["/audit-log","Audit Log",Activity,"nav-audit-log"],["/trash","Trash",Trash2,"nav-trash"] ].map(([to,label,Icon,testid]) => <NavLink key={to} to={to} data-testid={testid} className={({ isActive }) => cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors", isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}><Icon className="w-4 h-4" /><span className="flex-1 font-medium">{label}</span></NavLink>)}
             {profile?.email === "info.subhendu@gmail.com" && <NavLink to="/admin-notify" data-testid="nav-admin-notify" className={({ isActive }) => cn("flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors", isActive ? "bg-blue-700 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100")}><Send className="w-4 h-4" /><span className="flex-1 font-medium">Send Notification</span></NavLink>}
           </div>}
         </nav>

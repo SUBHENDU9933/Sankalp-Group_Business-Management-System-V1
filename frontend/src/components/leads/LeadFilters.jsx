@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { LEAD_STATUSES, LEAD_SOURCES } from "@/utils/format";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function LeadFilters({
   search, onSearchChange,
@@ -23,11 +25,64 @@ export default function LeadFilters({
   isAdmin = false,
   onClear,
 }) {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const normalizedRole = String(role || "").trim().toLowerCase();
-  const canUseAssignedRmFilter = isAdmin || normalizedRole === "rm";
-  const assignedRmOptions = rmOptions.filter((p) => ["rm", "manager"].includes(String(p.role || "").trim().toLowerCase()));
+  const isRm = normalizedRole === "rm" || normalizedRole === "manager";
+  const canUseUserWiseFilter = isAdmin || isRm;
+  const [teamReIds, setTeamReIds] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTeamReIds() {
+      if (!isRm || !user?.id) {
+        if (active) setTeamReIds([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("rm_re_assignments")
+        .select("re_id")
+        .eq("rm_id", user.id);
+
+      if (!active) return;
+      if (error) {
+        console.error("Failed to load RM team REs for Lead filter:", error);
+        setTeamReIds([]);
+        return;
+      }
+
+      setTeamReIds((data || []).map((row) => row.re_id).filter(Boolean));
+    }
+
+    loadTeamReIds();
+    return () => { active = false; };
+  }, [isRm, user?.id]);
+
+  const teamReOptions = useMemo(() => {
+    const allowed = new Set(teamReIds);
+    return rmOptions.filter((p) =>
+      allowed.has(p.id) && ["re", "executive"].includes(String(p.role || "").trim().toLowerCase())
+    );
+  }, [rmOptions, teamReIds]);
+
+  const assignedRmOptions = useMemo(
+    () => rmOptions.filter((p) => ["rm", "manager"].includes(String(p.role || "").trim().toLowerCase())),
+    [rmOptions]
+  );
+
   const hasFilters = search || status !== "all" || rm !== "all" || source !== "all" || (tag && tag !== "all") || fromDate || toDate;
+
+  useEffect(() => {
+    if (!canUseUserWiseFilter || !rm || rm === "all" || rm === "unassigned") return;
+
+    const validIds = isRm
+      ? new Set([user?.id, ...teamReOptions.map((p) => p.id)].filter(Boolean))
+      : new Set(assignedRmOptions.map((p) => p.id));
+
+    if (!validIds.has(rm)) onRmChange("all");
+  }, [canUseUserWiseFilter, isRm, user?.id, rm, teamReOptions, assignedRmOptions, onRmChange]);
+
   return (
     <div className="bg-white border border-stone-200" data-testid="leads-filters">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-0 grid-divider-x">
@@ -61,34 +116,45 @@ export default function LeadFilters({
             <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-status-filter"><SelectValue /></SelectTrigger>
             <SelectContent className="rounded-none">
               <SelectItem value="all" className="rounded-none">All Statuses</SelectItem>
-              {LEAD_STATUSES.map((s) => (
-                <SelectItem key={s.key} value={s.key} className="rounded-none">{s.label}</SelectItem>
-              ))}
+              {LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key} className="rounded-none">{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </FilterCell>
-        {canUseAssignedRmFilter && (
-          <FilterCell label="Assigned RM">
+
+        {canUseUserWiseFilter && (
+          <FilterCell label="User Wise Filter">
             <Select value={rm} onValueChange={onRmChange}>
-              <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-rm-filter"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-user-wise-filter"><SelectValue /></SelectTrigger>
               <SelectContent className="rounded-none">
-                <SelectItem value="all" className="rounded-none">All RMs</SelectItem>
-                <SelectItem value="unassigned" className="rounded-none">Unassigned</SelectItem>
-                {assignedRmOptions.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="rounded-none">{p.full_name || p.email}</SelectItem>
-                ))}
+                <SelectItem value="all" className="rounded-none">ALL LEADS</SelectItem>
+                <SelectItem value="unassigned" className="rounded-none">ALL UNASSIGNED</SelectItem>
+                {isRm ? (
+                  <>
+                    <SelectItem value={user?.id || "current-user"} disabled={!user?.id} className="rounded-none">
+                      {rmOptions.find((p) => p.id === user?.id)?.full_name || "My Leads"} (MY LEADS)
+                    </SelectItem>
+                    {teamReOptions.map((p) => (
+                      <SelectItem key={p.id} value={p.id} className="rounded-none">
+                        {p.full_name || p.email} (TEAM RE)
+                      </SelectItem>
+                    ))}
+                  </>
+                ) : (
+                  assignedRmOptions.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="rounded-none">{p.full_name || p.email}</SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </FilterCell>
         )}
+
         <FilterCell label="Source">
           <Select value={source} onValueChange={onSourceChange}>
             <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-source-filter"><SelectValue /></SelectTrigger>
             <SelectContent className="rounded-none">
               <SelectItem value="all" className="rounded-none">All Sources</SelectItem>
-              {LEAD_SOURCES.map((s) => (
-                <SelectItem key={s} value={s} className="rounded-none">{s}</SelectItem>
-              ))}
+              {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s} className="rounded-none">{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </FilterCell>

@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 
 export const PageHeader = ({ title, subtitle, actions, className }) => (
   <div className={cn("border-b border-slate-200 bg-white px-6 md:px-10 py-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4", className)}>
+    <style>{`[data-testid^="vendor-card-"] > div:first-child > div:first-child { width: 64px; height: 64px; border-radius: 9999px; border: 1px solid #e7e5e4; overflow: hidden; flex-shrink: 0; } [data-testid^="vendor-card-"] > div:first-child > div:first-child img { width: 100%; height: 100%; object-fit: cover; display: block; }`}</style>
     <div>
       <div className="label-uppercase">{subtitle || "Module"}</div>
       <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-1 text-slate-900">{title}</h1>

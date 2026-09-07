@@ -17,12 +17,16 @@ const normalizeRole = (role) => {
   return value;
 };
 
-const assertPermission = async (resource, action) => {
+const getCurrentRole = async () => {
   const { data: { user } = {} } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required");
   const { data: profile, error } = await supabase.from("profiles").select("role,is_admin").eq("id", user.id).maybeSingle();
   if (error) throw error;
-  const role = profile?.is_admin ? "admin" : normalizeRole(profile?.role);
+  return profile?.is_admin ? "admin" : normalizeRole(profile?.role);
+};
+
+const assertPermission = async (resource, action) => {
+  const role = await getCurrentRole();
   let allowed = role === "admin";
   if (resource === "vendors") allowed = role === "admin";
   if (resource === "vendor_payments") allowed = role === "admin" || (role === "rm" && [ACTIONS.CREATE, ACTIONS.EDIT].includes(action)) || (role === "re" && action === ACTIONS.CREATE);
@@ -60,18 +64,27 @@ const signVendorDocuments = async (vendor) => {
 };
 
 export const fetchVendors = async () => {
+  const role = await getCurrentRole();
+  if (role === "admin") {
+    const { data, error } = await supabase.from("vendors").select(VENDOR_FIELDS).order("created_at", { ascending: false });
+    if (error) throw error;
+    return Promise.all((data || []).map(signVendorDocuments));
+  }
   const { data, error } = await supabase.from("vendor_directory").select(VENDOR_DIRECTORY_FIELDS).order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
 };
 
 export const fetchVendorById = async (id) => {
-  const full = await tryFullElseBase(async (sel) => {
-    const { data, error } = await supabase.from("vendors").select(sel + ",creator:profiles!vendors_created_by_fkey(id,full_name,email)").eq("id", id).maybeSingle();
-    if (error) throw error;
-    return data;
-  });
-  if (full) return signVendorDocuments(full);
+  const role = await getCurrentRole();
+  if (role === "admin") {
+    const full = await tryFullElseBase(async (sel) => {
+      const { data, error } = await supabase.from("vendors").select(sel + ",creator:profiles!vendors_created_by_fkey(id,full_name,email)").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data;
+    });
+    if (full) return signVendorDocuments(full);
+  }
   const { data, error } = await supabase.from("vendor_directory").select(VENDOR_DIRECTORY_FIELDS).eq("id", id).maybeSingle();
   if (error) throw error;
   return data;

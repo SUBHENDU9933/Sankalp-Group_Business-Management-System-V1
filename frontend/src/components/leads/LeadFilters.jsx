@@ -8,6 +8,7 @@ import {
   Search, KanbanSquare, Table as TableIcon, X,
 } from "lucide-react";
 import { LEAD_STATUSES, LEAD_SOURCES } from "@/utils/format";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LeadFilters({
   search, onSearchChange,
@@ -22,6 +23,10 @@ export default function LeadFilters({
   isAdmin = false,
   onClear,
 }) {
+  const { role } = useAuth();
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  const canUseAssignedRmFilter = isAdmin || normalizedRole === "rm";
+  const assignedRmOptions = rmOptions.filter((p) => ["rm", "manager"].includes(String(p.role || "").trim().toLowerCase()));
   const hasFilters = search || status !== "all" || rm !== "all" || source !== "all" || (tag && tag !== "all") || fromDate || toDate;
   return (
     <div className="bg-white border border-stone-200" data-testid="leads-filters">
@@ -62,14 +67,14 @@ export default function LeadFilters({
             </SelectContent>
           </Select>
         </FilterCell>
-        {isAdmin && (
+        {canUseAssignedRmFilter && (
           <FilterCell label="Assigned RM">
             <Select value={rm} onValueChange={onRmChange}>
               <SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-rm-filter"><SelectValue /></SelectTrigger>
               <SelectContent className="rounded-none">
                 <SelectItem value="all" className="rounded-none">All RMs</SelectItem>
                 <SelectItem value="unassigned" className="rounded-none">Unassigned</SelectItem>
-                {rmOptions.map((p) => (
+                {assignedRmOptions.map((p) => (
                   <SelectItem key={p.id} value={p.id} className="rounded-none">{p.full_name || p.email}</SelectItem>
                 ))}
               </SelectContent>

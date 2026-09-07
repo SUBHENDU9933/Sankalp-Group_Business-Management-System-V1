@@ -33,8 +33,29 @@ export const uploadSignature = async (userId, file) => {
   return url;
 };
 
-export const sendPasswordReset = async (email) => {
-  const redirectTo = `${window.location.origin}/login`;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+/** Change the currently signed-in user's password after re-authentication. */
+export const changeOwnPassword = async ({ currentPassword, newPassword }) => {
+  const { data: authData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  const currentUser = authData?.user;
+  if (!currentUser?.email) throw new Error("Unable to identify the signed-in user");
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: currentUser.email,
+    password: currentPassword,
+  });
+  if (verifyError) throw new Error("Current password is incorrect");
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
+};
+
+/** Admin-only password reset for another team member. Requires the admin-set-password Edge Function. */
+export const adminSetUserPassword = async (userId, newPassword) => {
+  const { data, error } = await supabase.functions.invoke("admin-set-password", {
+    body: { user_id: userId, new_password: newPassword },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
 };

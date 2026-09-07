@@ -1,6 +1,40 @@
 import { supabase } from "@/lib/supabase";
 import { pushToAllAdmins } from "@/services/notificationService";
 
+const RECEIPT_ACTIONS = Object.freeze({
+  CREATE: "create",
+  EDIT: "edit",
+  DELETE: "delete",
+});
+
+const normalizeReceiptRole = (role) => {
+  const value = String(role || "").trim().toLowerCase();
+  if (value === "admin") return "admin";
+  if (value === "rm" || value === "manager") return "rm";
+  if (value === "re" || value === "executive") return "re";
+  return value;
+};
+
+const assertReceiptPermission = async (action) => {
+  const { data: { user } = {} } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role,is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (error) throw error;
+
+  const role = profile?.is_admin ? "admin" : normalizeReceiptRole(profile?.role);
+  const allowed =
+    role === "admin" ||
+    (role === "rm" && [RECEIPT_ACTIONS.CREATE, RECEIPT_ACTIONS.EDIT].includes(action)) ||
+    (role === "re" && action === RECEIPT_ACTIONS.CREATE);
+
+  if (!allowed) throw new Error(`You do not have permission to ${action} receipts.`);
+};
+
 export const fetchReceipts = async () => {
   const rich = "*, customer:customers(id,name,phone,address), lead:leads(id,name,phone), requested_by:profiles!receipts_delete_requested_by_fkey(id,full_name,email)";
   const withFilter = await supabase
@@ -18,8 +52,9 @@ export const fetchReceipts = async () => {
   return data || [];
 };
 
-// Direct update (allowed for creator + admin via RLS)
+// Direct update (scope and ownership remain enforced by RLS)
 export const updateReceipt = async (id, payload) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.EDIT);
   const { data, error } = await supabase
     .from("receipts")
     .update(payload)
@@ -30,8 +65,9 @@ export const updateReceipt = async (id, payload) => {
   return data;
 };
 
-// RM/user requests admin to delete
+// RM/user requests admin to delete; destructive authorization remains server-side.
 export const requestDeleteReceipt = async (id) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.rpc("request_delete_receipt", { p_id: id });
   if (error) throw error;
   const { data: r } = await supabase.from("receipts").select("receipt_no,amount").eq("id", id).maybeSingle();
@@ -44,12 +80,14 @@ export const requestDeleteReceipt = async (id) => {
 };
 
 export const cancelDeleteReceipt = async (id) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.rpc("cancel_delete_receipt", { p_id: id });
   if (error) throw error;
 };
 
 // Admin approves the delete request — soft-delete to Trash
 export const adminDeleteReceipt = async (id, userId) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.from("receipts")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId, delete_request: false })
     .eq("id", id);
@@ -81,6 +119,7 @@ export const fetchReceiptAttachmentsPublic = async (receiptId) => {
 };
 
 export const addReceiptAttachment = async ({ receiptId, url, name, type, size, userId }) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.CREATE);
   const { data, error } = await supabase
     .from("receipt_attachments")
     .insert([{ receipt_id: receiptId, file_url: url, file_name: name, file_type: type, size_bytes: size, uploaded_by: userId }])
@@ -91,6 +130,7 @@ export const addReceiptAttachment = async ({ receiptId, url, name, type, size, u
 };
 
 export const removeReceiptAttachment = async (id) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.from("receipt_attachments").delete().eq("id", id);
   if (error) throw error;
 };
@@ -116,6 +156,7 @@ export const fetchReceiptById = async (id) => {
 };
 
 export const createReceipt = async (payload, userId) => {
+  await assertReceiptPermission(RECEIPT_ACTIONS.CREATE);
   const { data, error } = await supabase
     .from("receipts")
     .insert([{ ...payload, created_by: userId }])

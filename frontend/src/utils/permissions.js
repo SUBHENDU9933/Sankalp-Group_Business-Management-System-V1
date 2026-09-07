@@ -31,7 +31,6 @@ const RM_RESOURCES = {
   project_documents: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
   agreements: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
   digital_approvals: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.SEND],
-  reports: [ACTIONS.VIEW],
   notifications: [ACTIONS.VIEW],
 };
 
@@ -48,7 +47,6 @@ const RE_RESOURCES = {
   project_documents: [ACTIONS.VIEW, ACTIONS.CREATE],
   agreements: [ACTIONS.VIEW],
   digital_approvals: [ACTIONS.VIEW],
-  reports: [ACTIONS.VIEW],
   notifications: [ACTIONS.VIEW],
 };
 

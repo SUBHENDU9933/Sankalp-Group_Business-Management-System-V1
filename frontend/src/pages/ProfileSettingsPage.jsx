@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile, uploadSignature, sendPasswordReset } from "@/services/profileService";
+import { updateProfile, uploadSignature, changeOwnPassword } from "@/services/profileService";
 import { exportAllToZip } from "@/services/exportService";
-import { Upload, Save, KeyRound, UserCircle2, Download, Archive } from "lucide-react";
+import { Upload, Save, KeyRound, UserCircle2, Download, Archive, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0";
@@ -19,7 +19,11 @@ export default function ProfileSettingsPage() {
   const [signatureUrl, setSignatureUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(null);
   const fileRef = useRef(null);
@@ -69,26 +73,29 @@ export default function ProfileSettingsPage() {
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
-  const handleReset = async () => {
-    if (!user?.email) return;
-    if (!window.confirm(`Send a password reset email to ${user.email}?`)) return;
-    setResetting(true);
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) return toast.error("Enter your current password and the new password");
+    if (newPassword.length < 8) return toast.error("New password must be at least 8 characters");
+    if (newPassword !== confirmPassword) return toast.error("New password and confirmation do not match");
+    if (newPassword === currentPassword) return toast.error("New password must be different from your current password");
+    setChangingPassword(true);
     try {
-      await sendPasswordReset(user.email);
-      toast.success("Password reset email sent");
+      await changeOwnPassword({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password changed successfully");
     } catch (e) { toast.error(e.message); }
-    finally { setResetting(false); }
+    finally { setChangingPassword(false); }
   };
+
+  const passwordType = showPasswords ? "text" : "password";
 
   return (
     <div data-testid="profile-page">
-      <PageHeader
-        subtitle="Account"
-        title="My Profile"
-      />
+      <PageHeader subtitle="Account" title="My Profile" />
       <PageBody>
         <div className="grid lg:grid-cols-[1fr_360px] gap-6">
-          {/* Form */}
           <div className="bg-white border border-stone-200 p-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-12 h-12 rounded-full bg-blue-700 text-white grid place-items-center font-bold text-lg">
@@ -96,7 +103,9 @@ export default function ProfileSettingsPage() {
               </div>
               <div>
                 <div className="font-display text-lg tracking-tight text-stone-900">{profile?.email}</div>
-                <div className="text-[10px] tracking-[0.18em] uppercase font-semibold text-stone-500">{isAdmin ? "Administrator" : "Relationship Manager"}</div>
+                <div className="text-[10px] tracking-[0.18em] uppercase font-semibold text-stone-500">
+                  {isAdmin ? "Administrator" : String(profile?.role || "user").toLowerCase() === "re" ? "Relationship Executive" : "Relationship Manager"}
+                </div>
               </div>
             </div>
 
@@ -120,13 +129,9 @@ export default function ProfileSettingsPage() {
               <Button onClick={handleSave} disabled={saving} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="profile-save">
                 <Save className="w-4 h-4 mr-1.5" />{saving ? "Saving…" : "Save Profile"}
               </Button>
-              <Button onClick={handleReset} disabled={resetting} variant="outline" className="rounded-none border-stone-300" data-testid="profile-reset-pwd">
-                <KeyRound className="w-4 h-4 mr-1.5" />{resetting ? "Sending…" : "Send Password Reset Email"}
-              </Button>
             </div>
           </div>
 
-          {/* Signature */}
           <div className="bg-white border border-stone-200 p-6">
             <div className="label-uppercase mb-3"><UserCircle2 className="w-3 h-3 inline mr-1" />Signature</div>
             <div className="text-xs text-stone-500 mb-3">Upload once. Your signature will be embedded on every estimate you create.</div>
@@ -144,7 +149,27 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
 
-        {/* Full Data Backup (admin only) */}
+        <div className="bg-white border border-stone-200 p-6 mt-6" data-testid="profile-password-section">
+          <div className="flex items-center justify-between gap-4 mb-1">
+            <div className="label-uppercase"><KeyRound className="w-3 h-3 inline mr-1" />Change Password</div>
+            <button type="button" onClick={() => setShowPasswords((v) => !v)} className="text-xs text-stone-500 hover:text-stone-900 flex items-center gap-1" data-testid="profile-password-visibility">
+              {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showPasswords ? "Hide" : "Show"}
+            </button>
+          </div>
+          <p className="text-xs text-stone-500 mb-4">For your security, enter your current password before setting a new one.</p>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div><Label className="label-uppercase">Current Password</Label><Input type={passwordType} className={inputCls} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" data-testid="profile-current-password" /></div>
+            <div><Label className="label-uppercase">New Password</Label><Input type={passwordType} className={inputCls} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" placeholder="Minimum 8 characters" data-testid="profile-new-password" /></div>
+            <div><Label className="label-uppercase">Confirm New Password</Label><Input type={passwordType} className={inputCls} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" data-testid="profile-confirm-password" /></div>
+          </div>
+          <div className="mt-5">
+            <Button onClick={handleChangePassword} disabled={changingPassword} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" data-testid="profile-change-password">
+              <KeyRound className="w-4 h-4 mr-1.5" />{changingPassword ? "Changing…" : "Change Password"}
+            </Button>
+          </div>
+        </div>
+
         {isAdmin && (
           <div className="bg-white border border-stone-200 p-6 mt-6" data-testid="data-backup-section">
             <div className="label-uppercase mb-3"><Archive className="w-3 h-3 inline mr-1" />Full Data Backup</div>

@@ -120,20 +120,37 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 ### CHANGE #005 — Centralized UI Permission Matrix
 - **Date:** 2026-09-07
 - **System:** BMS
-- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT COMPLETE
 - **Approved:** Yes — explicit user authorization received.
 - **Scope:** Central role/action authorization abstraction for the React UI.
 - **Application changes implemented:**
   - Added `frontend/src/utils/permissions.js` with normalized Admin/RM/RE roles and separate VIEW/CREATE/EDIT/DELETE/ASSIGN/APPROVE/SEND/RESTORE/PURGE actions.
   - Added `frontend/src/hooks/usePermissions.js` exposing `can`, `canAny`, and `canAll` helpers to pages/components.
   - Updated `AuthContext` to normalize legacy `manager`/`executive` role labels to RM/RE without changing stored role data.
-  - Added a reusable `PermissionRoute` guard.
+  - Added a reusable `PermissionRoute` guard and verified it supports both nested routes and direct children.
   - Applied VIEW guards to Leads, Customers, Estimates, Receipts, Projects, Vendors, Digital Approvals, Agreements and Reports; CREATE/EDIT guards were applied to Agreement editor routes.
   - Kept existing Admin-only Team, Approvals, Agreement Templates, Audit Log and Super Admin notification routes intact.
   - Preserved public verification/signing/approval routes and print-route placement.
 - **Security boundary:** This matrix is a UI authorization layer only. Supabase RLS remains the server-side enforcement boundary and is not weakened by these changes.
+- **Conservative adjustment:** Broad Reports VIEW access was removed from RM/RE; Reports remain Admin-only because report sensitivity has not yet been fully verified.
+- **Deployment:** Latest production deployment for commit `3f7a3ed201f0283b0131fd16386a5cfff1e95` is READY. Build completed successfully; only a pre-existing React Hook dependency warning was reported.
 - **Preserved:** Existing navigation and role flags; no database role data was remapped.
-- **Deployment:** GitHub changes are on `main`; Vercel deployment/regression remains pending.
+
+### CHANGE #006 — Reusable Action Permission Gate / Customer Actions
+- **Date:** 2026-09-07
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT PENDING
+- **Approved:** Yes — explicit user authorization received.
+- **Scope:** Move authorization from route-only protection toward action-level UI controls.
+- **Application changes implemented:**
+  - Added reusable `PermissionGate` component for resource/action checks.
+  - Customer Management now hides New Customer unless CREATE is allowed.
+  - Customer Edit is shown only when EDIT is allowed.
+  - New Receipt shortcut is shown only when receipt CREATE is allowed.
+  - Customer delete-request control is shown only when DELETE is allowed.
+  - Customer form submit is guarded by the matching CREATE/EDIT permission in addition to the UI visibility check.
+- **Security boundary:** UI checks do not replace Supabase RLS. Existing database enforcement remains authoritative.
+- **Next:** Apply the same action-level pattern to Leads, Estimates, Receipts, Projects, Vendors, Vendor Bills/Payments, Expenses, Agreements and Digital Approvals, then perform regression testing.
 
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

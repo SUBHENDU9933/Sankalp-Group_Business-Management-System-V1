@@ -129,9 +129,11 @@ export const bulkInsertLeads = async (rows, _userId) => {
   const errors = [];
   for (let i = 0; i < toInsert.length; i += 100) {
     const slice = toInsert.slice(i, i + 100);
-    const { data, error } = await supabase.from("leads").insert(slice).select("id");
+    // Bulk INSERT must also avoid RETURNING because the same lead SELECT RLS
+    // helper can reject the response row during the insert statement.
+    const { error } = await supabase.from("leads").insert(slice);
     if (error) errors.push(error.message);
-    else inserted += data?.length || 0;
+    else inserted += slice.length;
   }
   return { inserted, skipped, errors };
 };

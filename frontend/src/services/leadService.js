@@ -62,17 +62,27 @@ export const bulkAddCoAssignee = async (leadIds, userId, addedBy) => {
 };
 
 export const createLead = async (payload, _userId) => {
-  // Always derive the creator from the live Supabase Auth session.
-  // The database also has auth.uid() as a fallback default.
+  // Use the live Supabase Auth identity. Do not trust a caller-supplied creator id.
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user?.id) throw authError || new Error("Your login session has expired. Please sign in again.");
 
-  const { data, error } = await supabase
+  // Do not use INSERT ... RETURNING (.select()) here. The lead SELECT policy
+  // delegates to a helper that reads the leads table, and PostgreSQL can evaluate
+  // that helper before the just-inserted row is visible. That produces the misleading
+  // "new row violates row-level security" error even though INSERT itself is allowed.
+  // Insert first, then read the row in a separate authenticated SELECT.
+  const leadId = crypto.randomUUID();
+  const { error } = await supabase
     .from("leads")
-    .insert([{ ...payload, created_by: user.id }])
-    .select("*")
-    .single();
+    .insert([{ ...payload, id: leadId, created_by: user.id }]);
   if (error) throw error;
+
+  const { data, error: fetchError } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .single();
+  if (fetchError) throw fetchError;
   return data;
 };
 

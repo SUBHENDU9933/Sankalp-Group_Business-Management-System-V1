@@ -43,7 +43,6 @@ export const fetchReceipts = async () => {
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (!withFilter.error) return withFilter.data || [];
-  // Fallback if v14/v16 not yet applied
   const { data, error } = await supabase
     .from("receipts")
     .select("*, customer:customers(id,name,phone,address)")
@@ -52,7 +51,6 @@ export const fetchReceipts = async () => {
   return data || [];
 };
 
-// Direct update (scope and ownership remain enforced by RLS)
 export const updateReceipt = async (id, payload) => {
   await assertReceiptPermission(RECEIPT_ACTIONS.EDIT);
   const { data, error } = await supabase
@@ -65,7 +63,6 @@ export const updateReceipt = async (id, payload) => {
   return data;
 };
 
-// RM/user requests admin to delete; destructive authorization remains server-side.
 export const requestDeleteReceipt = async (id) => {
   await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.rpc("request_delete_receipt", { p_id: id });
@@ -85,7 +82,6 @@ export const cancelDeleteReceipt = async (id) => {
   if (error) throw error;
 };
 
-// Admin approves the delete request — soft-delete to Trash
 export const adminDeleteReceipt = async (id, userId) => {
   await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
   const { error } = await supabase.from("receipts")
@@ -94,10 +90,8 @@ export const adminDeleteReceipt = async (id, userId) => {
   if (error) throw error;
 };
 
-// (kept for backward-compat callers)
 export const deleteReceipt = adminDeleteReceipt;
 
-// ---------- Receipt Attachments (v14+) ----------
 export const fetchReceiptAttachments = async (receiptId) => {
   const { data, error } = await supabase
     .from("receipt_attachments")
@@ -111,7 +105,6 @@ export const fetchReceiptAttachments = async (receiptId) => {
   return data || [];
 };
 
-// Public (anon) variant used by /verify/:uid
 export const fetchReceiptAttachmentsPublic = async (receiptId) => {
   const { data, error } = await supabase.rpc("get_receipt_attachments_by_receipt", { p_receipt_id: receiptId });
   if (error) return [];
@@ -155,11 +148,16 @@ export const fetchReceiptById = async (id) => {
   return data;
 };
 
+// Always use the active Supabase Auth identity for created_by.
+// The caller-provided userId is retained only for backward compatibility and is never trusted for RLS.
 export const createReceipt = async (payload, userId) => {
   await assertReceiptPermission(RECEIPT_ACTIONS.CREATE);
+  const { data: { user } = {} } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required");
+
   const { data, error } = await supabase
     .from("receipts")
-    .insert([{ ...payload, created_by: userId }])
+    .insert([{ ...payload, created_by: user.id }])
     .select("*")
     .single();
   if (error) throw error;

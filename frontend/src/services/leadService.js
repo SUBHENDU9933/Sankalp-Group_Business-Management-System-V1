@@ -13,7 +13,6 @@ export const fetchLeads = async (filters = {}) => {
   if (filters.includeDeleteRequested === false) q = q.eq("delete_request", false);
   const { data, error } = await q;
   if (error) {
-    // Graceful degrade if v12 not yet applied — retry without assignees
     if (/lead_assignees/i.test(error.message)) {
       const fallback = await supabase
         .from("leads")
@@ -23,7 +22,6 @@ export const fetchLeads = async (filters = {}) => {
       if (fallback.error) throw fallback.error;
       return (fallback.data || []).map((l) => ({ ...l, assignees: [] }));
     }
-    // Graceful degrade if v14 not yet applied (deleted_at column missing)
     if (/deleted_at/i.test(error.message)) {
       const retry = await supabase
         .from("leads")
@@ -37,7 +35,6 @@ export const fetchLeads = async (filters = {}) => {
   return data || [];
 };
 
-// ---------- Multi-RM Assignment (v12+) ----------------------------------
 export const addLeadAssignee = async (leadId, userId, addedBy) => {
   const { error } = await supabase
     .from("lead_assignees")
@@ -57,7 +54,6 @@ export const removeLeadAssignee = async (leadId, userId) => {
 export const bulkAddCoAssignee = async (leadIds, userId, addedBy) => {
   if (!leadIds?.length || !userId) return 0;
   const rows = leadIds.map((lead_id) => ({ lead_id, user_id: userId, assigned_by: addedBy }));
-  // Insert with upsert-like semantics: ignore conflicts
   const { error } = await supabase
     .from("lead_assignees")
     .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
@@ -65,10 +61,15 @@ export const bulkAddCoAssignee = async (leadIds, userId, addedBy) => {
   return rows.length;
 };
 
-export const createLead = async (payload, userId) => {
+export const createLead = async (payload, _userId) => {
+  // Always derive the creator from the live Supabase Auth session.
+  // The database also has auth.uid() as a fallback default.
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user?.id) throw authError || new Error("Your login session has expired. Please sign in again.");
+
   const { data, error } = await supabase
     .from("leads")
-    .insert([{ ...payload, created_by: userId }])
+    .insert([{ ...payload, created_by: user.id }])
     .select("*")
     .single();
   if (error) throw error;
@@ -86,10 +87,6 @@ export const updateLead = async (id, payload) => {
   return data;
 };
 
-/**
- * Bulk update — applies same `payload` to every id in `ids`.
- * Returns count of rows updated.
- */
 export const bulkUpdateLeads = async (ids, payload) => {
   if (!ids?.length) return 0;
   const { data, error } = await supabase
@@ -101,13 +98,11 @@ export const bulkUpdateLeads = async (ids, payload) => {
   return data?.length || 0;
 };
 
-/**
- * Bulk insert leads. Returns { inserted, skipped, errors }.
- * Deduplicates by phone against existing leads (only if existing phone is set).
- */
-export const bulkInsertLeads = async (rows, userId) => {
+export const bulkInsertLeads = async (rows, _userId) => {
   if (!rows?.length) return { inserted: 0, skipped: 0, errors: [] };
-  // Pre-fetch existing phones to deduplicate (light: select only phone)
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user?.id) throw authError || new Error("Your login session has expired. Please sign in again.");
+
   const { data: existing, error: e1 } = await supabase.from("leads").select("phone");
   if (e1) throw e1;
   const seen = new Set((existing || []).map((r) => (r.phone || "").trim()).filter(Boolean));
@@ -117,10 +112,9 @@ export const bulkInsertLeads = async (rows, userId) => {
     const phone = (r.phone || "").trim();
     if (phone && seen.has(phone)) { skipped += 1; continue; }
     if (phone) seen.add(phone);
-    toInsert.push({ ...r, created_by: userId });
+    toInsert.push({ ...r, created_by: user.id });
   }
   if (!toInsert.length) return { inserted: 0, skipped, errors: [] };
-  // Insert in batches of 100 to stay under Postgres limits
   let inserted = 0;
   const errors = [];
   for (let i = 0; i < toInsert.length; i += 100) {
@@ -134,7 +128,6 @@ export const bulkInsertLeads = async (rows, userId) => {
 
 export const updateLeadStatus = async (id, status, userId) => {
   const lead = await updateLead(id, { status });
-  // Log status change to timeline (best-effort)
   if (userId) {
     try {
       await supabase.from("lead_activities").insert([{
@@ -151,7 +144,6 @@ export const updateLeadStatus = async (id, status, userId) => {
 export const requestDelete = async (id, _userId) => {
   const { error } = await supabase.rpc("request_delete_lead", { p_id: id });
   if (error) throw error;
-  // Look up lead name for a friendlier notification title
   const { data: lead } = await supabase.from("leads").select("name").eq("id", id).maybeSingle();
   await pushToAllAdmins({
     type: "delete_request",
@@ -167,7 +159,6 @@ export const cancelDeleteRequest = async (id) => {
 };
 
 export const adminDeleteLead = async (id, userId) => {
-  // Soft-delete: goes to Trash instead of hard delete
   const { error } = await supabase.from("leads")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq("id", id);
@@ -175,7 +166,6 @@ export const adminDeleteLead = async (id, userId) => {
 };
 
 export const convertLeadToCustomer = async (lead, userId) => {
-  // Insert customer
   const { data: customer, error: cErr } = await supabase
     .from("customers")
     .insert([{
@@ -189,16 +179,11 @@ export const convertLeadToCustomer = async (lead, userId) => {
     .select("*")
     .single();
   if (cErr) throw cErr;
-  // Lock lead
   const { error: lErr } = await supabase
     .from("leads")
     .update({ status: "converted", is_locked: true })
     .eq("id", lead.id);
   if (lErr) throw lErr;
-  // Carry forward any receipts collected while this was still a lead
-  // (visit charge / consultancy charge etc.) — link them to the new
-  // customer record so the payment history isn't orphaned. lead_id stays
-  // set too, so the pre-conversion origin is still visible.
   await supabase.from("receipts").update({ customer_id: customer.id }).eq("lead_id", lead.id).is("customer_id", null);
   return customer;
 };

@@ -82,11 +82,13 @@ export const cancelDeleteReceipt = async (id) => {
   if (error) throw error;
 };
 
-export const adminDeleteReceipt = async (id, userId) => {
+// Admin approval must use the server-side SECURITY DEFINER RPC.
+// Direct UPDATE is intentionally avoided because the normal receipt UPDATE
+// policy is designed for editable, non-deleted records and is not the correct
+// authorization path for the delete-approval state transition.
+export const adminDeleteReceipt = async (id) => {
   await assertReceiptPermission(RECEIPT_ACTIONS.DELETE);
-  const { error } = await supabase.from("receipts")
-    .update({ deleted_at: new Date().toISOString(), deleted_by: userId, delete_request: false })
-    .eq("id", id);
+  const { error } = await supabase.rpc("admin_delete_receipt", { p_id: id });
   if (error) throw error;
 };
 

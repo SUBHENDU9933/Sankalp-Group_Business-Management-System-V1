@@ -178,6 +178,102 @@ layer does); admin-only hard purge lives in Trash (`trashService.js`).
   `is_project_creator`/`is_project_member` (lower-level helpers used inside the
   `private.can_access_*` functions).
 
+## 5.5 Automatic side-effects (triggers) — business logic that isn't in the frontend
+
+These fire regardless of which client (React app, direct SQL, another tool) makes
+the change, so they're easy to forget about when reasoning about "what happens
+when I do X":
+
+- **Lead → Customer conversion is trigger-driven, not just client-driven.**
+  `trg_lead_converted` (BEFORE UPDATE on `leads`) calls
+  `create_customer_on_lead_conversion()`: any time a lead's status becomes
+  `converted` (from any non-converted value), it auto-inserts a `customers` row
+  (if one linked to that lead doesn't already exist) and sets `is_locked = true`
+  on the lead. **This fires from ANY status-change path** — the pipeline board
+  drag-and-drop, the status dropdown, bulk status update, all go through
+  `updateLeadStatus()`, which just does `leads.update({status})`.
+  ⚠️ **Known gap:** the dedicated `convertLeadToCustomer()` service function
+  (used by the explicit "Convert" button) does everything the trigger does
+  PLUS re-links any pre-conversion receipts (`receipts.customer_id = new customer's id`
+  where `lead_id` matches and `customer_id` is still null). The trigger does NOT
+  do this receipt re-link. So a lead converted via drag-and-drop or bulk action
+  gets a customer record automatically, but that customer's receipt history will
+  be missing anything paid before conversion — it'll still exist against the old
+  lead_id, just not surfaced on the customer. If this bites someone, the fix is
+  either teaching the trigger to do the same re-link, or restricting all
+  status-change UI to route "→ converted" through `convertLeadToCustomer()`.
+- **`sync_lead_primary_assignee`** (AFTER INSERT/UPDATE on `leads`) — whenever
+  `assigned_to` is set, it's automatically also added as a row in
+  `lead_assignees` (upsert, no-op if already there). So "primary owner" and
+  "co-assignee list" are kept in sync automatically; you never need to manually
+  add the primary owner as a co-assignee too.
+- **`sync_lead_on_estimate`** (AFTER INSERT/UPDATE/DELETE on `estimates`) — keeps
+  `leads.estimate_count`, `leads.last_estimate_id`, `leads.estimate_status`
+  denormalized onto the lead row for fast list-page display, using a priority
+  order (approved > sent > draft > rejected/other, tie-broken by most recent).
+- **`mirror_vendor_payment_expense`** (AFTER INSERT only on `vendor_payments`) —
+  auto-creates a matching `expenses` row (category='vendor') when a vendor
+  payment with a `project_id` is created, so project cost totals include vendor
+  payments without double-entry. ⚠️ **It only handles INSERT** — the function body
+  explicitly no-ops on UPDATE and DELETE ("best-effort mirror... user can edit
+  expense directly if needed"). So deleting or soft-deleting a vendor_payment
+  leaves its mirrored `expenses` row behind, orphaned — project totals will
+  overstate vendor cost after a payment deletion unless someone manually removes
+  the matching expense too.
+- **`notify_admins_delete_request`** (AFTER UPDATE on `leads`/`customers`/`receipts`)
+  — fires when `delete_request` flips to true, notifies every admin with a link
+  to `/approvals`. This is the backend half of the "non-admins can't hard-delete,
+  they can only request" workflow.
+- **`sync_profile_admin_flag`** (BEFORE INSERT/UPDATE on `profiles`) — keeps the
+  boolean `profiles.is_admin` in lockstep with `role = 'admin'`. Some RLS/helper
+  functions check `is_admin()` (role-based), others check `profiles.is_admin`
+  directly (older code) — they should always agree because of this trigger, but
+  if you ever see them disagree, this trigger is where to look.
+- **Every main table also has a generic `trg_audit_<table>`** (AFTER INSERT/UPDATE/DELETE
+  → `audit_trigger_fn()`) feeding `/audit-log`, and most have
+  `set_<table>_updated_at` (BEFORE UPDATE → `set_updated_at()`) for the
+  `updated_at` timestamp. Not called out per-table above since it's uniform.
+
+## 5.6 Storage bucket policies
+
+Three buckets (`attachments` public, `signatures` public, `vendor-docs` private —
+see §4/§7). RLS on `storage.objects`:
+- **attachments** — fully open to any authenticated user (read/insert/update/delete
+  all just check `bucket_id = 'attachments'`), PLUS a special anonymous-insert
+  policy scoped to specific path prefixes (`approvals/responses/%`,
+  `agreements/signatures/%`, `agreements/signature-pads/%`) so the public
+  token-based approval/signing flows can upload evidence without a login.
+- **signatures** — public read; write/update/delete restricted to your own
+  folder (`storage.foldername(name)[1] = auth.uid()`), i.e. path convention is
+  `{user_id}/...`.
+- **vendor-docs** — private bucket, gated by `private.can_access_vendor(vendor_id)`
+  where `vendor_id` is parsed from the first path segment. That function is
+  `is_admin() OR vendor.created_by = auth.uid()` — **not** the same "RM/RE can
+  view via vendor_directory" rule that governs the vendor_directory table. So an
+  RM/RE who did not personally create a given vendor cannot view/upload/delete
+  that vendor's photo/ID/visiting-card docs, even though they can see the
+  vendor's name/type/phone. Whether that's intentional (docs are more sensitive
+  than directory info) or an oversight (RM/RE "view" permission on vendors
+  presumably meant to include seeing the docs too) hasn't been confirmed with
+  Subhendu — flag it if it comes up.
+
+## 5.7 Scheduled jobs (pg_cron, `cron.job`)
+
+7 jobs, all `SECURITY DEFINER`:
+- **5 daily reminder slots** — `run_reminder_slot('1030am'|'11am'|'230pm'|'5pm'|'8pm')`
+  at 10:30/11:00/14:30/17:00/20:00 IST. For every profile, counts that user's
+  overdue-followup leads + pending digital_approvals they created + draft/sent
+  agreements they created; if the total > 0, inserts a `notifications` row
+  ("Pending Reminder") — this is what powers the repeating-siren popup
+  (`AdminNotifyPage`'s sibling behavior, see the notification modal work from
+  earlier sessions).
+- **1 daily "10pm_report" slot** — same counts but phrased as "Today's Summary"
+  per-user (includes today's lead-activity count), PLUS a separate team-wide
+  "Team Daily Report" sent to every admin only (new leads today, conversions
+  today, total activity logs today, team-wide pending counts).
+- **`dispatch_due_broadcasts()` every 5 minutes** — the admin broadcast
+  scheduler (§ Notifications in prior session notes).
+
 ## 6. Edge Functions (`supabase/functions/`)
 
 - **admin-set-password** — lets an admin set another user's password (service-role
@@ -190,6 +286,31 @@ layer does); admin-only hard purge lives in Trash (`trashService.js`).
   bands and property-type strings into this app's format). **This means leads can
   appear in the CRM without anyone here creating them — check this function before
   assuming all leads come from manual entry or CSV import.**
+
+## 6.5 Vercel-level routing (outside the React app entirely)
+
+`frontend/vercel.json` has two rewrites that run at the edge, before the SPA
+loads:
+- `/approve-app/:token` → `/index.html` (normal SPA rewrite, lets React Router
+  handle it — this is the real interactive approval page).
+- `/approve/:token` → `/api/approve/:token`, a **Vercel serverless function**
+  at `frontend/api/approve/[token].js`. It checks the User-Agent: real browsers
+  get an immediate 302 to `/approve-app/:token` (so end users never notice);
+  known crawler UAs (WhatsApp, Facebook, Twitter, LinkedIn, Slack, Telegram,
+  Discord, etc.) instead get a small server-rendered HTML stub with per-approval
+  Open Graph meta tags (fetched live via the `get_approval_meta_by_token` RPC),
+  so a shared approval link shows a real title/description/preview card instead
+  of generic SPA boilerplate.
+  ⚠️ **Consequence:** the `<Route path="/approve/:token">` that exists in
+  `App.js` pointing at `PublicApprovePage` is effectively unreachable in
+  production — the Vercel rewrite intercepts every request to that path before
+  it reaches the SPA. It's not dead code exactly (it'd work if vercel.json's
+  rewrite were ever removed, and it's harmless to leave), but don't spend time
+  debugging that specific route thinking it's what's serving `/approve/:token`
+  in prod — `api/approve/[token].js` is.
+- Agreements have no equivalent OG-preview function (only digital_approvals
+  do) — if that's ever wanted for `/sign/:token` links, this is the pattern to
+  copy.
 
 ## 7. Frontend structure quick-reference
 
@@ -223,7 +344,66 @@ layer does); admin-only hard purge lives in Trash (`trashService.js`).
 - `pages/*.jsx` — one per route, listed in §3.
 - `components/{leads,projects,vendors,shared,layout,auth,ui}/` — leads/projects/vendors have feature-specific components; `ui/` is the shadcn/ui primitive library (don't hand-edit these, they're generated); `shared/` has cross-feature pieces (SearchableSelect, StatusBadge, AgreementDocument, LocationMapTile).
 
-## 8. Things that will bite you if you forget them
+## 8. Other files already in this repo — what they are, so you don't re-derive or duplicate them
+
+- **`BMS_HRMS_CHANGELOG.md`** (repo root) — the other tool's own running decision
+  log for everything built in the 145-commit hardening pass this file's audit
+  discovered. **This is the primary source for *why* something was built a
+  certain way**; this ARCHITECTURE.md is the *what/how* reference. Read both.
+- **`memory/PRD.md`** — original product requirements doc from the very first
+  build (6 phases: Login+Dashboard, Leads, Customers, Receipts, Projects+Expenses,
+  Vendors). Useful for original intent, but the live system has grown well past
+  it (RBAC, agreements, digital approvals, reports, vendor bills, etc. postdate it)
+  — treat as historical, not current spec.
+- **`WEBSITE_SYNC_DEPLOYMENT.md`** — step-by-step deployment guide for the
+  website→BM-app lead sync (§6, `sync-website-lead` Edge Function). Reference
+  this if that pipeline ever needs debugging or re-deploying.
+- **`design_guidelines.json`** — the design system tokens actually in use: Light
+  theme, "Swiss & High-Contrast" archetype, stone/orange palette
+  (`#F97316` accent, `#292524` primary, `#F5F5F4` background), objective/rigid
+  tone. Matches the sharp-cornered (`rounded-none`), stone-and-orange look
+  throughout the app — check this before introducing new UI patterns/colors.
+- **`supabase_schema*.sql` files (root, v2 through v22 + a couple `_fix` variants)**
+  — historical migration snapshots, applied incrementally over the project's
+  life. **These are a paper trail, not the source of truth** — the actual live
+  schema is whatever's in the Supabase project right now (§4-§5.7 of this doc,
+  or query it directly); don't assume these files reflect current state, and
+  don't edit them expecting it to change anything live.
+- **`backend/` (FastAPI + Motor/MongoDB, `server.py` + `requirements.txt`)** —
+  dead scaffold left over from the Emergent AI platform's default project
+  template ("Hello World" + a `status_checks` stub). Not deployed, not
+  referenced by the frontend, not connected to anything real — the whole app
+  talks directly to Supabase from the browser. Confirmed explicitly in
+  `BMS_HRMS_CHANGELOG.md` too ("Legacy FastAPI/MongoDB code exists but is not
+  treated as the active BMS business backend"). Safe to ignore entirely.
+- **`test_result.md`, `test_reports/`, `tests/`** — Emergent AI's own automated
+  testing-agent scaffold/output. Not something this app's deploy pipeline
+  depends on (Vercel just builds `frontend/`); not maintained by Claude.
+- **`.emergent/`** — platform metadata for the Emergent AI tool itself, not
+  app config.
+
+## 9. Known gaps found during this audit (not yet fixed — flag before assuming they're fine)
+
+1. **Lead conversion via pipeline drag-and-drop / bulk status change skips
+   receipt re-linking** that the dedicated "Convert" button does — see §5.5.
+   Pre-conversion receipts become invisible on the resulting customer record.
+2. **`mirror_vendor_payment_expense` only mirrors on INSERT** — deleting a
+   vendor payment leaves an orphaned `expenses` row, overstating project vendor
+   cost — see §5.5.
+3. **Vendor document access (photos/ID/visiting card) is creator-or-admin-only**
+   (`private.can_access_vendor`), which is narrower than the "RM/RE can view
+   vendors" permission the matrix and `vendor_directory` view otherwise imply —
+   see §5.6. Unconfirmed whether intentional.
+4. **The `/approve/:token` React route is unreachable in production** (Vercel
+   edge rewrite intercepts it first) — harmless, but don't debug it thinking
+   it's live — see §6.5.
+
+None of these are urgent; they're documented so a future session doesn't
+mistake "I found a bug" for "this is new" or waste time re-discovering them,
+and so any fix is a deliberate decision with Subhendu rather than an accidental
+side effect of unrelated work.
+
+## 10. Things that will bite you if you forget them
 
 - **New table hanging off project/customer/lead?** Write RLS using the
   `private.can_access_project/customer/lead` pattern, not a fresh `true`-based

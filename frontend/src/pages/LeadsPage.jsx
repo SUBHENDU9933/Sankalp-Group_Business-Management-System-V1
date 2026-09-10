@@ -84,8 +84,15 @@ export default function LeadsPage() {
   const filtered = useMemo(() => leads.filter((l) => {
     if (statusFilter !== "all" && l.status !== statusFilter) return false;
     if (rmFilter !== "all") {
-      if (rmFilter === "unassigned" && l.assigned_to) return false;
-      if (rmFilter !== "unassigned" && l.assigned_to !== rmFilter) return false;
+      if (rmFilter === "unassigned") {
+        // A lead is truly unassigned only when it has neither a primary
+        // assignee nor any co-assignee in lead_assignees.
+        const hasPrimaryAssignee = Boolean(l.assigned_to);
+        const hasCoAssignee = Array.isArray(l.assignees) && l.assignees.some((a) => Boolean(a?.user_id || a?.profile?.id));
+        if (hasPrimaryAssignee || hasCoAssignee) return false;
+      } else if (l.assigned_to !== rmFilter) {
+        return false;
+      }
     }
     if (sourceFilter !== "all" && l.source !== sourceFilter) return false;
     if (tagFilter && tagFilter !== "all") {

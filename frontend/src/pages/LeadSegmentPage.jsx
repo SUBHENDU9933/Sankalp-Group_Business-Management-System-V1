@@ -167,6 +167,11 @@ export default function LeadSegmentPage({ segment = "active" }) {
     setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate(""); setPage(1);
   };
   const submitSearch = (e) => { e?.preventDefault?.(); setPage(1); setSearch(searchInput.trim()); };
+  const handleSearchChange = (value) => {
+    setSearchInput(value);
+    setPage(1);
+    setSearch(value.trim());
+  };
   const hasFilters = Boolean(search || statusFilter !== "all" || rmFilter !== "all" || sourceFilter !== "all" || tagFilter !== "all" || fromDate || toDate);
 
   return (
@@ -195,7 +200,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
         <div className="mt-4">
           <LeadFilters
             search={searchInput}
-            onSearchChange={setSearchInput}
+            onSearchChange={handleSearchChange}
             status={statusFilter}
             onStatusChange={(value) => { setPage(1); setStatusFilter(value); }}
             rm={rmFilter}

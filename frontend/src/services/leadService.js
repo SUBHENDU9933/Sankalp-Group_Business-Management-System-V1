@@ -6,20 +6,29 @@ const attachLeadAssignees = async (leads) => {
   if (!rows.length) return rows;
 
   const leadIds = rows.map((lead) => lead.id).filter(Boolean);
-  const { data: assignees, error } = await supabase
-    .from("lead_assignees")
-    .select("lead_id,user_id,added_at,profile:profiles!lead_assignees_user_id_fkey(id,full_name,email)")
-    .in("lead_id", leadIds);
-
-  // Never silently turn an assignment-query failure into an empty assignee list.
-  // Doing that makes assigned leads look unassigned and breaks User Wise Filter.
-  if (error) throw error;
-
   const byLead = new Map();
-  for (const row of assignees || []) {
-    const list = byLead.get(row.lead_id) || [];
-    list.push(row);
-    byLead.set(row.lead_id, list);
+
+  // Keep each PostgREST request small. Admins can have hundreds/thousands of
+  // leads, and one huge `.in("lead_id", leadIds)` request can exceed URL/request
+  // limits and return 400 Bad Request. Batching also preserves the co-assignee
+  // data required by User Wise Filter without changing RLS or the database.
+  const batchSize = 100;
+  for (let i = 0; i < leadIds.length; i += batchSize) {
+    const batch = leadIds.slice(i, i + batchSize);
+    const { data: assignees, error } = await supabase
+      .from("lead_assignees")
+      .select("lead_id,user_id,added_at,profile:profiles!lead_assignees_user_id_fkey(id,full_name,email)")
+      .in("lead_id", batch);
+
+    // Never silently turn an assignment-query failure into an empty assignee list.
+    // Doing that makes assigned leads look unassigned and breaks User Wise Filter.
+    if (error) throw error;
+
+    for (const row of assignees || []) {
+      const list = byLead.get(row.lead_id) || [];
+      list.push(row);
+      byLead.set(row.lead_id, list);
+    }
   }
 
   return rows.map((lead) => ({

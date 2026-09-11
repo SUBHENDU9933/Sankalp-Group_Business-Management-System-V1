@@ -29,6 +29,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rmFilter, setRmFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
@@ -36,7 +37,6 @@ export default function LeadSegmentPage({ segment = "active" }) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [view, setView] = useState("table");
-  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(100);
   const [total, setTotal] = useState(0);
@@ -52,16 +52,9 @@ export default function LeadSegmentPage({ segment = "active" }) {
     setLoading(true);
     try {
       const result = await fetchLeadSegment({
-        segment,
-        page,
-        pageSize,
-        search,
-        status: statusFilter,
-        rm: rmFilter,
-        source: sourceFilter,
-        tag: tagFilter,
-        fromDate,
-        toDate,
+        segment, page, pageSize, search,
+        status: statusFilter, rm: rmFilter, source: sourceFilter,
+        tag: tagFilter, fromDate, toDate,
       });
       const paymentMap = await fetchLeadPaymentTotals(result.rows.map((l) => l.id));
       setLeads(result.rows.map((l) => ({ ...l, receiptsTotal: paymentMap[l.id] || 0 })));
@@ -70,9 +63,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
       if (page > Math.max(1, Math.ceil(result.count / pageSize))) setPage(1);
     } catch (e) {
       toast.error(e.message || "Unable to load leads");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchProfiles().then(setProfiles).catch(() => setProfiles([])); }, []);
@@ -157,23 +148,25 @@ export default function LeadSegmentPage({ segment = "active" }) {
     exportLeadsCSV(rows, `leads-selected-${new Date().toISOString().slice(0, 10)}.csv`);
     toast.success(`Exported ${rows.length} leads`);
   };
-  const handleClearFilters = () => {
-    setSearch("");
-    setSearchInput("");
-    setStatusFilter("all");
-    setRmFilter("all");
-    setSourceFilter("all");
-    setTagFilter("all");
-    setFromDate("");
-    setToDate("");
-    setPage(1);
-  };
-  const submitSearch = (e) => {
-    e?.preventDefault?.();
-    setPage(1);
-    setSearch(searchInput.trim());
+
+  const reviveSelected = async () => {
+    if (!can("leads", "edit")) return toast.error("You do not have permission to revive leads");
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!window.confirm(`Revive ${ids.length} lost lead${ids.length !== 1 ? "s" : ""} as Contacted?`)) return;
+    try {
+      for (const id of ids) await reviveLostLead(id, user?.id, "contacted");
+      toast.success(`Revived ${ids.length} lead${ids.length !== 1 ? "s" : ""}`);
+      clearSelection();
+      load();
+    } catch (e) { toast.error(e.message || "Revive failed"); }
   };
 
+  const handleClearFilters = () => {
+    setSearch(""); setSearchInput(""); setStatusFilter("all"); setRmFilter("all");
+    setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate(""); setPage(1);
+  };
+  const submitSearch = (e) => { e?.preventDefault?.(); setPage(1); setSearch(searchInput.trim()); };
   const hasFilters = Boolean(search || statusFilter !== "all" || rmFilter !== "all" || sourceFilter !== "all" || tagFilter !== "all" || fromDate || toDate);
 
   return (
@@ -234,18 +227,10 @@ export default function LeadSegmentPage({ segment = "active" }) {
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading {isLost ? "lost" : "active"} leads…</div>
             : leads.length === 0 ? <div className="bg-white border border-stone-200 p-12 text-center text-stone-500">No {isLost ? "lost" : "active"} leads found.</div>
             : view === "table" ? <LeadTableView
-                leads={leads}
-                onOpen={openDetails}
-                onEdit={openEdit}
-                onStatusChange={handleStatusChange}
-                onConvert={handleConvert}
-                onRequestDelete={handleRequestDelete}
-                onCancelDelete={handleCancelDelete}
-                selected={selected}
-                onToggleSelect={toggleSelect}
-                onToggleAll={toggleAll}
-                profiles={profiles}
-                onAssigneesChanged={load}
+                leads={leads} onOpen={openDetails} onEdit={openEdit} onStatusChange={handleStatusChange}
+                onConvert={handleConvert} onRequestDelete={handleRequestDelete} onCancelDelete={handleCancelDelete}
+                selected={selected} onToggleSelect={toggleSelect} onToggleAll={toggleAll}
+                profiles={profiles} onAssigneesChanged={load}
               />
             : <LeadPipelineView leads={leads} onOpen={openDetails} onStatusChange={handleStatusChange} onConvert={handleConvert} />}
         </div>
@@ -255,14 +240,14 @@ export default function LeadSegmentPage({ segment = "active" }) {
           <div className="flex items-center gap-2">
             <Button variant="outline" className="rounded-none" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}><ChevronLeft className="w-4 h-4 mr-1" />Previous</Button>
             <span className="text-sm px-2">Page {page} of {totalPages}</span>
-            <Button variant="outline" className="rounded-none" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next<ChevronRight className="w-4 h-4 ml-1" />Next</Button>
+            <Button variant="outline" className="rounded-none" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next<ChevronRight className="w-4 h-4 ml-1" /></Button>
           </div>
         </div>
       </PageBody>
 
       {isLost && selected.size > 0 && (
         <div className="fixed bottom-5 right-5 z-40">
-          <Button onClick={() => reviveLostLead(Array.from(selected), user?.id)} className="rounded-none bg-emerald-600 hover:bg-emerald-700 text-white" disabled={!can("leads", "edit")}>
+          <Button onClick={reviveSelected} className="rounded-none bg-emerald-600 hover:bg-emerald-700 text-white" disabled={!can("leads", "edit")}>
             <RotateCcw className="w-4 h-4 mr-1" />Revive Selected ({selected.size})
           </Button>
         </div>

@@ -21,6 +21,7 @@ const STATUS_META = {
 };
 
 const ROLE_LABELS = { rm: "RM", manager: "RM", re: "RE", executive: "RE" };
+const PAGE_SIZE = 100;
 
 export default function EstimatesPage() {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function EstimatesPage() {
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setLoading(true);
@@ -80,6 +82,17 @@ export default function EstimatesPage() {
     return true;
   }), [rows, search, statusFilter, leadOwnerFilter, createdByFilter, dateFrom, dateTo]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, leadOwnerFilter, createdByFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   const clearFilters = () => { setSearch(""); setStatusFilter("all"); setLeadOwnerFilter("all"); setCreatedByFilter("all"); setDateFrom(""); setDateTo(""); };
   const hasActiveFilters = search || statusFilter !== "all" || leadOwnerFilter !== "all" || createdByFilter !== "all" || dateFrom || dateTo;
   const stats = useMemo(() => {
@@ -126,8 +139,9 @@ export default function EstimatesPage() {
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading estimates…</div> : filtered.length === 0 ? (
             <div className="bg-white border border-stone-200 p-12 text-center" data-testid="estimates-empty"><Calculator className="w-10 h-10 text-stone-300 mx-auto mb-3" /><div className="font-display text-xl font-bold tracking-tight text-stone-900">No estimates yet</div><p className="text-sm text-stone-500 mt-2">{rows.length === 0 ? "Create your first estimate to start tracking quotations." : "No estimates match the filters."}</p>{rows.length === 0 && can("estimates", "create") && <Button onClick={openNew} className="mt-4 rounded-none bg-stone-900 hover:bg-stone-800 text-white"><Plus className="w-4 h-4" /> Create Estimate</Button>}</div>
           ) : (
-            <div className="bg-white border border-stone-200 overflow-x-auto"><table className="w-full text-sm" data-testid="estimates-table"><thead className="bg-stone-50 border-b border-stone-200"><tr className="text-left"><th className="px-4 py-3 label-uppercase">Estimate No</th><th className="px-4 py-3 label-uppercase">Client</th><th className="px-4 py-3 label-uppercase">Linked Lead</th><th className="px-4 py-3 label-uppercase">Lead Owner / Assigned To</th><th className="px-4 py-3 label-uppercase">Date</th><th className="px-4 py-3 label-uppercase text-right">Amount</th><th className="px-4 py-3 label-uppercase">Status</th><th className="px-4 py-3 label-uppercase">Created By</th><th className="px-4 py-3 label-uppercase text-right">Actions</th></tr></thead>
-              <tbody className="grid-divider-y">{filtered.map((e) => { const s = STATUS_META[e.status] || STATUS_META.draft; const owner = e.lead?.assigned_profile; const ownerRole = ROLE_LABELS[String(owner?.role || "").trim().toLowerCase()]; return <tr key={e.id} className="hover:bg-stone-50 transition-colors" data-testid={`estimate-row-${e.id}`}><td className="px-4 py-3 font-mono text-xs text-stone-900">{e.estimate_no}</td><td className="px-4 py-3"><div className="font-medium text-stone-900">{e.customer_name || "—"}</div>{e.phone && <div className="text-xs text-stone-500">{e.phone}</div>}</td><td className="px-4 py-3 text-stone-700">{e.lead?.name || <span className="text-stone-400">—</span>}</td><td className="px-4 py-3 text-stone-700"><div className="font-medium">{owner?.full_name || owner?.email || <span className="text-stone-400">Unassigned</span>}</div>{ownerRole && <div className="text-[10px] tracking-[0.12em] uppercase text-stone-400 mt-0.5">{ownerRole}</div>}</td><td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDateTime(e.created_at)}</td><td className="px-4 py-3 text-stone-900 text-right tabular-nums">{formatINR(e.final_amount)}</td><td className="px-4 py-3"><Chip className={cn(s.cls)}>{s.label}</Chip></td><td className="px-4 py-3 text-stone-700">{e.creator?.full_name || e.creator?.email || <span className="text-stone-400">—</span>}</td><td className="px-4 py-3"><div className="flex justify-end items-center gap-1">
+            <>
+              <div className="bg-white border border-stone-200 overflow-x-auto"><table className="w-full text-sm" data-testid="estimates-table"><thead className="bg-stone-50 border-b border-stone-200"><tr className="text-left"><th className="px-4 py-3 label-uppercase">Estimate No</th><th className="px-4 py-3 label-uppercase">Client</th><th className="px-4 py-3 label-uppercase">Linked Lead</th><th className="px-4 py-3 label-uppercase">Lead Owner / Assigned To</th><th className="px-4 py-3 label-uppercase">Date</th><th className="px-4 py-3 label-uppercase text-right">Amount</th><th className="px-4 py-3 label-uppercase">Status</th><th className="px-4 py-3 label-uppercase">Created By</th><th className="px-4 py-3 label-uppercase text-right">Actions</th></tr></thead>
+                <tbody className="grid-divider-y">{paginated.map((e) => { const s = STATUS_META[e.status] || STATUS_META.draft; const owner = e.lead?.assigned_profile; const ownerRole = ROLE_LABELS[String(owner?.role || "").trim().toLowerCase()]; return <tr key={e.id} className="hover:bg-stone-50 transition-colors" data-testid={`estimate-row-${e.id}`}><td className="px-4 py-3 font-mono text-xs text-stone-900">{e.estimate_no}</td><td className="px-4 py-3"><div className="font-medium text-stone-900">{e.customer_name || "—"}</div>{e.phone && <div className="text-xs text-stone-500">{e.phone}</div>}</td><td className="px-4 py-3 text-stone-700">{e.lead?.name || <span className="text-stone-400">—</span>}</td><td className="px-4 py-3 text-stone-700"><div className="font-medium">{owner?.full_name || owner?.email || <span className="text-stone-400">Unassigned</span>}</div>{ownerRole && <div className="text-[10px] tracking-[0.12em] uppercase text-stone-400 mt-0.5">{ownerRole}</div>}</td><td className="px-4 py-3 text-stone-700 whitespace-nowrap">{formatDateTime(e.created_at)}</td><td className="px-4 py-3 text-stone-900 text-right tabular-nums">{formatINR(e.final_amount)}</td><td className="px-4 py-3"><Chip className={cn(s.cls)}>{s.label}</Chip></td><td className="px-4 py-3 text-stone-700">{e.creator?.full_name || e.creator?.email || <span className="text-stone-400">—</span>}</td><td className="px-4 py-3"><div className="flex justify-end items-center gap-1">
                 {can("estimates", "view") && <button onClick={() => openEditor(e.id)} title="View / Edit" className="p-1.5 hover:bg-stone-100 text-stone-600 hover:text-stone-900" data-testid={`estimate-view-${e.id}`}><Eye className="w-4 h-4" /></button>}
                 {can("estimates", "edit") && <button onClick={() => openEditor(e.id)} title="Edit" className="p-1.5 hover:bg-stone-100 text-stone-600 hover:text-stone-900" data-testid={`estimate-edit-${e.id}`}><Pencil className="w-4 h-4" /></button>}
                 <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="rounded-none h-8 w-8 hover:bg-stone-100" data-testid={`estimate-actions-${e.id}`}><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="rounded-none border-stone-300">
@@ -137,6 +151,15 @@ export default function EstimatesPage() {
                   {can("estimates", "delete") && <><DropdownMenuSeparator /><DropdownMenuItem className="rounded-none cursor-pointer text-rose-600" onClick={() => handleDelete(e)} data-testid={`estimate-delete-${e.id}`}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem></>}
                 </DropdownMenuContent></DropdownMenu>
               </div></td></tr>; })}</tbody></table></div>
+              <div className="mt-3 flex items-center justify-between gap-3 bg-white border border-stone-200 px-4 py-3" data-testid="estimates-pagination">
+                <div className="text-xs text-stone-500">Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-none">Previous</Button>
+                  <div className="text-sm font-medium text-stone-700 min-w-[90px] text-center">Page {page} of {totalPages}</div>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-none">Next</Button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </PageBody>

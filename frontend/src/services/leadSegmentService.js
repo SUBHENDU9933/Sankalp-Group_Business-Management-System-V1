@@ -22,7 +22,25 @@ const attachAssignees = async (rows) => {
   return rows.map((row) => ({ ...row, assignees: byLead.get(row.id) || [] }));
 };
 
-export const fetchLeadSegment = async ({ segment = "active", page = 1, pageSize = 100, search = "" } = {}) => {
+const fetchAssignedLeadIds = async (userId) => {
+  if (!userId) return [];
+  const { data, error } = await supabase.from("lead_assignees").select("lead_id").eq("user_id", userId);
+  if (error) throw error;
+  return (data || []).map((row) => row.lead_id).filter(Boolean);
+};
+
+export const fetchLeadSegment = async ({
+  segment = "active",
+  page = 1,
+  pageSize = 100,
+  search = "",
+  status = "all",
+  rm = "all",
+  source = "all",
+  tag = "all",
+  fromDate = "",
+  toDate = "",
+} = {}) => {
   const safePageSize = Math.min(Math.max(Number(pageSize) || 100, 1), 200);
   const safePage = Math.max(Number(page) || 1, 1);
   const from = (safePage - 1) * safePageSize;
@@ -32,21 +50,57 @@ export const fetchLeadSegment = async ({ segment = "active", page = 1, pageSize 
     .from("leads")
     .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)", { count: "exact" })
     .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
 
   if (segment === "lost") query = query.eq("status", "lost");
   else query = query.neq("status", "lost");
 
+  if (status && status !== "all") query = query.eq("status", status);
+  if (source && source !== "all") query = query.eq("source", source);
+
+  if (tag && tag !== "all") {
+    if (tag === "website") query = query.ilike("tag", "%website%").not("tag", "ilike", "%repeat%");
+    if (tag === "repeat") query = query.ilike("tag", "%repeat%");
+    if (tag === "any-website") query = query.ilike("tag", "%website%");
+    if (tag === "none") query = query.or("tag.is.null,tag.eq.");
+  }
+
+  if (fromDate) query = query.gte("created_at", `${fromDate}T00:00:00`);
+  if (toDate) query = query.lte("created_at", `${toDate}T23:59:59.999`);
+
   const term = String(search || "").trim();
   if (term) {
     const escaped = term.replace(/,/g, " ").replace(/%/g, "\\%");
-    query = query.or(`name.ilike.%${escaped}%,phone.ilike.%${escaped}%,location.ilike.%${escaped}%,area.ilike.%${escaped}%,pincode.ilike.%${escaped}%`);
+    query = query.or(`name.ilike.%${escaped}%,phone.ilike.%${escaped}%,phone_secondary.ilike.%${escaped}%,location.ilike.%${escaped}%,area.ilike.%${escaped}%,pincode.ilike.%${escaped}%`);
   }
 
-  const { data, count, error } = await query;
+  // Preserve the previous User Wise Filter semantics: primary assignment OR co-assignment.
+  // Resolve the selected user's co-assigned lead IDs first, then apply the combined filter
+  // in the database query so pagination/count stay correct.
+  if (rm && rm !== "all") {
+    if (rm === "unassigned") {
+      // A primary-unassigned lead is the common case. Exclude co-assigned leads on the
+      // returned page after the database filter; no lead data is modified by this path.
+      query = query.is("assigned_to", null);
+    } else {
+      const coAssignedIds = await fetchAssignedLeadIds(rm);
+      const primaryFilter = `assigned_to.eq.${rm}`;
+      if (coAssignedIds.length) {
+        const idFilter = coAssignedIds.join(",");
+        query = query.or(`${primaryFilter},id.in.(${idFilter})`);
+      } else {
+        query = query.eq("assigned_to", rm);
+      }
+    }
+  }
+
+  const { data, count, error } = await query.range(from, to);
   if (error) throw error;
-  return { rows: await attachAssignees(data || []), count: count || 0, page: safePage, pageSize: safePageSize };
+
+  let rows = await attachAssignees(data || []);
+  if (rm === "unassigned") rows = rows.filter((row) => !(row.assignees || []).some((a) => Boolean(a?.user_id || a?.profile?.id)));
+
+  return { rows, count: count || 0, page: safePage, pageSize: safePageSize };
 };
 
 export const reviveLostLead = async (leadId, userId, nextStatus = "contacted") => {

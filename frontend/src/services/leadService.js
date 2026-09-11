@@ -1,38 +1,63 @@
 import { supabase } from "@/lib/supabase";
 import { pushToAllAdmins } from "@/services/notificationService";
 
-export const fetchLeads = async (filters = {}) => {
+const attachLeadAssignees = async (leads) => {
+  const rows = leads || [];
+  if (!rows.length) return rows;
+
+  const leadIds = rows.map((lead) => lead.id).filter(Boolean);
+  const { data: assignees, error } = await supabase
+    .from("lead_assignees")
+    .select("lead_id,user_id,added_at,profile:profiles!lead_assignees_user_id_fkey(id,full_name,email)")
+    .in("lead_id", leadIds);
+
+  // Never silently turn an assignment-query failure into an empty assignee list.
+  // Doing that makes assigned leads look unassigned and breaks User Wise Filter.
+  if (error) throw error;
+
+  const byLead = new Map();
+  for (const row of assignees || []) {
+    const list = byLead.get(row.lead_id) || [];
+    list.push(row);
+    byLead.set(row.lead_id, list);
+  }
+
+  return rows.map((lead) => ({
+    ...lead,
+    assignees: byLead.get(lead.id) || [],
+  }));
+};
+
+const fetchLeadRows = async (includeDeletedFilter = true, filters = {}) => {
   let q = supabase
     .from("leads")
     .select(
-      "*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email), assignees:lead_assignees(user_id, added_at, profile:profiles!lead_assignees_user_id_fkey(id,full_name,email))"
+      "*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)"
     )
-    .is("deleted_at", null)
     .order("created_at", { ascending: false });
+
+  if (includeDeletedFilter) q = q.is("deleted_at", null);
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.includeDeleteRequested === false) q = q.eq("delete_request", false);
+
   const { data, error } = await q;
-  if (error) {
-    if (/lead_assignees/i.test(error.message)) {
-      const fallback = await supabase
-        .from("leads")
-        .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-      if (fallback.error) throw fallback.error;
-      return (fallback.data || []).map((l) => ({ ...l, assignees: [] }));
-    }
-    if (/deleted_at/i.test(error.message)) {
-      const retry = await supabase
-        .from("leads")
-        .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)")
-        .order("created_at", { ascending: false });
-      if (retry.error) throw retry.error;
-      return (retry.data || []).map((l) => ({ ...l, assignees: [] }));
-    }
-    throw error;
-  }
+  if (error) throw error;
   return data || [];
+};
+
+export const fetchLeads = async (filters = {}) => {
+  let rows;
+  try {
+    rows = await fetchLeadRows(true, filters);
+  } catch (error) {
+    // Keep compatibility with older databases where deleted_at may not exist.
+    if (!/deleted_at/i.test(error.message || "")) throw error;
+    rows = await fetchLeadRows(false, filters);
+  }
+
+  // Fetch lead_assignees separately instead of using a nested PostgREST relation.
+  // This keeps assignment state reliable for both the table and User Wise Filter.
+  return attachLeadAssignees(rows);
 };
 
 export const addLeadAssignee = async (leadId, userId, addedBy) => {

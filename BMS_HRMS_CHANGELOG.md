@@ -472,5 +472,51 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   Clause 2 + new clause in context to confirm tone/wording reads
   naturally as a real contract, not just correct in isolation.
 
+### CHANGE #018 — Agreement Template: 60-Day Start Deadline + Delay-Based Price Escalation (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED
+- **Approved:** Yes — explicit user request with 3 specific scenarios.
+- **Scenarios requested:**
+  1. Project must start within 60 days of Agreement signing.
+  2. If it does NOT start within 60 days for Client-side reasons (client
+     readiness, site issues, financial issues) — Contractor may
+     revise unit price per market/material cost increases.
+  3. If it DOES start within 60 days but is later paused/delayed beyond
+     the completion timeline due to Client-side issues (site issues,
+     lack of Client support) — Client pays the increased market rate
+     for the delayed portion. If the SAME delay is instead the
+     Contractor's fault, the Client is NOT charged the increased rate —
+     billing stays at the original agreed unit rate/measurement.
+- **Fit check performed first:** Clause 11 (Delay / Suspension / Force
+  Majeure) was the closest existing clause but only protects the
+  Contractor's right to pause without being in default — it says
+  nothing about a start deadline or about pricing consequences tied to
+  who caused a delay. No existing clause covered any of the 3 scenarios,
+  so 2 new clauses were created (not a rewrite of Clause 11).
+- **New clauses added, placed immediately after Clause 11:**
+  - `start_deadline_price_revision` (sort_order 11.1) — the 60-day
+    commencement deadline and the price-revision right if missed for
+    Client-attributable reasons.
+  - `delay_price_revision` (sort_order 11.2) — the mid-execution
+    delay scenario, explicitly stating both directions: Client pays
+    market-rate increase if the delay is Client-caused; Client does NOT
+    pay any increase (original rate applies) if Contractor-caused. Cross
+    -references Clause 11 with a "without prejudice" line rather than
+    restating it.
+- **Numbering:** no hardcoded numbers in the new titles — CHANGE
+  #015's dynamic renumbering assigns the correct sequential number
+  automatically.
+- **Scope of effect:** new agreements from this template going forward
+  only. Signed/sent agreements keep their frozen snapshot, unaffected.
+- **No RPC/RLS/Edge Function changes.** Pure `agreement_templates.clauses`
+  JSONB update. No frontend deploy required.
+- **Not yet done:** a real test agreement has not been generated and
+  read in context. This is now the 3rd consecutive template change in
+  one session (CHANGE #016, #017, #018) — strongly recommend
+  generating one full test agreement PDF and reading all ~19 rendered
+  clauses top to bottom before this template is used on a real client,
+  to catch any wording/flow issues across all three additions together.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

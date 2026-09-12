@@ -40,7 +40,7 @@ function buildAgreementCover({ agreement, md = {} }) {
   const paymentHtml = paymentRows.map((r, i) => `<div style="flex:1;text-align:center;padding:0 7px;${i ? "border-left:1px solid #cbd5e1" : ""}"><div style="margin:auto;width:38px;height:38px;border-radius:50%;background:#f5a623;color:#0b2b55;font-size:16px;font-weight:800;line-height:38px">${i + 1}</div><div style="font-size:21px;font-weight:800;margin-top:6px">${r.percent}</div><div style="font-size:10px;font-weight:700;line-height:1.3">${r.stage}</div></div>`).join("");
 
   const cover = document.createElement("div");
-  cover.style.cssText = "width:794px;height:1123px;box-sizing:border-box;position:fixed;left:0;top:0;overflow:hidden;background:#fbfaf7;color:#0b2b55;font-family:Arial,Helvetica,sans-serif;padding:42px 42px 36px;z-index:2147483647;opacity:0.01;pointer-events:none";
+  cover.style.cssText = "width:794px;height:1123px;box-sizing:border-box;position:fixed;left:-10000px;top:0;overflow:hidden;background:#fbfaf7;color:#0b2b55;font-family:Arial,Helvetica,sans-serif;padding:42px 42px 36px;opacity:1;pointer-events:none";
   const logoHtml = `<img src="${SANKALP_LOGO}" style="width:115px;height:auto;object-fit:contain" crossorigin="anonymous">`;
 
   cover.innerHTML = `

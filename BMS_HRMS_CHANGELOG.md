@@ -339,5 +339,42 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   confirmed post-fix. Recommended next step: download the same agreement
   again and confirm page 1 now shows the cover content, not a blank page.
 
+### CHANGE #015 — Agreement Clause Numbers Now Dynamic (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT VERIFIED READY
+- **Approved:** Yes — explicit user request.
+- **Bug:** Clause numbers (e.g. "11. Delay / Suspension / Force Majeure")
+  are stored as literal text in the master template, reflecting the full
+  16-clause template order. Clauses #12 (Outstation Project Conditions)
+  and #14 (Complimentary Promotional Offer) are optional and excluded by
+  default. When excluded, the rendered agreement showed the stored
+  numbers verbatim — jumping 11 -> 13 -> 15 -> 16, with visible gaps.
+  Confirmed against a real downloaded agreement PDF.
+- **Fix:** `buildResolvedClauses()` now strips any leading "N. " from the
+  template's stored title, then prepends the clause's actual position
+  within the filtered, agreement-specific clause list (`i + 1`). Numbers
+  now always run 1..N with no gaps, matching exactly which clauses are
+  actually present in a given agreement.
+- **Scope of effect:** This single function is the source for the
+  printed/downloaded PDF, the snapshot frozen at send-for-signature time
+  (`agreement.signed_snapshot`), and therefore also the public signing
+  page's clause review list and its own PDF download (both read the
+  saved snapshot) — no other file needed changing.
+  `AgreementEditorPage.jsx`'s template-editing list intentionally still
+  shows the raw template order/numbers, since that view manages the
+  master template itself, not a specific agreement's rendered output.
+- **Files changed:** `frontend/src/pages/AgreementPrintPage.jsx` only.
+- **No database/RPC/RLS changes** — template clause titles were left
+  as-is; renumbering happens at render time.
+- **Git commit:** `df961da3434517551ad97c22e4e4286e623d2c78`.
+- **Deployment:** `dpl_72QdWtmtNFeQB7vTZAbrXTxaDHgd` — confirmed READY on
+  `app.sankalpdesign.com`.
+- **Not yet done:** re-downloading a real agreement PDF to visually
+  confirm the renumbering. Only applies going forward — any
+  `signed_snapshot` already frozen before this fix keeps its old,
+  gapped numbering (by design — a signed document's snapshot should
+  never silently change after signing).
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

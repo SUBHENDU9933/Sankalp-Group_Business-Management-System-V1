@@ -257,5 +257,55 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
 - **Preserved:** Existing `lead_assignees` multi-assignment infrastructure, admin controls, RE relationships, lead creation/update behavior, and BMS/HRMS separation.
 - **Validation:** Live RLS policies were re-read after migration. The production frontend commit still requires Vercel deployment/READY verification before treating the UI portion as live.
 
+### CHANGE #013 — Agreement PDF Cover Page: Fixed Data Extraction (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT VERIFIED READY
+- **Approved:** Yes — explicit user request ("do it safely").
+- **Context:** A premium dynamic cover page for the Agreement PDF (matching an
+  approved design reference) was added earlier today (commits
+  `6d3db521f5`, `8cf20a5a03`). It worked by regex-scraping the *rendered
+  text* of the printed agreement to recover field values (client name,
+  estimate number, category, timeline, etc.) instead of using the
+  agreement's actual structured data.
+- **Bugs found (verified by tracing the real stored clause template
+  against the real regex patterns, not assumed):**
+  - `Estimate No.` regex stopped only at the next comma. Since the
+    template sentence has no comma until deep into the *following*
+    sentence, the captured value included the estimate date, validity
+    period, and the start of the next sentence instead of just the
+    estimate number.
+  - `Timeline` regex greedily matched "working days" across the clause,
+    which mentions it twice (execution days + buffer days). Captured
+    text ran from the execution figure through the buffer-days clause
+    instead of stopping at the first occurrence.
+  - `Estimate Date` regex only accepted numeric slash-format dates; if
+    the estimate date is ever displayed in a different format, this
+    field silently falls back to "—".
+  - Category and Contract Value extraction were confirmed correct — not
+    changed.
+- **Fix:** `downloadAgreementPdf()` now accepts the real `agreement` and
+  `agreement.merge_data` objects directly (both were already in scope at
+  every call site — they just weren't being passed through).
+  `buildAgreementCover()` reads `client_name`, `client_mobile`,
+  `client_address`, `project_location`, `category`, `estimate_no`,
+  `estimate_date`, `contract_value`, `contract_value_words` (falls back
+  to `numberToWords()` if absent), `timeline_days`, and
+  `agreement.payment_schedule` directly — no text-scraping.
+- **Files changed:** `frontend/src/utils/pdfExport.js`,
+  `frontend/src/pages/AgreementPrintPage.jsx`,
+  `frontend/src/pages/PublicSignAgreementPage.jsx` (a second call site to
+  the same download function — on the public customer-facing signing
+  page — was found and fixed identically; the original implementation
+  only covered the internal admin print page).
+- **No database/RPC/RLS changes.**
+- **Git commit:** `235cd90cdc32f77e265d0e620052379914125add`.
+- **Deployment:** `dpl_2D3GaPrSBK2G6zLxHuKvFieS9zRw` — confirmed READY on
+  `app.sankalpdesign.com`.
+- **Not yet done:** a real agreement's PDF has not been downloaded and
+  visually re-checked post-fix. Recommended next step: open any real
+  agreement and download the PDF to confirm the cover page now shows
+  clean values.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

@@ -307,5 +307,37 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   agreement and download the PDF to confirm the cover page now shows
   clean values.
 
+### CHANGE #014 — Agreement PDF Cover Page: Fixed Blank First Page (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** APPLICATION IMPLEMENTED / DEPLOYMENT VERIFIED READY
+- **Approved:** Yes — user reported and confirmed via a real downloaded PDF.
+- **Bug reported:** After CHANGE #013 (data-extraction fix), a real user
+  downloaded an actual agreement PDF. Pages 2-5 (the real agreement text)
+  rendered perfectly with correct data. Page 1 (the dynamic cover) was
+  blank/white with only a faint ghost of text visible.
+- **Root cause:** The cover element was hidden from the user's screen
+  during capture using `opacity: 0.01` while positioned at `left:0;top:0`
+  (on-screen, just nearly transparent). `html2canvas` renders the actual
+  computed CSS opacity into the captured image, so the "invisible to the
+  eye" trick also made it invisible in the exported screenshot — this bug
+  pre-dates CHANGE #013 and was carried over unchanged from the original
+  cover-page implementation (commits `6d3db521f5`/`8cf20a5a03`), since
+  that change only touched the data-extraction logic, not this styling.
+- **Fix:** Changed the cover element's hiding technique from
+  "on-screen + nearly transparent" (`left:0; opacity:0.01`) to
+  "off-screen + fully opaque" (`left:-10000px; opacity:1`). The element
+  is still invisible to the user (rendered outside the viewport) but
+  `html2canvas` now captures it at full, correct opacity.
+- **Files changed:** `frontend/src/utils/pdfExport.js` only (one CSS
+  string, no logic changes).
+- **No database/RPC/RLS changes.**
+- **Git commit:** `82d7afef62ab236975d91e37ac280aa53e4d35b1`.
+- **Deployment:** `dpl_7UoPsCqVxNQ9EdkyHs2Mo1v8Kc4E` — confirmed READY on
+  `app.sankalpdesign.com`.
+- **Not yet done:** a fresh PDF has not been re-downloaded and visually
+  confirmed post-fix. Recommended next step: download the same agreement
+  again and confirm page 1 now shows the cover content, not a blank page.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

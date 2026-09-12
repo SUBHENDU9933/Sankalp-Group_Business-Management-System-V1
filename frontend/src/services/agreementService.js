@@ -49,9 +49,13 @@ export const fetchAgreementById = async (id) => {
 
 export const createAgreement = async (payload, userId) => {
   await assertPermission(ACTIONS.CREATE);
+  const { data: { user } = {}, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!user?.id) throw new Error("Authentication required");
+  const creatorId = user.id || userId;
   const { data, error } = await supabase
     .from("agreements")
-    .insert([{ ...payload, created_by: userId }])
+    .insert([{ ...payload, created_by: creatorId }])
     .select("*")
     .single();
   if (error) throw error;
@@ -79,9 +83,6 @@ export const softDeleteAgreement = async (id, userId) => {
   if (error) throw error;
 };
 
-// Mark an agreement as sent-for-digital-signature: generates a magic-link token.
-// `snapshot` (optional) is the fully-resolved [{title, body}] clause list — frozen
-// at send-time so the public /sign/:token page never needs authenticated template access.
 export const sendForDigitalSignature = async (id, { expiryDays = 7, snapshot } = {}) => {
   await assertPermission(ACTIONS.SEND);
   const token = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
@@ -98,8 +99,6 @@ export const sendForDigitalSignature = async (id, { expiryDays = 7, snapshot } =
   return data;
 };
 
-// Mark as physically signed + attach the uploaded scanned copy URL.
-// This remains an authenticated edit operation; database RLS is authoritative.
 export const markSignedPhysical = async (id, signedFileUrl) => {
   await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase
@@ -118,9 +117,6 @@ export const voidAgreement = async (id) => {
   if (error) throw error;
 };
 
-// -------- Merge-field builder --------
-// Pulls whatever is available from a customer/lead/project/estimate row into
-// the flat merge_data object used by the clause placeholder engine.
 export const buildMergeDataFromSources = ({ customer, lead, project, estimate }) => {
   const md = {};
   const person = customer || lead;
@@ -149,7 +145,6 @@ export const buildMergeDataFromSources = ({ customer, lead, project, estimate })
   return md;
 };
 
-// Renders one clause body's {{placeholders}} against merge_data + computed tables
 export const renderClauseBody = (body, merge_data = {}, { paymentSchedule = [], categorySpecs = {} } = {}) => {
   if (!body) return "";
   let out = body;
@@ -171,7 +166,6 @@ export const renderClauseBody = (body, merge_data = {}, { paymentSchedule = [], 
   return out;
 };
 
-// -------- Public (magic-link) API — no auth --------
 export const fetchAgreementByToken = async (token) => {
   const { data: base } = await supabase.rpc("get_agreement_by_token", { p_token: token });
   const row = Array.isArray(base) ? base[0] : base;
@@ -194,8 +188,6 @@ export const submitAgreementSignature = async ({ token, signerName, signatureUrl
   return data;
 };
 
-// Customer ID-proof documents (Aadhaar, PAN, etc.) uploaded during agreement
-// creation — same "attachments" bucket used everywhere else in the app.
 export const setIdProofUrls = async (id, idProofUrls) => {
   await assertPermission(ACTIONS.EDIT);
   const { data, error } = await supabase

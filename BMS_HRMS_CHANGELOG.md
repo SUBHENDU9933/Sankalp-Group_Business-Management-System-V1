@@ -430,5 +430,47 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   cross-reference wording. Recommended before relying on this for a real
   client agreement.
 
+### CHANGE #017 — Agreement Template: Explicit "Not Final" Value + No-Discount Policy (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED
+- **Approved:** Yes — explicit user request after deep-read audit.
+- **What was checked:** whether the template clearly stated that the
+  agreed contract value is a reference scale (not final), that the final
+  bill scales up/down with actual measured work and design changes, that
+  the client must pay the resulting final amount, and that no discount
+  is available after signing or after the final bill is generated.
+- **Found:** Clause 2 already implied final billing could differ from
+  the quoted value (it described the calculation basis), but never
+  explicitly stated the value is non-final, that it can move up OR down,
+  or that the client is obligated to pay the resulting amount. A
+  no-discount-after-signing/after-final-bill rule did not exist anywhere
+  in the 20 clauses.
+- **Clause 2 (`contract_value`) rewritten** (not just appended to, to
+  avoid saying the same thing twice in one clause) to explicitly state:
+  the Agreed Contract Value is an indicative baseline/reference scale,
+  NOT the final payable amount; the final bill is generated strictly per
+  final measurement/size/quantity/design as executed; it will increase
+  or decrease accordingly; the Client is liable to pay the actual final
+  bill amount.
+- **New clause added** (`no_discount_policy`, sort_order 2.1, right after
+  Clause 2): states the Agreed Contract Value and final bill, once
+  determined, are not negotiable — no discount/rebate/price-reduction
+  request is entertained after Agreement execution or after the final
+  bill is generated, under any circumstances.
+- **Duplicate check:** confirmed no existing clause covers the
+  no-discount rule (Clause 13/Cancellation Policy only covers refund of
+  advance on cancellation — a different concept). Clause 2's rewrite
+  replaces rather than duplicates its own prior wording.
+- **Numbering:** no hardcoded number in the new clause's title — CHANGE
+  #015's dynamic renumbering handles sequencing automatically.
+- **Scope of effect:** new agreements from this template going forward
+  only. Signed/sent agreements keep their frozen snapshot, unaffected.
+- **No RPC/RLS/Edge Function changes.** Pure `agreement_templates.clauses`
+  JSONB update. No frontend deploy required.
+- **Not yet done:** creating a test agreement and reading the rendered
+  Clause 2 + new clause in context to confirm tone/wording reads
+  naturally as a real contract, not just correct in isolation.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

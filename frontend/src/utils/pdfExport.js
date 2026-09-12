@@ -29,13 +29,6 @@ function splitIntoBalancedGroups(items, groupCount) {
   return groups;
 }
 
-/**
- * The agreement template can contain one very long Annexure A1 clause with
- * many internal A1.1, A1.2 ... sub-sections. The normal agreement renderer
- * correctly treats that as one clause, but doing so makes a single A4 page
- * unreadably dense. For PDF export only, split that one clause into balanced
- * sub-annexure pages while keeping the original database/template unchanged.
- */
 function createAnnexureExportPages(pageEl) {
   const content = pageEl.querySelector(".doc-page-content");
   if (!content) return [pageEl];
@@ -45,7 +38,6 @@ function createAnnexureExportPages(pageEl) {
     const text = el.textContent || "";
     return /A1\.\d+\b/.test(text) && text.length > 1800;
   });
-
   if (annexureIndex === -1) return [pageEl];
 
   const annexure = children[annexureIndex];
@@ -57,13 +49,9 @@ function createAnnexureExportPages(pageEl) {
     .split(/\n(?=A1\.\d+\b)/)
     .map((part) => part.trim())
     .filter(Boolean);
-
   const numberedSections = sections.filter((part) => /^A1\.\d+\b/.test(part));
   if (numberedSections.length < 6) return [pageEl];
 
-  // Three balanced sub-annexures gives substantially better readability than
-  // trying to squeeze all A1 sections into one sheet. For unusually short A1
-  // content, two groups are enough; long A1 content remains three groups.
   const groupCount = numberedSections.length >= 9 ? 3 : 2;
   const groups = splitIntoBalancedGroups(numberedSections, groupCount);
   const prefix = sections.find((part) => !/^A1\.\d+\b/.test(part)) || "";
@@ -78,17 +66,12 @@ function createAnnexureExportPages(pageEl) {
     const cloneAnnexure = cloneChildren[annexureIndex];
 
     cloneChildren.forEach((child, index) => {
-      if (index !== annexureIndex && index > annexureIndex && partIndex < groups.length - 1) {
-        child.remove();
-      } else if (index !== annexureIndex && index < annexureIndex && partIndex > 0) {
-        child.remove();
-      }
+      if (index !== annexureIndex && index > annexureIndex && partIndex < groups.length - 1) child.remove();
+      else if (index !== annexureIndex && index < annexureIndex && partIndex > 0) child.remove();
     });
 
     const heading = cloneAnnexure.querySelector("h3");
-    if (heading) {
-      heading.textContent = `${originalTitle} — Part ${partIndex + 1} of ${groups.length}`;
-    }
+    if (heading) heading.textContent = `${originalTitle} — Part ${partIndex + 1} of ${groups.length}`;
 
     const p = cloneAnnexure.querySelector("p");
     if (p) p.textContent = group.join("\n\n");
@@ -103,26 +86,24 @@ function setPhysicalPageNumber(pageEl, pageNumber, totalPages) {
 }
 
 /**
- * Export the agreement as true A4 pages without shrinking dense content.
- * Long Annexure A1 clauses are split at their own A1.1/A1.2/... boundaries
- * into readable sub-annexures before rendering. Existing headers, footers,
- * signatures and agreement data are preserved; this is presentation-only.
+ * Export as true A4 pages without shrinking dense content. Annexure A1 is
+ * split only in detached export clones at its A1.1/A1.2/... section boundaries.
+ * The live agreement DOM and stored agreement/template data are never changed.
  */
 export async function downloadAgreementPdf(containerEl, filename = "Agreement.pdf") {
   if (!containerEl) throw new Error("Nothing to export");
   const sourcePages = Array.from(containerEl.querySelectorAll(".doc-page"));
   if (!sourcePages.length) throw new Error("No pages found to export");
 
-  const exportPages = sourcePages.flatMap(createAnnexureExportPages);
+  // Always clone first so export-only page numbering never mutates the screen.
+  const exportPages = sourcePages
+    .flatMap(createAnnexureExportPages)
+    .map((pageEl) => pageEl.cloneNode(true));
   const totalPages = exportPages.length;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
   exportPages.forEach((pageEl, index) => setPhysicalPageNumber(pageEl, index + 1, totalPages));
 
-  // Render detached export clones only when a page was split. Normal pages are
-  // rendered directly. Clones are appended invisibly so browser layout/fonts
-  // are identical to the live agreement document.
-  const originalParent = containerEl.parentElement;
   const staging = document.createElement("div");
   staging.style.position = "fixed";
   staging.style.left = "-100000px";
@@ -135,8 +116,7 @@ export async function downloadAgreementPdf(containerEl, filename = "Agreement.pd
   try {
     for (let pageIndex = 0; pageIndex < exportPages.length; pageIndex += 1) {
       const pageEl = exportPages[pageIndex];
-      const sourceIsLivePage = sourcePages.includes(pageEl);
-      if (!sourceIsLivePage) staging.appendChild(pageEl);
+      staging.appendChild(pageEl);
 
       const rect = pageEl.getBoundingClientRect();
       if (!rect.width) throw new Error("Agreement page has no printable width");
@@ -155,11 +135,10 @@ export async function downloadAgreementPdf(containerEl, filename = "Agreement.pd
       if (canvas.height <= targetHeightPx + tolerance) {
         if (pdf.getNumberOfPages() > 0) pdf.addPage();
         exportNormalPage(pdf, canvas);
+        pageEl.remove();
         continue;
       }
 
-      // Safety fallback: if an unexpectedly large page still remains, split
-      // its content area into A4-height slices rather than shrinking it.
       const headerEl = pageEl.querySelector(".doc-header-wrap");
       const footerEl = pageEl.querySelector(".doc-footer-wrap");
 
@@ -171,6 +150,7 @@ export async function downloadAgreementPdf(containerEl, filename = "Agreement.pd
           const sh = Math.min(targetHeightPx, canvas.height - sy);
           drawCanvasSlice(pdf, canvas, 0, sy, canvas.width, sh, 0, 0, A4_WIDTH_MM, (sh / canvas.width) * A4_WIDTH_MM);
         }
+        pageEl.remove();
         continue;
       }
 
@@ -201,9 +181,11 @@ export async function downloadAgreementPdf(containerEl, filename = "Agreement.pd
         const footerY = A4_HEIGHT_MM - footerMmHeight;
         drawCanvasSlice(pdf, canvas, 0, canvas.height - footerHeight, canvas.width, footerHeight, 0, footerY, A4_WIDTH_MM, footerMmHeight);
       }
+
+      pageEl.remove();
     }
   } finally {
-    if (originalParent && staging.parentElement === document.body) staging.remove();
+    staging.remove();
   }
 
   pdf.save(filename);

@@ -376,5 +376,59 @@ The authorization blueprint uses Role + Relationship + Scope + Action + Sensitiv
   gapped numbering (by design — a signed document's snapshot should
   never silently change after signing).
 
+### CHANGE #016 — Agreement Template: Added Electrical/Painting Annexure A1 (Claude)
+- **Date:** 2026-09-12
+- **System:** BMS
+- **Status:** DATABASE IMPLEMENTED
+- **Approved:** Yes — explicit user request, content supplied by user.
+- **Source:** User-supplied "Electrical Labour, Material, Painting &
+  Measurement Terms" document (11 sub-points, A1.0-A1.10).
+- **Duplicate-prevention analysis performed before writing anything:**
+  - A1.1/A1.2 (preliminary vs. final measurement) — already fully covered
+    by existing Clause 2 (Agreed Contract Value) and Clause 3 (Final
+    Billing, Approval & Change Control). Not repeated.
+  - A1.7 (unmentioned work excluded) — already covered by Clause 6
+    (Approved Scope of Work). Cross-referenced instead of repeated.
+  - A1.8 (client-requested changes cost) — already covered by Clause 3.
+    Cross-referenced instead of repeated.
+  - A1.10 (client acknowledgement) — pure restatement of A1.1-A1.9, and
+    Clause 16 (Acceptance & Contract Documents) already covers overall
+    acceptance. Dropped entirely.
+- **New clauses added (3, each small, per explicit instruction not to
+  create one large clause):**
+  - `annexure_a1_basis` (sort_order 7.1) — non-turnkey basis statement;
+    extends Clause 3's measurement principle to electrical/painting/
+    ceiling/civil works (previously only named furniture/modular items).
+  - `annexure_a1_electrical` (sort_order 7.2) — the actual electrical
+    labour rate schedule (8 rated items) plus the material-billed-
+    separately rule; cross-references Clause 3/6 for anything outside
+    the listed items instead of repeating their content.
+  - `annexure_a1_painting` (sort_order 7.3) — painting measured on actual
+    paintable surface area, not floor/carpet area.
+  - All three: `is_optional: false`, `enabled_default: true` (standard
+    terms applicable to virtually all interior projects, matching the
+    pattern of the other non-optional core clauses).
+- **Existing clause edited (not duplicated):** Clause 3
+  (`billing_change_control`) — appended one sentence cross-referencing
+  the new Annexure A1 clauses for electrical/painting-specific billing,
+  rather than leaving two independent, potentially inconsistent
+  statements about how electrical work is billed in the same document.
+- **Numbering:** clause titles were NOT given hardcoded numbers (no
+  "17.", "18." etc. baked into the title text) — CHANGE #015's dynamic
+  renumbering (`AgreementPrintPage.jsx`) automatically assigns them the
+  correct sequential number based on position, so no manual renumbering
+  of clauses 8-16 was needed.
+- **Scope of effect:** Applies to NEW agreements created from this
+  template going forward. Any agreement already sent/signed keeps its
+  frozen `signed_snapshot` and is unaffected — by design, matching the
+  same reasoning as CHANGE #015.
+- **No RPC/RLS/Edge Function changes.** Pure `agreement_templates.clauses`
+  JSONB content update. No frontend deploy required.
+- **Not yet done:** creating a real test agreement from this template and
+  visually confirming the new Annexure clauses render correctly with
+  proper sequential numbering, correct rupee symbols, and correct
+  cross-reference wording. Recommended before relying on this for a real
+  client agreement.
+
 ## AI HANDOVER
 Before any further change, re-check current Git/Supabase/Vercel state. Never infer organizational role solely from historical database role values. Keep BMS and HRMS separate until a future explicit merge project is approved.

@@ -194,7 +194,7 @@ export default function PublicSignAgreementPage() {
     setDownloading(true);
     try {
       const filename = `${(agreement.title || "Agreement").replace(/[^\w\- ]/g, "")}-${agreement.id.slice(0, 8).toUpperCase()}.pdf`;
-      await downloadAgreementPdf(docRef.current, filename);
+      await downloadAgreementPdf(docRef.current, filename, { agreement, md: agreement.merge_data || {} });
     } catch (e) { toast.error("Couldn't generate PDF: " + e.message); }
     finally { setDownloading(false); }
   };

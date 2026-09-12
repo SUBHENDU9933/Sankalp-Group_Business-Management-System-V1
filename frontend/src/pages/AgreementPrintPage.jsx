@@ -37,7 +37,14 @@ export default function AgreementPrintPage() {
     return (template?.clauses || [])
       .filter((c) => !c.is_optional || (agreement.enabled_clause_ids || []).includes(c.id))
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((c) => ({ id: c.id, title: c.title, body: renderClauseBody(c.body, md, opts) }));
+      // Clause numbers are re-sequenced here based on which clauses actually
+      // appear in THIS agreement — not the fixed number stored in the master
+      // template. That stored number (e.g. "11. Delay / Suspension...") only
+      // reflects the full template's order; once an optional clause is
+      // excluded (e.g. #12 Outstation), using it verbatim leaves a visible
+      // gap ("11." straight to "13."). Strip any leading "N. " the template
+      // title carries, then prepend the real position in this agreement.
+      .map((c, i) => ({ id: c.id, title: `${i + 1}. ${(c.title || "").replace(/^\d+\.\s*/, "")}`, body: renderClauseBody(c.body, md, opts) }));
   };
 
   const handleSendDigital = async () => {

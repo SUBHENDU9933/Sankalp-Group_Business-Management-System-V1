@@ -33,7 +33,7 @@ function buildAgreementCover(containerEl) {
   }
 
   const cover = document.createElement("div");
-  cover.style.cssText = "width:794px;height:1123px;box-sizing:border-box;position:relative;overflow:hidden;background:#fbfaf7;color:#0b2b55;font-family:Arial,Helvetica,sans-serif;padding:42px 42px 36px";
+  cover.style.cssText = "width:794px;height:1123px;box-sizing:border-box;position:fixed;left:0;top:0;overflow:hidden;background:#fbfaf7;color:#0b2b55;font-family:Arial,Helvetica,sans-serif;padding:42px 42px 36px;z-index:2147483647;opacity:0.01;pointer-events:none";
   const logo = containerEl.querySelector(".doc-header img")?.cloneNode(true);
   const logoHtml = logo ? `<img src="${logo.src}" style="width:115px;height:auto;object-fit:contain" crossorigin="anonymous">` : "";
   const paymentHtml = (schedule.length ? schedule : [
@@ -56,7 +56,7 @@ function buildAgreementCover(containerEl) {
 
     <div style="display:flex;gap:16px;margin-top:20px">
       <div style="flex:1">
-        <div style="border:1px solid #e8c27b;border-radius:15px;background:#fffdf8;padding:14px 16px;margin-bottom:13px"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#123d82;margin-bottom:10px">◉ &nbsp; CLIENT DETAILS</div><div style="font-size:11px;line-height:1.7"><b>Client Name</b> &nbsp; ${clientName}<br><b>Mobile No.</b> &nbsp; ${mobile}<br><b>Address</b> &nbsp; —</div></div>
+        <div style="border:1px solid #e8c27b;border-radius:15px;background:#fffdf8;padding:14px 16px;margin-bottom:13px"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#123d82;margin-bottom:10px">◉ &nbsp; CLIENT DETAILS</div><div style="font-size:11px;line-height:1.7"><b>Client Name</b> &nbsp; ${clientName}<br><b>Mobile No.</b> &nbsp; ${mobile}<br><b>Address</b> &nbsp; ${firstMatch(source, /residing at\s*([^,\n]+(?:,\s*[^\n]+)?)/i, "—")}</div></div>
         <div style="border:1px solid #e8c27b;border-radius:15px;background:#fffdf8;padding:14px 16px"><div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#123d82;margin-bottom:10px">⌂ &nbsp; PROJECT DETAILS</div><div style="font-size:11px;line-height:1.7"><b>Project</b> &nbsp; ${title}<br><b>Location</b> &nbsp; ${projectLocation}<br><b>Category</b> &nbsp; ${category}<br><b>Estimate No.</b> &nbsp; ${estimateNo}<br><b>Estimate Date</b> &nbsp; ${estimateDate}</div></div>
       </div>
       <div style="width:280px;border-radius:17px;background:#0d3c78;color:white;padding:18px;box-sizing:border-box;position:relative;overflow:hidden"><div style="font-size:11px;font-weight:800;letter-spacing:1px">₹ &nbsp; AGREED ESTIMATED VALUE</div><div style="font-size:32px;font-weight:800;margin-top:13px;white-space:nowrap">₹${value}</div><div style="height:1px;background:#9fb5d0;margin:13px 0"></div><div style="font-size:10px;opacity:.9">Selected Category</div><div style="font-size:17px;font-weight:800;margin-top:3px">${category}</div><div style="position:absolute;right:-42px;bottom:-42px;width:125px;height:85px;background:#f5a623;transform:rotate(-15deg)"></div></div>
@@ -79,17 +79,32 @@ export async function downloadAgreementPdf(containerEl, filename = "Agreement.pd
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const cover = buildAgreementCover(containerEl);
-  cover.style.position = "fixed";
-  cover.style.left = "-10000px";
-  cover.style.top = "0";
   document.body.appendChild(cover);
 
   try {
-    const coverCanvas = await html2canvas(cover, { scale: 2, useCORS: true, backgroundColor: "#fbfaf7", logging: false });
+    // Give the browser a real paint/layout pass before html2canvas captures it.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const coverCanvas = await html2canvas(cover, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#fbfaf7",
+      logging: false,
+      width: 794,
+      height: 1123,
+      windowWidth: 794,
+      windowHeight: 1123,
+      scrollX: 0,
+      scrollY: 0,
+    });
     pdf.addImage(coverCanvas.toDataURL("image/jpeg", 0.96), "JPEG", 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, "FAST");
 
     for (let i = 0; i < pageEls.length; i++) {
-      const canvas = await html2canvas(pageEls[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      const canvas = await html2canvas(pageEls[i], {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
       pdf.addPage();
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, "FAST");
     }

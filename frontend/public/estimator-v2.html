@@ -83,7 +83,32 @@ function toLocalDateTimeInput(iso){const d=iso?new Date(iso):new Date();if(Numbe
 function updateValidUntil(){const src=$('estDateTime').value;if(!src){$('validUntil').value='';return}const d=new Date(src);const days=Number($('validityDays').value)||15;if(Number.isNaN(d.getTime()))return;d.setDate(d.getDate()+days);$('validUntil').value=d.toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function toggleVisitDate(){const yes=$('fieldVisitStatus').value==='YES';$('visitDateField').style.visibility=yes?'visible':'hidden';$('visitDateField').style.opacity=yes?'1':'0';$('visitDateField').style.pointerEvents=yes?'auto':'none';if(!yes)$('visitDate').value='';}
 async function profileName(id){if(!id)return null;const {data,error}=await S.sb.from('profiles').select('id,full_name,designation,role').eq('id',id).maybeSingle();if(error)throw error;return data||null;}
-async function setCreationByOptions(selectedId='',leadId=''){const opts=[];const seen=new Set();const add=(id,label,name)=>{if(!id||seen.has(id))return;seen.add(id);opts.push({id,label,name:name||label});};const me=await profileName(S.user?.id);if(me)add(me.id,'Current User',me.full_name||'Current User');if(leadId){const {data:lead,error}=await S.sb.from('leads').select('created_by,assigned_to').eq('id',leadId).maybeSingle();if(error)throw error;const owner=lead?.created_by?await profileName(lead.created_by):null;const rm=lead?.assigned_to?await profileName(lead.assigned_to):null;if(owner)add(owner.id,'Lead Owner',owner.full_name||'Lead Owner');if(rm)add(rm.id,'Assigned RM / RE',rm.full_name||'Assigned RM / RE');}const select=$('createdBy');select.innerHTML=opts.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.label+' — '+o.name)+'</option>').join('');if(selectedId&&seen.has(selectedId))select.value=selectedId;else if(me?.id)select.value=me.id;}
+async function setCreationByOptions(selectedId='',leadId=''){
+ const opts=[];const seen=new Set();
+ const add=(id,name)=>{if(!id||seen.has(id))return;seen.add(id);opts.push({id,name:name||'Unnamed'});};
+ if(leadId){
+   const {data:lead,error}=await S.sb.from('leads').select('created_by,assigned_to').eq('id',leadId).maybeSingle();
+   if(error)throw error;
+   const owner=lead?.created_by?await profileName(lead.created_by):null;
+   if(owner)add(owner.id,owner.full_name);
+   const assigned=lead?.assigned_to?await profileName(lead.assigned_to):null;
+   if(assigned)add(assigned.id,assigned.full_name);
+   const {data:coAssigned,error:coError}=await S.sb.from('lead_assignees').select('user_id').eq('lead_id',leadId);
+   if(coError)throw coError;
+   for(const row of (coAssigned||[])){
+     const person=await profileName(row.user_id);
+     if(person)add(person.id,person.full_name);
+   }
+ }
+ if(!opts.length&&S.user){
+   const me=await profileName(S.user.id);
+   if(me)add(me.id,me.full_name);
+ }
+ const select=$('createdBy');
+ select.innerHTML=opts.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.name)+'</option>').join('');
+ if(selectedId&&seen.has(selectedId))select.value=selectedId;
+ else if(opts.length)select.value=opts[0].id;
+}
 async function loadProfile(){if(!S.user)return;await setCreationByOptions('',S.leadId);}
 async function loadLead(id){const {data,error}=await S.sb.from('leads').select('id,name,phone,location,budget,created_by,assigned_to').eq('id',id).maybeSingle();if(error)throw error;if(data){const savedBudget=S.estimateId?$('cliBudget').value:'';const savedCreation=S.estimateId?$('createdBy').value:'';await selectLead(data);if(S.estimateId){if(savedBudget!=='')$('cliBudget').value=savedBudget;if(savedCreation)await setCreationByOptions(savedCreation,id);}}}
 async function loadEstimate(){if(!S.estimateId)return;const {data,error}=await S.sb.from('estimates_v2').select('*').eq('id',S.estimateId).maybeSingle();if(error)throw error;if(!data)return;const d=data.data||{};$('estNo').value=data.estimate_no||'';$('estDateTime').value=d.meta?.estimateDateTime||toLocalDateTimeInput(data.created_at);$('validityDays').value=String(d.meta?.validityDays||15);$('fieldVisitStatus').value=d.meta?.fieldVisitStatus||'NO';$('visitDate').value=d.meta?.visitDate||'';$('cliName').value=data.customer_name||d.meta?.name||'';$('cliPhone').value=data.phone||d.meta?.phone||'';$('cliAddr').value=d.meta?.address||'';$('cliBudget').value=d.meta?.budget??'';$('notes').value=d.meta?.notes||'';$('discount').value=d.meta?.discount||0;$('discountType').value=d.meta?.discountType||'amount';$('gst').value=d.meta?.gst||0;await setCreationByOptions(d.meta?.creationById||'',S.leadId);toggleVisitDate();updateValidUntil();S.rows=Array.isArray(d.rows)?d.rows:[];renderRows();calculate();}

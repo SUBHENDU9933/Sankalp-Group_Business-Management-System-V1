@@ -767,7 +767,7 @@
                 if (error) throw error;
                 if (!data) { alert('Estimate not found.'); return; }
                 if (Number(data.estimator_version || 1) !== 2) {
-                    const target = data.estimator_module === 'estimate_v2' ? '/estimate-v2' : '/estimate-v' + (data.estimator_version || 1);
+                    const target = data.estimator_module === 'estimate_v2' ? '/estimator-v2.html' : '/estimator.html';
                     const redirectUrl = new URL(target, window.location.origin);
                     redirectUrl.searchParams.set('id', data.id);
                     window.location.replace(redirectUrl.toString());

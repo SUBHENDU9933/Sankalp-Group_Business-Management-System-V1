@@ -107,7 +107,7 @@ export default function EstimatesPage() {
   const handleDelete = async (e) => {
     if (!can("estimates", "delete")) return;
     if (!window.confirm(`Delete estimate ${e.estimate_no}? This cannot be undone.`)) return;
-    try { await deleteEstimate(e.id, user?.id); toast.success("Moved to Trash"); load(); } catch (err) { toast.error(err.message); }
+    try { await deleteEstimate(e.id, user?.id, Number(e.estimator_version || 1)); toast.success("Moved to Trash"); load(); } catch (err) { toast.error(err.message); }
   };
   const handleDuplicate = async (e) => {
     if (!can("estimates", "create")) return;
@@ -116,7 +116,7 @@ export default function EstimatesPage() {
   const handleStatus = async (e, status) => {
     const action = status === "sent" ? "send" : "edit";
     if (!can("estimates", action)) return;
-    try { await updateEstimateStatus(e.id, status); toast.success(`Status: ${STATUS_META[status].label}`); load(); } catch (err) { toast.error(err.message); }
+    try { await updateEstimateStatus(e.id, status, Number(e.estimator_version || 1)); toast.success(`Status: ${STATUS_META[status].label}`); load(); } catch (err) { toast.error(err.message); }
   };
 
   return (

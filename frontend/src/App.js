@@ -21,7 +21,6 @@ import ApprovalsPage from "@/pages/ApprovalsPage";
 import VerifyReceiptPage from "@/pages/VerifyReceiptPage";
 import TeamPage from "@/pages/TeamPage";
 import EstimatesPage from "@/pages/EstimatesPage";
-import EstimateV2Page from "@/pages/EstimateV2Page";
 import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
 import VendorDetailPage from "@/pages/VendorDetailPage";
 import TrashPage from "@/pages/TrashPage";
@@ -88,7 +87,7 @@ function App() {
               <Route path="/leads/legacy" element={<LeadsPage />} />
             </Route>
             <Route element={<PermissionRoute resource="customers" />}><Route path="/customers" element={<CustomersPage />} /></Route>
-            <Route element={<PermissionRoute resource="estimates" />}><Route path="/estimates" element={<EstimatesPage />} /><Route path="/estimate-v2" element={<EstimateV2Page />} /></Route>
+            <Route element={<PermissionRoute resource="estimates" />}><Route path="/estimates" element={<EstimatesPage />} /><Route path="/estimate-v2" element={<Navigate to="/estimator-v2.html" replace />} /></Route>
             <Route element={<PermissionRoute resource="receipts" />}><Route path="/receipts" element={<ReceiptsPage />} /></Route>
             <Route element={<PermissionRoute resource="projects" />}><Route path="/projects" element={<ProjectsPage />} /><Route path="/projects/:id" element={<ProjectDetailPage />} /></Route>
             <Route element={<PermissionRoute resource="vendors" />}><Route path="/vendors" element={<VendorsPage />} /><Route path="/vendors/:id" element={<VendorDetailPage />} /></Route>

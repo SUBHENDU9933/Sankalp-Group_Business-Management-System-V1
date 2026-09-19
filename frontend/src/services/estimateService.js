@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
  * Build the URL to open the existing HTML estimator with required config.
  * The HTML reads ?u, ?k, ?lead_id, ?id from query params.
  */
-export const buildEstimatorUrl = ({ leadId, estimateId } = {}) => {
+export const buildEstimatorV1Url = ({ leadId, estimateId } = {}) => {
   const u = encodeURIComponent(process.env.REACT_APP_SUPABASE_URL || "");
   const k = encodeURIComponent(process.env.REACT_APP_SUPABASE_ANON_KEY || "");
   const params = new URLSearchParams();
@@ -13,6 +13,19 @@ export const buildEstimatorUrl = ({ leadId, estimateId } = {}) => {
   if (leadId) params.set("lead_id", leadId);
   if (estimateId) params.set("id", estimateId);
   return `/estimator.html?${params.toString()}`;
+};
+
+export const buildEstimatorV2Url = ({ leadId, estimateId } = {}) => {
+  const params = new URLSearchParams();
+  if (leadId) params.set("leadId", leadId);
+  if (estimateId) params.set("estimateId", estimateId);
+  return `/estimate-v2?${params.toString()}`;
+};
+
+export const buildEstimatorUrl = ({ leadId, estimateId, version = 1, module } = {}) => {
+  const resolvedVersion = Number(version || 1);
+  if (resolvedVersion === 2 || module === "estimate_v2") return buildEstimatorV2Url({ leadId, estimateId });
+  return buildEstimatorV1Url({ leadId, estimateId });
 };
 
 export const fetchEstimates = async () => {
@@ -66,6 +79,8 @@ export const duplicateEstimate = async (estimate, userId) => {
     final_amount: estimate.final_amount,
     status: "draft",
     created_by: userId,
+    estimator_version: Number(estimate.estimator_version || 1),
+    estimator_module: estimate.estimator_module || `estimate_v${Number(estimate.estimator_version || 1)}`,
   };
   const { data, error } = await supabase.from("estimates").insert([payload]).select("*").single();
   if (error) throw error;

@@ -19,7 +19,7 @@ export const buildEstimatorV2Url = ({ leadId, estimateId } = {}) => {
   const params = new URLSearchParams();
   if (leadId) params.set("leadId", leadId);
   if (estimateId) params.set("estimateId", estimateId);
-  return `/estimate-v2?${params.toString()}`;
+  return `/estimator-v2.html?${params.toString()}`;
 };
 
 export const buildEstimatorUrl = ({ leadId, estimateId, version = 1, module } = {}) => {

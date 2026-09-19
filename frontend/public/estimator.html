@@ -731,7 +731,9 @@
                     phone: record.meta.cliPhone || null,
                     final_amount: finalAmount,
                     data: record,
-                    lead_id: window.SANKALP.leadId || null
+                    lead_id: window.SANKALP.leadId || null,
+                    estimator_version: 1,
+                    estimator_module: 'estimate_v1'
                 };
                 let result, err;
                 if (window.SANKALP.currentEstimateId) {
@@ -764,6 +766,13 @@
                 const { data, error } = await sb.from('estimates').select('*').eq('id', id).maybeSingle();
                 if (error) throw error;
                 if (!data) { alert('Estimate not found.'); return; }
+                if (Number(data.estimator_version || 1) !== 1) {
+                    const target = data.estimator_module === 'estimate_v2' ? '/estimate-v2' : '/estimate-v' + (data.estimator_version || 1);
+                    const redirectUrl = new URL(target, window.location.origin);
+                    redirectUrl.searchParams.set('id', data.id);
+                    window.location.replace(redirectUrl.toString());
+                    return;
+                }
                 window.SANKALP.currentEstimateId = data.id;
                 window.SANKALP.currentEstimateNo = data.estimate_no;
                 applyEstimateRecord(data.data || {});

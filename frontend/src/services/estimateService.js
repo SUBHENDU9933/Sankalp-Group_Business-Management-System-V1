@@ -16,9 +16,13 @@ export const buildEstimatorV1Url = ({ leadId, estimateId } = {}) => {
 };
 
 export const buildEstimatorV2Url = ({ leadId, estimateId } = {}) => {
+  const u = encodeURIComponent(process.env.REACT_APP_SUPABASE_URL || "");
+  const k = encodeURIComponent(process.env.REACT_APP_SUPABASE_ANON_KEY || "");
   const params = new URLSearchParams();
-  if (leadId) params.set("leadId", leadId);
-  if (estimateId) params.set("estimateId", estimateId);
+  params.set("u", decodeURIComponent(u));
+  params.set("k", decodeURIComponent(k));
+  if (leadId) params.set("lead_id", leadId);
+  if (estimateId) params.set("id", estimateId);
   return `/estimator-v2.html?${params.toString()}`;
 };
 

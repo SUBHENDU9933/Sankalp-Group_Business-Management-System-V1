@@ -339,7 +339,7 @@ for(const box of document.querySelectorAll('.room-template')){
 await loadCatalog();await loadRoomTemplates();renderRows();closeSettings();alert('V2 item presets and room presets saved.')}catch(e){console.error(e);alert('Catalog / room save failed: '+e.message)}}
 function printEstimate(){const old=document.title;document.title='Sankalp-V2-'+(($('cliName').value||'Client').replace(/[^a-z0-9]+/gi,'-'));window.print();setTimeout(()=>document.title=old,800)}
 document.addEventListener('click',e=>{
- const el=e.target.closest('[data-action],[data-open-preset],[data-remove-row],[data-choose-preset],[data-remove-preset],[data-add-preset]');
+ const el=e.target.closest('[data-action],[data-open-preset],[data-remove-row],[data-remove-room],[data-choose-preset],[data-remove-preset],[data-add-preset],[data-remove-room-item],[data-add-room-item],[data-remove-room-template],[data-room-template]');
  if(!el)return;
  if(el.dataset.action==='dashboard'){location.href='/estimates';return}
  if(el.dataset.action==='settings'){openSettings();return}

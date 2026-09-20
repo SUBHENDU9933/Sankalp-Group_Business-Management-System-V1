@@ -1030,7 +1030,7 @@ function calculate(){
    const item=(S.items||[]).find(i=>i.id===r.itemId);
    const name=(item?.name||r.itemName||'').toLowerCase();
    if(name.includes('3d/2d design'))designValue+=line;
-   if(name.includes('consultancy & designer charge'))consultancyValue+=line;
+   if(name.includes('consultancy charge'))consultancyValue+=line;
  });
  const d=Number($('discount').value)||0;
  const discount=$('discountType').value==='percent'?sub*d/100:d;

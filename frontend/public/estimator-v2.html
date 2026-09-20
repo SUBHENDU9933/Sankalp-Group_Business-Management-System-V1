@@ -202,6 +202,14 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
  .room-section-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
  .room-section-table td,.room-section-table th{overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important}
 }
+</style><style id="room-section-fix">
+.room-actions{display:flex;align-items:center;gap:6px;justify-self:center}
+.room-add-item{padding:4px 8px!important;font-size:10px!important;color:#073b70!important;background:#fff!important;border-color:#9bb8d2!important}
+.room-empty td{padding:14px!important;text-align:center!important;color:#64748b!important;font-size:11px!important;background:#f8fbfd!important}
+.general-section-title{min-height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#e8f1f8;border:1px solid #c5d8e8;color:#073b70}
+.general-section-title strong{font-size:11px;letter-spacing:.5px}.general-section-title span{font-size:9px;color:#64748b}
+.room-disabled{opacity:.6;cursor:not-allowed!important}
+@media print{.room-add-item,.room-actions .rowdel{display:none!important}.room-empty{display:none!important}.general-section-title{background:#e8f1f8!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
 </style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="add-room">＋ Add Room</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
@@ -344,17 +352,23 @@ function roomItemRow(r,n){
  const p=getPreset(r),rid=esc(r.id);
  return '<tr><td class="center">'+n+'</td><td><div class="itemcell"><select data-row-id="'+rid+'" data-change-item="1">'+itemOptions(r.itemId)+'</select>'+(r.itemId&&p?'<button type="button" class="presetedit" title="Change configuration" data-row-id="'+rid+'" data-open-preset="1">⚙</button>':'')+'<button type="button" class="rowdel" title="Remove item" data-row-id="'+rid+'" data-remove-row="1">×</button>'+(r.itemId?'<div class="itemdesc">'+esc(S.items.find(i=>i.id===r.itemId)?.description||'')+'</div>':'')+'</div></td><td class="measurement-cell">'+measurementHTML(r)+'</td><td class="area">'+((r.measurementType==='NOS'||r.measurementType==='LUMSUM')?'—':Number(r.area||0).toFixed(2))+'<div style="font-size:9px">'+((r.measurementType==='RFT')?'RFT':(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?'':'SQFT'))+'</div></td><td class="center"><select class="qty" data-row-id="'+rid+'" data-set-qty="1">'+qtyOptions(r.quantity??1)+'</select></td><td class="money">'+money(r.rate)+'</td><td class="money">'+money(roomLineTotal(r))+'</td><td class="spec">'+esc(r.specification||'')+'</td></tr>';
 }
+function addItemToRoom(roomId){
+ const r={roomId:roomId,itemId:'',presetId:'',quantity:1};
+ addRow(r);
+}
 function renderRoomSection(room,rows,nStart){
  let n=nStart;
  const items=rows.map(r=>roomItemRow(r,++n)).join('');
  const subtotal=roomSubtotal(rows);
- return '<tr class="room-section-row"><td colspan="8"><div class="room-section"><div class="room-title"><strong>'+esc(room.name)+'</strong><button type="button" class="rowdel" data-remove-room="'+esc(room.id)+'" title="Remove room">×</button><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(room.remarks||'')+'" data-room-id="'+esc(room.id)+'" data-room-remarks="1" placeholder="If any"></div></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">'+esc(room.name)+' SUBTOTAL</td><td class="money">'+money(subtotal)+'</td><td></td></tr></tbody></table></div></td></tr>';
+ const empty=!rows.length;
+ return '<tr class="room-section-row"><td colspan="8"><div class="room-section"><div class="room-title"><strong>'+esc(room.name)+'</strong><div class="room-actions"><button type="button" class="btn room-add-item" data-add-item-to-room="'+esc(room.id)+'">+ Add Item</button><button type="button" class="rowdel" data-remove-room="'+esc(room.id)+'" title="Remove room">×</button></div><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(room.remarks||'')+'" data-room-id="'+esc(room.id)+'" data-room-remarks="1" placeholder="If any"></div></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+(empty?'<tr class="room-empty"><td colspan="8">No items added to this room yet. Use <b>+ Add Item</b> or configure items in Presets / Rooms.</td></tr>':'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">ROOM / SECTION TOTAL — '+esc(room.name)+'</td><td class="money">'+money(subtotal)+'</td><td></td></tr>')+'</tbody></table></div></td></tr>';
 }
 function renderUnassignedSection(rows,nStart){
  if(!rows.length)return '';
  let n=nStart;
  const items=rows.map(r=>roomItemRow(r,++n)).join('');
- return '<tr class="other-section-row"><td colspan="8"><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+'</tbody></table></td></tr>';
+ const total=roomSubtotal(rows);
+ return '<tr class="other-section-row"><td colspan="8"><div class="room-section"><div class="general-section-title"><strong>GENERAL ITEMS</strong><span>Items not assigned to a room / section</span></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">GENERAL ITEMS TOTAL</td><td class="money">'+money(total)+'</td><td></td></tr></tbody></table></div></td></tr>';
 }
 function renderRows(){
  const tb=$('rows');let html='';let n=0;
@@ -398,9 +412,9 @@ async function selectLead(l){S.leadId=l.id||'';$('leadSearch').value=(l.name||''
 let leadTimer; $('leadSearch').addEventListener('input',()=>{clearTimeout(leadTimer);leadTimer=setTimeout(searchLeads,250)});
 document.addEventListener('click',e=>{if(!e.target.closest('.leadwrap'))$('leadList').classList.add('hidden')});
 function openSettings(){renderCatalog();renderRoomCatalog();$('settings').classList.remove('hidden')}function closeSettings(){$('settings').classList.add('hidden')}
-function openRoomPicker(){const box=$('roomChoices');if(!S.roomTemplates.length){box.innerHTML='<div class="small">No room presets created yet. Open Presets / Rooms and create a room.</div>';}else{box.innerHTML=S.roomTemplates.map(r=>'<button type="button" class="preset-choice" data-room-template="'+esc(r.id)+'"><span class="preset-choice-name">'+esc(r.name)+'</span><div class="preset-choice-meta">'+r.items.length+' item(s)'+(r.remarks?' · '+esc(r.remarks):'')+'</div><div class="preset-choice-spec">'+r.items.map(x=>{const it=S.items.find(i=>i.id===x.item_id);const p=it?.presets.find(p=>p.id===x.preset_id);return esc(it?.name||'Item')+(p?' — '+esc(p.name):'');}).join(' · ')+'</div></button>').join('');}$('roomPicker').classList.remove('hidden')}
+function openRoomPicker(){const box=$('roomChoices');if(!S.roomTemplates.length){box.innerHTML='<div class="small">No room presets created yet. Open Presets / Rooms and create a room.</div>';}else{box.innerHTML=S.roomTemplates.map(r=>r.items.length?'<button type="button" class="preset-choice" data-room-template="'+esc(r.id)+'"><span class="preset-choice-name">'+esc(r.name)+'</span><div class="preset-choice-meta">'+r.items.length+' item(s)'+(r.remarks?' · '+esc(r.remarks):'')+'</div><div class="preset-choice-spec">'+r.items.map(x=>{const it=S.items.find(i=>i.id===x.item_id);const p=it?.presets.find(p=>p.id===x.preset_id);return esc(it?.name||'Item')+(p?' — '+esc(p.name):'');}).join(' · ')+'</div></button>':'<div class="preset-choice room-disabled"><span class="preset-choice-name">'+esc(r.name)+'</span><div class="preset-choice-meta">0 items — configure this Room Preset first</div></div>').join('');}$('roomPicker').classList.remove('hidden')}
 function closeRoomPicker(){$('roomPicker').classList.add('hidden')}
-function addRoomFromTemplate(roomId){const t=S.roomTemplates.find(x=>x.id===roomId);if(!t)return;const room={id:crypto.randomUUID(),templateId:t.id,name:t.name,remarks:t.remarks||''};S.rooms.push(room);t.items.forEach(x=>{const r={roomId:room.id,itemId:x.item_id,presetId:x.preset_id||'',quantity:Number(x.default_quantity)||1};const p=getPreset(r);if(p)applyPreset(r,p);addRow(r);});closeRoomPicker();renderRows();}
+function addRoomFromTemplate(roomId){const t=S.roomTemplates.find(x=>x.id===roomId);if(!t)return;if(!t.items.length){alert('This Room Preset has no items configured. Please open Presets / Rooms and add the room items first.');openSettings();return;}const room={id:crypto.randomUUID(),templateId:t.id,name:t.name,remarks:t.remarks||''};S.rooms.push(room);t.items.forEach(x=>{const r={roomId:room.id,itemId:x.item_id,presetId:x.preset_id||'',quantity:Number(x.default_quantity)||1};const p=getPreset(r);if(p)applyPreset(r,p);addRow(r);});closeRoomPicker();renderRows();}
 function addBlankRoom(){const room={id:crypto.randomUUID(),name:'NEW ROOM',remarks:''};S.rooms.push(room);renderRows();}
 
 
@@ -453,6 +467,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.addRoomItem!==undefined){addRoomItem(el.dataset.addRoomItem);return}
  if(el.dataset.removeRoomTemplate!==undefined){S.roomTemplates=S.roomTemplates.filter(r=>r.id!==el.dataset.removeRoomTemplate);renderRoomCatalog();return}
  if(el.dataset.roomTemplate!==undefined){addRoomFromTemplate(el.dataset.roomTemplate);return}
+ if(el.dataset.addItemToRoom!==undefined){addItemToRoom(el.dataset.addItemToRoom);return}
  if(el.dataset.openPreset!==undefined){openPresetPicker(el.dataset.rowId);return}
  if(el.dataset.removeRow!==undefined){removeRow(el.dataset.rowId);return}
  if(el.dataset.choosePreset!==undefined){choosePreset(el.dataset.rowId,el.dataset.presetId);return}

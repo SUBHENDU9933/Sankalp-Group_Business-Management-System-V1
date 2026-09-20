@@ -1058,7 +1058,7 @@ function calculate(){
  $('offerConsultancyLess').textContent='Less '+money(consultancyLess);
  $('offerSavings').textContent=money(savings);
  $('offerGrand').textContent=money(offerGrand);
- const offerDate=new Date(($('estDateTime').value||new Date().toISOString()).replace(' ','T'));
+ let offerDate=new Date(($('estDateTime').value||new Date().toISOString()).replace(' ','T'));
  if(Number.isNaN(offerDate.getTime()))offerDate=new Date();
  offerDate.setDate(offerDate.getDate()+7);
  const offerDateText=offerDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});

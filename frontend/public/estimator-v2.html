@@ -21,6 +21,15 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 @media print{body{padding:0;background:#fff}.toolbar,.add,.del,.modal,.leadlist,.notice,.presetedit{display:none!important}.sheet{box-shadow:none;max-width:none}.inner{border-top:4px solid var(--p);padding:10mm}.field input,.field textarea,td input,td select,td textarea{border:0!important;padding:0!important}.tablebox{overflow:visible}.summary,.footer{break-inside:avoid}}
 </style>
 <style id="estimate-company-switch">
+.toolbar-brand{display:flex;align-items:center;min-width:0;gap:12px}
+.toolbar-cloud-status{display:inline-flex;align-items:center;padding:5px 10px;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;color:#047857;font-size:11px;font-weight:700;white-space:nowrap}
+@media(max-width:800px){
+  .toolbar-brand{display:block}
+  .toolbar-cloud-status{display:flex;width:max-content;max-width:100%;margin-top:5px}
+  .company-switch{flex:1}
+}
+@media print{.company-switch{display:none!important}.toolbar-cloud-status{display:none!important}}
+
 .toolbar-brand{display:flex;align-items:center;min-width:0}.company-switch{border-color:#cbd5e1;white-space:nowrap}.company-switch:hover{border-color:#f47b20;background:#fff7ed}
 @media(max-width:800px){.toolbar-brand{display:block}.toolbar-brand #toolbarCloudSummary{display:block;margin:3px 0 0!important}.company-switch{flex:1}}
 @media print{.company-switch{display:none!important}}
@@ -578,7 +587,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 }
 </style></head>
 <body>
-<div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
+<div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" class="toolbar-cloud-status">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 
 <div class="sheet"><div class="inner">
 <header class="estimate-header" id="estimateHeader">
@@ -700,7 +709,14 @@ function parseFeetInches(value){const s=String(value??'').trim().toLowerCase();i
 function feetInchesDisplay(value){const n=Number(value);if(!Number.isFinite(n)||n<=0)return '';return formatFeetInches(n);}
 function qtyOptions(value){const n=Number(value)||1;let out='';for(let i=1;i<=100;i++)out+='<option value="'+i+'" '+(n===i?'selected':'')+'>'+i+'</option>';if(n>100)out+='<option value="'+n+'" selected>'+n+'</option>';return out;}
 function rupeesWords(n){n=Math.round(n);if(!n)return'Rupees Zero Only';const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];function w(x){if(x<20)return ones[x];if(x<100)return tens[Math.floor(x/10)]+(x%10?' '+ones[x%10]:'');if(x<1000)return ones[Math.floor(x/100)]+' Hundred'+(x%100?' '+w(x%100):'');if(x<100000)return w(Math.floor(x/1000))+' Thousand'+(x%1000?' '+w(x%1000):'');if(x<10000000)return w(Math.floor(x/100000))+' Lakh'+(x%100000?' '+w(x%100000):'');return w(Math.floor(x/10000000))+' Crore'+(x%10000000?' '+w(x%10000000):'')}return'Rupees '+w(n)+' Only';}
-function setConnectionStatus(message,type='info'){const n=document.querySelector('.notice');if(!n)return;n.innerHTML='<b>V2 Database:</b> '+esc(message);n.style.background=type==='ok'?'#f0fdf4':type==='error'?'#fef2f2':'#eff6ff';n.style.borderColor=type==='ok'?'#bbf7d0':type==='error'?'#fecaca':'#bfdbfe';n.style.color=type==='ok'?'#166534':type==='error'?'#991b1b':'#1e40af';}
+function setConnectionStatus(message,type='info'){
+ const n=document.getElementById('toolbarCloudSummary');
+ if(!n)return;
+ n.textContent='V2 Database: '+esc(message);
+ n.style.background=type==='ok'?'#f0fdf4':type==='error'?'#fef2f2':'#eff6ff';
+ n.style.borderColor=type==='ok'?'#bbf7d0':type==='error'?'#fecaca':'#bfdbfe';
+ n.style.color=type==='ok'?'#047857':type==='error'?'#991b1b':'#1e40af';
+}
 async function waitForAuth(){const {data,error}=await S.sb.auth.getUser();if(error)throw error;if(data?.user){S.user=data.user;S.authReady=true;return data.user;}throw new Error('No active Supabase login session. Please open V2 from the logged-in Estimates dashboard.');}
 async function waitForSupabaseClient(timeoutMs=15000){const started=Date.now();while(!(window.supabase&&window.supabase.createClient)){if(Date.now()-started>timeoutMs)throw new Error('Supabase library did not load. Please refresh the page or check browser network access.');await new Promise(r=>setTimeout(r,100));}return window.supabase;}async function init(){try{const defaultUrl='https://tbfzxmbvzpszjldupycy.supabase.co';const defaultKey='sb_publishable_lHpkefWymNBde8t8hESJ_A_8ENwAFBA';const u=params.get('u')||defaultUrl;const k=params.get('k')||defaultKey;const supabaseLib=await waitForSupabaseClient();S.sb=supabaseLib.createClient(u,k,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});if(!S.sb)throw new Error('Supabase client could not be initialized');setConnectionStatus('Checking secure login session…');await waitForAuth();setConnectionStatus('Authenticated. Loading Items and Presets…');await loadCatalog();await loadRoomTemplates();if(!S.items.length)throw new Error('Database connected but no active V2 Items were returned.');const presetCount=S.items.reduce((n,i)=>n+i.presets.length,0);if(!presetCount)throw new Error('Database connected but no active V2 Presets were returned.');await loadProfile();if(!S.estimateId){const draftKey='sankalp_v2_draft_started_'+(S.leadId||'new');const draftStarted=sessionStorage.getItem(draftKey)||new Date().toISOString();sessionStorage.setItem(draftKey,draftStarted);$('estDateTime').value=toLocalDateTimeInput(draftStarted);await ensureEstimateNo();}await loadEstimate();if(S.leadId)await loadLead(S.leadId);S.ready=true;setConnectionStatus('Connected ✓ · '+S.items.length+' Items · '+presetCount+' Presets loaded','ok');}catch(e){console.error('V2 initialization failed',e);S.ready=false;setConnectionStatus(e.message||'Database connection failed','error');alert('V2 cannot start: '+(e.message||'Database connection failed'));}}
 function updatePresetCloudSummary(message='Cloud catalog loaded'){

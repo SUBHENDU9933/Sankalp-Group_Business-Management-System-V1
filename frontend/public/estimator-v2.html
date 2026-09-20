@@ -21,11 +21,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 @media print{body{padding:0;background:#fff}.toolbar,.add,.del,.modal,.leadlist,.notice,.presetedit{display:none!important}.sheet{box-shadow:none;max-width:none}.inner{border-top:4px solid var(--p);padding:10mm}.field input,.field textarea,td input,td select,td textarea{border:0!important;padding:0!important}.tablebox{overflow:visible}.summary,.footer{break-inside:avoid}}
 </style>
 <style id="estimate-client-layout">
-.client-work-budget{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;margin:9px 0;align-items:center;width:100%;min-width:0}
-.client-work-budget .field{margin:0;min-width:0;max-width:100%;overflow:hidden}
-.client-work-budget .field label{width:82px;flex:0 0 82px;white-space:nowrap}
-.client-work-budget .field input{min-width:0;width:0;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:700px){.client-work-budget{grid-template-columns:1fr}.client-work-budget .field input{width:auto}}
+/* Client details are intentionally kept one field per row for a clean, contained layout. */
 </style><style id="estimate-lead-link">
 .lead-link-row{display:flex;align-items:center;gap:6px;min-width:0}.lead-link-row #leadSearch{flex:1;min-width:0}
 .lead-unlink{border:0;background:transparent;color:#dc2626;font-size:11px;font-weight:700;padding:4px 5px;cursor:pointer;white-space:nowrap}
@@ -644,10 +640,8 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <div class="field leadwrap"><label>Find Lead</label><div class="lead-link-row"><input id="leadSearch" placeholder="Search name or phone" autocomplete="off"><button type="button" id="leadClearBtn" class="lead-unlink hidden" title="Unlink lead">✕ Unlink</button></div><div id="leadList" class="leadlist hidden"></div></div>
 <div class="field"><label>Client Name</label><input id="cliName"></div>
 <div class="field"><label>Phone</label><input id="cliPhone"></div>
-<div class="client-work-budget">
-  <div class="field"><label>Wrk / Project</label><input id="cliWork" placeholder="Project / Work Details"></div>
-  <div class="field"><label>Budget</label><input id="cliBudget" type="number" min="0" step="1" placeholder="Enter budget"></div>
-</div>
+<div class="field"><label>Wrk / Project</label><input id="cliWork" placeholder="Project / Work Details"></div>
+<div class="field"><label>Budget</label><input id="cliBudget" type="number" min="0" step="1" placeholder="Enter budget"></div>
 <div class="field"><label>Address</label><input id="cliAddr"></div>
 </div>
 </div>

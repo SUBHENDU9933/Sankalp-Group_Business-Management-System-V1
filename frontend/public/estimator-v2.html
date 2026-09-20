@@ -39,20 +39,20 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .gift-option-range{grid-column:3;font-size:10px;color:#8a5a00;font-weight:800;margin-top:3px}
 .gift-option:after{content:'🎁  ASSURED GIFT';position:absolute;top:10px;right:8px;padding:5px 7px;border-radius:5px;background:linear-gradient(180deg,#c51619,#89090d);color:#fff8d6;font-size:8px;font-weight:900;letter-spacing:.3px;box-shadow:0 2px 5px rgba(100,0,0,.18)}
 .gift-option:before{content:'✦  Special Gift  ·  Assured Offer  ·  Premium Selection';position:absolute;left:14px;right:14px;bottom:9px;padding-top:8px;border-top:1px solid #edf0f3;color:#8b650f;font-size:8px;font-weight:800;letter-spacing:.15px;text-align:center}
-.gift-premium-footer{margin:0 16px 15px;min-height:70px;border-radius:9px;border:1px solid #d4ad3d;background:linear-gradient(90deg,#043728,#0a4b39 45%,#043728);display:flex;align-items:center;gap:18px;padding:7px 13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.gift-premium-footer{margin:0 16px 15px;min-height:70px;border-radius:9px;border:1px solid #d4a017;background:linear-gradient(90deg,#102d63 0%,#1e3a8a 48%,#102d63 100%);display:flex;align-items:center;gap:18px;padding:7px 13px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 4px 12px rgba(30,58,138,.16);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .gift-footer-box{font-size:48px;line-height:1;filter:drop-shadow(0 4px 5px rgba(0,0,0,.25));flex:0 0 auto}
-.gift-footer-message{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.28);padding-right:20px}
+.gift-footer-message{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.3);padding-right:20px}
 .gift-footer-message>div{font-size:17px;letter-spacing:1px;line-height:1.2}
 .gift-footer-message>div b:first-child,.gift-footer-message>div b:last-child{color:#fff}
 .gift-footer-message>div b:nth-of-type(2){color:#f4cf66}
 .gift-footer-message>div span{color:#f4cf66;margin:0 9px}
-.gift-footer-message small{display:block;margin-top:5px;font-size:9px;letter-spacing:1px;color:#e9eee9}
-.gift-footer-brand{display:flex;align-items:center;gap:8px;min-width:160px;border-right:1px solid rgba(255,255,255,.28);padding-right:17px}
-.gift-footer-brand img{width:38px;height:38px;object-fit:contain;filter:brightness(0) invert(1)}
-.gift-footer-brand b{display:block;font-size:15px;letter-spacing:1px}
-.gift-footer-brand small{display:block;font-size:8px;letter-spacing:.8px;color:#dce9df;margin-top:2px}
+.gift-footer-message small{display:block;margin-top:5px;font-size:9px;letter-spacing:1px;color:#f4f7ff}
+.gift-footer-brand{display:flex;align-items:center;gap:8px;min-width:160px;border-right:1px solid rgba(255,255,255,.3);padding-right:17px}
+.gift-footer-brand img{width:38px;height:38px;object-fit:contain;background:#fff;border:1px solid #d4a017;border-radius:6px;padding:3px;filter:none}
+.gift-footer-brand b{display:block;font-size:15px;letter-spacing:1px;color:#fff}
+.gift-footer-brand small{display:block;font-size:8px;letter-spacing:.8px;color:#e8efff;margin-top:2px}
 .gift-footer-thanks{font-family:cursive;font-size:18px;line-height:1.05;color:#fff;min-width:90px;text-align:center}
-.gift-footer-thanks span{color:#ffd766;font-family:inherit}
+.gift-footer-thanks span{color:#f4cf66;font-family:inherit}
 .gift-no-selection{display:none}.gift-promo-print{display:none;padding:0 16px 15px}
 .gift-print-banner{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center;border:1px solid #eadfca;border-radius:11px;padding:14px;background:linear-gradient(135deg,#fffdf7,#fff,#f4faf6)}
 .gift-print-banner img{width:150px;height:100px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid #e6e9ed;padding:5px;box-sizing:border-box}
@@ -134,7 +134,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
  .gift-card-option{border:1px solid #dbe3ea;box-shadow:none}
  .gift-card-option.selected{border:2px solid #e4ac28}
  .gift-card-check{display:none}
- .gift-premium-footer{display:none!important}
+ .gift-premium-footer{display:flex!important;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
  .gift-promo-head{display:flex!important}
 }
 @media(max-width:950px){.gift-premium .gift-promo-editor{grid-template-columns:repeat(2,minmax(0,1fr))}}

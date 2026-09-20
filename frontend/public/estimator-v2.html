@@ -160,6 +160,117 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
     .print-features{grid-template-columns:1fr 1fr}.print-features>div{border-right:0;border-bottom:1px solid #e5a35b;padding:8px}.print-contact{margin:0 -16px;padding:18px 16px}.print-contact strong{padding:14px}
   }
 }
+
+/* Landscape A4 — same visual page for screen + print */
+@media screen and (min-width:1100px){
+  body{padding:0;background:#eef3f8}
+  .sheet{width:min(1500px,100%);margin:0 auto;box-shadow:0 10px 35px #073b7020}
+  .inner{padding:0 28px 28px}
+  .print-head{height:205px}
+  .print-brand{padding:38px 0 20px 32px}
+  .print-logo b{font-size:54px}.print-logo-mark{width:68px;height:68px;font-size:51px}.print-logo em{font-size:16px}
+  .print-head-copy{padding:38px 18px 16px 20px;font-size:22px}
+  .print-hero-art{padding:38px 28px 22px 55px}.print-hero-art b{font-size:17px}
+  .print-estimate-title{padding:20px 0 12px}.print-estimate-title h1{font-size:56px}.print-title-bar{height:72px}
+  .print-estimate-title p{font-size:13px}
+  .print-services{gap:16px;padding-bottom:15px}.print-services b{width:46px;height:46px;font-size:23px}
+  .print-services>div{font-size:10px}
+  .meta{gap:14px;margin-bottom:14px}
+  .box,.print-quote{padding:16px}.box .title{margin:-16px -16px 11px;padding:9px 12px}
+  .field{margin:6px 0}.fieldpair{margin:6px 0}.fieldfull{margin:6px 0}
+  .print-quote p{font-size:20px}.print-quote span{font-size:55px}
+  .notice{padding:8px 12px;margin-bottom:12px;font-size:11px}
+  .tablebox{border-radius:8px}
+  th{padding:10px 6px;font-size:10px}td{padding:7px 6px;font-size:11px}
+  .itemcell select{font-size:13px}.itemdesc{font-size:10px}.spec{font-size:10px}
+  .summary{gap:14px;margin-top:12px}.notes,.totals{padding:15px}.notes textarea{min-height:76px}
+  .trow{margin:6px 0;font-size:12px}.grand{font-size:21px;padding-top:10px;margin-top:10px}
+  .print-features{margin:12px 0 10px;padding:10px 8px}.print-features>div{font-size:10px}.print-features b{font-size:22px}
+  .print-bottom{gap:18px;padding:10px 0 12px}.print-terms ol{font-size:9px;line-height:1.35}
+  .signature-script{margin:16px 0 3px;font-size:22px}.signature-line{height:32px}
+  .print-contact{margin:0 -28px;padding:16px 28px 14px;font-size:9px}
+  .print-contact strong{margin:-16px -28px -14px 0;padding:14px 22px;font-size:11px}
+}
+
+@media print{
+  @page{size:A4 landscape;margin:0}
+  html,body{width:297mm!important;min-height:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+  body{font-family:Inter,Arial,sans-serif;color:#102a43}
+  .toolbar,.screen-header,.add,.del,.modal,.leadlist,.notice,.presetedit,.rowdel,.footer{display:none!important}
+  .sheet{
+    width:297mm!important;
+    max-width:none!important;
+    min-height:210mm!important;
+    height:auto!important;
+    margin:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+  .inner{
+    width:297mm!important;
+    padding:0 7mm!important;
+    border:0!important;
+    margin:0!important;
+  }
+  .print-head{
+    height:35mm!important;
+    display:grid!important;
+    grid-template-columns:1.05fr .68fr .82fr!important;
+    overflow:hidden!important;
+  }
+  .print-brand{padding:6mm 0 3mm 5mm!important}
+  .print-logo{gap:3.5mm!important}
+  .print-logo-mark{width:12mm!important;height:12mm!important;font-size:9mm!important;border-radius:3mm 5mm 3mm 5mm!important}
+  .print-logo b{font-size:11.5mm!important;letter-spacing:-.6px!important}
+  .print-logo em{font-size:3.2mm!important;letter-spacing:.5px!important;margin-top:1mm!important}
+  .print-tagline{margin-top:2.5mm!important;font-size:2mm!important;letter-spacing:1.8px!important}
+  .print-head-copy{padding:6mm 3mm 2mm 3mm!important;font-size:4.3mm!important}
+  .print-head-copy small{margin-top:1.5mm!important;font-size:2.5mm!important}
+  .print-hero-art{padding:6mm 4mm 3mm 9mm!important}
+  .print-hero-art b{font-size:3.1mm!important;line-height:1.28!important}
+  .hero-lines{width:34mm!important;height:47mm!important;right:20mm!important;top:-8mm!important}
+  .print-estimate-title{padding:3mm 0 1.8mm!important;gap:3mm!important}
+  .print-title-bar{width:2.2mm!important;height:11mm!important}
+  .print-estimate-title h1{font-size:10mm!important}
+  .print-estimate-title p{margin-top:1mm!important;font-size:2.3mm!important;letter-spacing:1.5px!important}
+  .print-services{grid-template-columns:repeat(4,1fr)!important;gap:2mm!important;padding:0 0 2.5mm!important}
+  .print-services>div{gap:2mm!important;font-size:1.8mm!important}
+  .print-services b{width:7mm!important;height:7mm!important;font-size:3.3mm!important}
+  .meta{grid-template-columns:1fr 1.2fr .62fr!important;gap:2.5mm!important;margin-bottom:2.5mm!important}
+  .box,.print-quote{padding:2.5mm!important;border-radius:1.5mm!important}
+  .box .title{font-size:2.1mm!important;padding:1.5mm 2mm!important;margin:-2.5mm -2.5mm 2mm!important;border-radius:1.5mm 1.5mm 0 0!important}
+  .field{gap:1.8mm!important;margin:1.2mm 0!important}
+  .field label{width:20mm!important;font-size:1.9mm!important}
+  .fieldpair{gap:2mm!important;margin:1.2mm 0!important}
+  .fieldpair .field label{width:13mm!important}
+  .fieldfull{margin:1.2mm 0!important}.fieldfull .field label{width:20mm!important}
+  .field input,.field textarea,.field select{font-size:2mm!important;padding:1mm 0!important;min-height:0!important}
+  .print-quote span{font-size:9mm!important}.print-quote p{margin:1mm 0!important;font-size:3.4mm!important}.print-quote small{font-size:2.1mm!important}.print-quote i{width:9mm!important;margin-top:2mm!important}
+  .tablebox{border-radius:1.5mm!important}
+  table{width:100%!important;min-width:0!important;table-layout:fixed!important}
+  th{padding:1.8mm 1mm!important;font-size:1.8mm!important}
+  td{padding:1.5mm 1mm!important;font-size:1.9mm!important;line-height:1.2!important}
+  .itemcell{gap:1mm!important}.itemcell select{font-size:2.4mm!important}.itemdesc{font-size:1.7mm!important;padding-left:.5mm!important}
+  .measurement-cell input,.measurement-cell .presetmeta,.measurement-cell .dims{font-size:1.65mm!important}
+  .measurement-cell .dims{gap:1mm!important}.measurement-cell .dims label{font-size:1.4mm!important}
+  .area{font-size:2mm!important}.area div{font-size:1.35mm!important}.money{font-size:2mm!important}.qty{font-size:1.8mm!important}.spec{font-size:1.75mm!important;line-height:1.25!important}
+  .summary{grid-template-columns:1.2fr .8fr!important;gap:2.5mm!important;margin-top:2.5mm!important}
+  .notes,.totals{padding:2.5mm!important;border-radius:1.5mm!important}
+  .notes .title{font-size:2mm!important;margin-bottom:1mm!important}.notes textarea{min-height:18mm!important;font-size:1.8mm!important;line-height:1.3!important}
+  .trow{margin:1.2mm 0!important;font-size:2mm!important}.grand{padding-top:1.8mm!important;margin-top:1.8mm!important;font-size:4mm!important}.words{font-size:1.6mm!important}
+  .print-features{grid-template-columns:repeat(5,1fr)!important;margin:2.5mm 0 2mm!important;padding:1.8mm 1mm!important}
+  .print-features>div{gap:1.5mm!important;font-size:1.7mm!important}.print-features b{font-size:3.5mm!important}
+  .print-bottom{grid-template-columns:1.2fr 1fr!important;gap:3mm!important;padding:2mm 0 2.5mm!important}
+  .print-terms h3,.sigbox h3{font-size:2mm!important;margin-bottom:1mm!important}
+  .print-terms ol{font-size:1.55mm!important;line-height:1.3!important;padding-left:3mm!important}
+  .print-sign{gap:2.5mm!important}.sigbox{padding-left:2.5mm!important}.signature-script{font-size:4.2mm!important;margin:3mm 0 1mm!important}
+  .sigbox strong,.sigbox span{font-size:1.7mm!important}.sigbox span{margin-top:.7mm!important}.signature-line{height:6mm!important;margin-bottom:1mm!important}
+  .print-contact{grid-template-columns:auto auto auto 1fr auto!important;gap:2mm!important;margin:0 -7mm!important;padding:3mm 7mm 2.5mm!important;font-size:1.65mm!important}
+  .print-contact strong{margin:-3mm -7mm -2.5mm 0!important;padding:2.5mm 4mm!important;font-size:2.1mm!important}
+  .print-contact div{white-space:nowrap!important}.print-contact div:nth-child(4){white-space:normal!important}
+  .print-head,.print-estimate-title,.print-services,.meta,.tablebox,.summary,.print-features,.print-bottom,.print-contact{break-inside:avoid!important}
+  table{break-inside:auto!important}tr{break-inside:avoid!important;page-break-inside:avoid!important}
+}
 </style>
 </head>
 <body>

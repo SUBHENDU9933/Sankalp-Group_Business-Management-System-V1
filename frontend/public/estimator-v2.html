@@ -106,7 +106,40 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   .gift-premium-footer{flex-wrap:wrap}
   .gift-footer-message{border-right:0;padding-right:0;min-width:100%}
   .gift-footer-brand{border-right:0}
-}.estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:25px;break-inside:avoid}
+}.gift-visibility-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 7px;padding:8px 11px;border:1px solid #dbe3ea;border-radius:9px;background:#f8fafc;break-inside:avoid}
+.gift-visibility-bar>div{display:flex;align-items:center;gap:8px;color:#102a43;font-size:11px}
+.gift-visibility-bar>div>span{font-size:16px}
+.gift-visibility-bar>div small{color:#718096;font-size:9px;margin-left:3px}
+.gift-visibility-toggle{border:1px solid #16845b;border-radius:7px;background:#ecfdf5;color:#08744c;font-weight:900;font-size:9px;padding:7px 11px;cursor:pointer}
+.gift-visibility-toggle.is-hidden{border-color:#d19a22;background:#fff8e5;color:#8a5a00}
+.gift-card-option{position:relative;display:block;min-width:0;cursor:pointer;border:2px solid #dbe3ea;border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 3px 10px rgba(15,23,42,.05);transition:.18s ease}
+.gift-card-option:hover{transform:translateY(-2px);border-color:#d7a62d;box-shadow:0 8px 18px rgba(15,23,42,.1)}
+.gift-card-option.selected{border-color:#e4ac28;box-shadow:0 8px 20px rgba(185,130,18,.16)}
+.gift-card-option input{position:absolute;opacity:0;pointer-events:none}
+.gift-card-option img{display:block;width:100%;height:auto;aspect-ratio:2.08/1;object-fit:cover;background:#fff}
+.gift-card-check{position:absolute;top:10px;left:10px;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;border:2px solid #7a8a9a;background:#fff;color:#fff;font-size:14px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,.16)}
+.gift-card-option.selected .gift-card-check{background:#0878e5;border-color:#0878e5}
+.gift-card-missing{height:170px;display:grid;place-items:center;color:#a11;font-size:10px;font-weight:800;background:#fff7f7}
+.gift-premium .gift-promo-editor{grid-template-columns:repeat(3,minmax(0,1fr));padding:14px 16px 15px}
+.gift-premium .gift-promo-editor:after{display:none}
+.gift-premium-footer{margin-top:0}
+.gift-promo-section.gift-no-selection{display:none}
+.gift-print-card img{display:block;width:100%;max-width:100%;height:auto;border:1px solid #e5c66d;border-radius:10px}
+.gift-required{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:4px;background:#fff0f0;color:#b42318;font-size:8px}
+.gift-form-help{font-size:10px;color:#64748b;line-height:1.45;margin-top:6px}
+@media print{
+ .gift-visibility-bar{display:none!important}
+ .gift-promo-section{break-inside:avoid}
+ .gift-promo-editor{grid-template-columns:repeat(3,minmax(0,1fr));display:grid!important}
+ .gift-card-option{border:1px solid #dbe3ea;box-shadow:none}
+ .gift-card-option.selected{border:2px solid #e4ac28}
+ .gift-card-check{display:none}
+ .gift-premium-footer{display:none!important}
+ .gift-promo-head{display:flex!important}
+}
+@media(max-width:950px){.gift-premium .gift-promo-editor{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.gift-premium .gift-promo-editor{grid-template-columns:1fr}}
+.estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:25px;break-inside:avoid}
 .estimate-terms-panel{border:1px solid var(--bd);border-radius:8px;padding:18px;background:#f8fafc;min-width:0}
 .estimate-terms-title{font-size:13px;font-weight:800;color:var(--p);padding-bottom:10px;border-bottom:1px solid #e2e8f0;letter-spacing:.2px}
 .estimate-terms-list,.estimate-project-list{margin:10px 0 0;padding-left:23px;font-size:12px;line-height:1.75;color:#1f2937}
@@ -842,6 +875,10 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   </div>
 </section>
 
+<div id="giftVisibilityBar" class="gift-visibility-bar">
+  <div><span>🎁</span><b>Gift Offer</b><small id="giftVisibilityStatus">Visible to customer</small></div>
+  <button type="button" id="giftVisibilityToggle" class="gift-visibility-toggle" data-action="toggle-gift-visibility">✓ SHOW GIFT OFFER</button>
+</div>
 <section class="gift-promo-section gift-premium" id="giftPromoSection">
   <div class="gift-promo-head">
     <div class="gift-promo-title-wrap">
@@ -920,8 +957,8 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <div class="gift-premium-layout"><section class="gift-editor-panel">
 <div class="gift-panel-head"><div><span class="gift-panel-kicker">GIFT PRESET</span><h3 id="giftFormTitle">Create New Gift</h3></div><button type="button" class="gift-secondary-btn" data-action="clear-gift-form">＋ New</button></div>
 <input type="hidden" id="giftEditId" value="">
-<div class="gift-form-section"><div class="gift-form-section-title">01 · OFFER DETAILS</div><label>GIFT HEADING<input id="giftHeading" placeholder="Complimentary Smart LED TV"></label><label>SHORT DESCRIPTION<input id="giftShortDescription" placeholder="Exclusive gift with eligible project booking"></label><label>PROMOTIONAL DESCRIPTION<textarea id="giftDescription" rows="4" placeholder="Write the customer-facing promotional message..."></textarea></label></div>
-<div class="gift-form-section"><div class="gift-form-section-title">02 · PROMOTIONAL IMAGE</div><div class="gift-image-source-grid"><div><label>UPLOAD IMAGE<input id="giftImageFile" type="file" accept="image/*"></label><div class="gift-upload-help">JPG, PNG or WEBP · up to 2 MB · image is optimized automatically</div></div><div class="gift-or">OR</div><label>IMAGE URL<input id="giftImageUrl" placeholder="https://example.com/gift-banner.jpg"></label></div><div id="giftImagePreview" class="gift-image-preview empty"><span>Image preview</span></div></div>
+<div class="gift-form-section"><div class="gift-form-section-title">01 · GIFT DETAILS</div><label>GIFT NAME<input id="giftHeading" placeholder="Smart LED TV Gift"></label><div class="gift-form-help">Use a simple internal gift name. All customer-facing gift details will be shown inside the uploaded Gift Card image.</div></div>
+<div class="gift-form-section"><div class="gift-form-section-title">02 · GIFT CARD IMAGE <span class="gift-required">REQUIRED</span></div><label>UPLOAD CUSTOMER GIFT CARD<input id="giftImageFile" type="file" accept="image/jpeg,image/png,image/webp"></label><div class="gift-upload-help">Upload the final customer-ready JPG / PNG / WEBP gift card. The image should contain all gift details, branding, features and offer information. Up to 2 MB.</div><div id="giftImagePreview" class="gift-image-preview empty"><span>Gift card preview will appear here</span></div><input id="giftImageUrl" type="hidden"></div>
 <div class="gift-form-section"><div class="gift-form-section-title">03 · PROJECT VALUE ELIGIBILITY</div><div class="gift-value-grid"><label>MINIMUM PROJECT VALUE<input id="giftMinValue" type="number" min="0" step="1000" value="0" placeholder="₹0"></label><label>MAXIMUM PROJECT VALUE<input id="giftMaxValue" type="number" min="0" step="1000" placeholder="No limit"></label></div><div class="gift-range-help">Gift is available only when the Project Estimated Grand Total falls within this range.</div></div>
 <div class="gift-editor-footer"><label class="gift-status-toggle"><input id="giftActive" type="checkbox" checked><span></span> Active</label><div class="gift-editor-actions"><button type="button" class="gift-secondary-btn" data-action="clear-gift-form">Cancel / New</button><button type="button" class="gift-save-btn" data-action="save-gift-preset">💾 Save Gift Preset</button></div></div>
 </section><section class="gift-library-panel"><div class="gift-panel-head"><div><span class="gift-panel-kicker">GIFT LIBRARY</span><h3>Available Gift Presets</h3></div><span class="gift-universal-badge">🌐 Universal</span></div><div class="gift-library-note">These gifts can be used on estimates from either company. Eligibility is controlled only by project value.</div><div id="giftCatalog" class="gift-library-list"></div></section></div></div></div>
@@ -930,7 +967,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 
 <script>
 const params=new URLSearchParams(location.search);
-const S={sb:null,leadId:params.get('lead_id')||'',estimateId:params.get('id')||'',items:[],rows:[],roomTemplates:[],rooms:[],gifts:[],selectedGiftId:'',selectedGiftSnapshot:null,ready:false,user:null,authReady:false,companyKey:'sankalp'};
+const S={sb:null,leadId:params.get('lead_id')||'',estimateId:params.get('id')||'',items:[],rows:[],roomTemplates:[],rooms:[],gifts:[],selectedGiftId:'',selectedGiftSnapshot:null,giftOfferVisible:true,ready:false,user:null,authReady:false,companyKey:'sankalp'};
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
@@ -1268,7 +1305,7 @@ const cashInput=Math.max(0,Number($('offerCashDiscount').value)||0);
  renderGiftSelection(grand);
  return{subtotal:sub,discount:0,taxable:grand,gst:0,grand,specialOffer:{designValue,designPct,designLess,consultancyValue,consultancyPct,consultancyLess,promoLess,cashInput,cashDiscountType:$('offerCashDiscountType').value,cashLess,offerGrand,savings,validityDays:7,validUntil:offerDateText}};
 }
-function collect(){const c=calculate();return{meta:{estNo:$('estNo').value,estimateDateTime:$('estDateTime').value,validityDays:Number($('validityDays').value)||15,validUntil:$('validUntil').value,fieldVisitStatus:$('fieldVisitStatus').value,visitDate:$('visitDate').value,creationById:$('createdBy').value,creationByLabel:$('createdBy').selectedOptions[0]?.textContent||'',companyKey:S.companyKey,name:$('cliName').value,phone:$('cliPhone').value,work:$('cliWork').value,address:$('cliAddr').value,budget:$('cliBudget').value,notes:$('notes').value,discount:0,discountType:'amount',gst:0,gift:{presetId:S.selectedGiftId||'',snapshot:selectedGiftSnapshot()},specialOffer:{designDiscount:Number($('offerDesignDiscount').value)||0,consultancyDiscount:Number($('offerConsultancyDiscount').value)||0,cashDiscount:Number($('offerCashDiscount').value)||0,cashDiscountType:$('offerCashDiscountType').value,validityDays:7,validUntil:$('specialOfferValidTill').textContent||''}},rooms:S.rooms,rows:S.rows.map(r=>({...r,lineTotal:(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?Number(r.quantity||0)*Number(r.rate||0):Number(r.area||0)*Number(r.quantity||0)*Number(r.rate||0))})),totals:c};}
+function collect(){const c=calculate();return{meta:{estNo:$('estNo').value,estimateDateTime:$('estDateTime').value,validityDays:Number($('validityDays').value)||15,validUntil:$('validUntil').value,fieldVisitStatus:$('fieldVisitStatus').value,visitDate:$('visitDate').value,creationById:$('createdBy').value,creationByLabel:$('createdBy').selectedOptions[0]?.textContent||'',companyKey:S.companyKey,name:$('cliName').value,phone:$('cliPhone').value,work:$('cliWork').value,address:$('cliAddr').value,budget:$('cliBudget').value,notes:$('notes').value,discount:0,discountType:'amount',gst:0,gift:{presetId:S.selectedGiftId||'',snapshot:selectedGiftSnapshot(),offerVisible:S.giftOfferVisible!==false},specialOffer:{designDiscount:Number($('offerDesignDiscount').value)||0,consultancyDiscount:Number($('offerConsultancyDiscount').value)||0,cashDiscount:Number($('offerCashDiscount').value)||0,cashDiscountType:$('offerCashDiscountType').value,validityDays:7,validUntil:$('specialOfferValidTill').textContent||''}},rooms:S.rooms,rows:S.rows.map(r=>({...r,lineTotal:(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?Number(r.quantity||0)*Number(r.rate||0):Number(r.area||0)*Number(r.quantity||0)*Number(r.rate||0))})),totals:c};}
 async function saveEstimate(){if(!S.sb||!S.authReady||!S.user){alert('Database session is not ready. Please reopen V2 from the logged-in Estimates dashboard.');return}try{await ensureEstimateNo();const no=$('estNo').value.trim();if(!no){alert('Estimate No. is required.');$('estNo').focus();return}const dup=await S.sb.from('estimates_v2').select('id').eq('estimate_no',no).is('deleted_at',null).neq('id',S.estimateId||'00000000-0000-0000-0000-000000000000').limit(1);if(dup.error)throw dup.error;if(dup.data?.length){alert('Duplicate Estimate No.\n\nEstimate No. '+no+' already exists. Please enter a different Estimate No.');$('estNo').focus();return}const rec=collect();const payload={estimate_no:no,customer_name:$('cliName').value||null,phone:$('cliPhone').value||null,final_amount:rec.totals.grand,data:rec,lead_id:S.leadId||null};let res;if(S.estimateId){res=await S.sb.from('estimates_v2').update({...payload,updated_at:new Date().toISOString()}).eq('id',S.estimateId).select('*').single()}else{payload.created_by=S.user.id;res=await S.sb.from('estimates_v2').insert(payload).select('*').single()}if(res.error){if(res.error.code==='23505'){alert('Duplicate Estimate No.\n\nEstimate No. '+no+' already exists. Please enter a different Estimate No.');return}throw res.error}S.estimateId=res.data.id;sessionStorage.removeItem('sankalp_v2_draft_started_'+(S.leadId||'new'));history.replaceState({},'',location.pathname+'?id='+encodeURIComponent(S.estimateId)+(S.leadId?'&lead_id='+encodeURIComponent(S.leadId):''));alert('Estimate '+res.data.estimate_no+' saved — '+money(rec.totals.grand));}catch(e){console.error(e);alert('Save failed: '+e.message)}}
 async function searchLeads(){if(S.leadId)return;const q=$('leadSearch').value.trim();if(!q||!S.sb||!S.authReady)return;const safe=q.replace(/[%_]/g,'\\$&');const {data,error}=await S.sb.from('leads').select('id,name,phone,location,budget,project_type,requirement,created_by,assigned_to').or('name.ilike.%'+safe+'%,phone.ilike.%'+safe+'%').limit(20);if(error){console.error('Lead search failed:',error);setConnectionStatus('Lead search failed: '+error.message,'error');return}const list=$('leadList');list.innerHTML='';(data||[]).forEach(l=>{const el=document.createElement('div');el.className='leaditem';el.innerHTML='<b>'+esc(l.name)+'</b><div class="small">'+esc(l.phone||'')+' · '+esc(l.location||'')+'</div>';el.addEventListener('click',()=>selectLead(l));list.appendChild(el)});if(!data?.length)list.innerHTML='<div class="leaditem">No matching lead</div>';list.classList.remove('hidden');}
 async function selectLead(l){await applyLeadLink(l);}
@@ -1286,9 +1323,9 @@ function giftRangeText(g){
  return max===null?'₹'+min.toLocaleString('en-IN')+'+':'₹'+min.toLocaleString('en-IN')+' – ₹'+max.toLocaleString('en-IN');
 }
 function renderGiftSelection(total=0){
- const editor=$('giftPromoEditor'),print=$('giftPromoPrint'),section=$('giftPromoSection'),elig=$('giftPromoEligibility');
+ const editor=$('giftPromoEditor'),print=$('giftPromoPrint'),section=$('giftPromoSection'),elig=$('giftPromoEligibility'),bar=$('giftVisibilityBar'),toggle=$('giftVisibilityToggle'),status=$('giftVisibilityStatus');
  if(!editor||!print||!section)return;
- const eligible=(S.gifts||[]).filter(g=>giftEligible(g,total)).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+ const eligible=(S.gifts||[]).filter(g=>giftEligible(g,total)).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).slice(0,3);
  let selected=S.selectedGiftId?S.gifts.find(g=>g.id===S.selectedGiftId):null;
  if(selected&&!giftEligible(selected,total)){S.selectedGiftId='';S.selectedGiftSnapshot=null;selected=null;}
  if(!selected&&S.selectedGiftSnapshot&&S.selectedGiftSnapshot.heading){
@@ -1304,52 +1341,46 @@ function renderGiftSelection(total=0){
    selected=first;
  }
  const count=eligible.length;
- section.classList.toggle('gift-no-selection',count===0);
- elig.textContent=count===0?'No promotional gift is currently available for this project value.':count===1?'Based on project value '+money(total):'Based on project value '+money(total)+' • Choose any one gift';
- const logo=$('giftFooterLogo');
- if(logo){
-   const company=COMPANY_PROFILES[S.companyKey]||COMPANY_PROFILES.sankalp;
-   logo.src=company.logo;logo.alt=company.fullName.replace(/&amp;/g,'&');
+ if(bar)bar.classList.toggle('hidden',count===0);
+ if(toggle){
+   toggle.textContent=S.giftOfferVisible?'✓ SHOW GIFT OFFER':'○ HIDE GIFT OFFER';
+   toggle.classList.toggle('is-hidden',!S.giftOfferVisible);
+   toggle.title=S.giftOfferVisible?'Gift offer is visible. Click to hide it for this estimate.':'Gift offer is hidden for this estimate. Click to show it.';
  }
- const footerCompany=$('giftFooterCompany');
- if(footerCompany)footerCompany.textContent=(COMPANY_PROFILES[S.companyKey]||COMPANY_PROFILES.sankalp).shortName.toUpperCase();
+ if(status)status.textContent=S.giftOfferVisible?'Visible to customer':'Hidden manually for this estimate';
+ section.classList.toggle('gift-no-selection',count===0||!S.giftOfferVisible);
+ elig.textContent=count===0?'No promotional gift is currently available for this project value.':'Based on project value '+money(total)+' • Choose one gift';
  editor.innerHTML=count?eligible.map(g=>{
    const isSelected=S.selectedGiftId===g.id;
-   const img=g.image_url?'<img src="'+esc(g.image_url)+'" alt="'+esc(g.heading)+'">':'<div class="gift-option-placeholder">🎁</div>';
-   return '<label class="gift-option '+(isSelected?'selected':'')+'">'+
+   const img=g.image_url?'<img src="'+esc(g.image_url)+'" alt="'+esc(g.heading||'Gift')+'">':'<div class="gift-card-missing">Gift Card Image Required</div>';
+   return '<label class="gift-card-option '+(isSelected?'selected':'')+'" title="'+esc(g.heading||'Gift')+'">'+
      '<input type="radio" name="selectedGift" value="'+esc(g.id)+'" '+(isSelected?'checked':'')+'>'+
      img+
-     '<div><div class="gift-option-title">'+esc(g.heading)+'</div><div class="gift-option-desc">'+esc(g.short_description||g.description||'Special promotional gift for this project.')+'</div></div>'+
-     '<div class="gift-option-range">Eligible project value: '+esc(giftRangeText(g))+'</div>'+
+     '<span class="gift-card-check">'+(isSelected?'✓':'')+'</span>'+
    '</label>';
  }).join(''):'';
- let snap=selected;
- if(snap&&snap.heading){
-   print.innerHTML='<div class="gift-print-banner">'+
-     (snap.image_url?'<img src="'+esc(snap.image_url)+'" alt="'+esc(snap.heading)+'">':'')+
-     '<div><div class="gift-print-title">🎁 '+esc(snap.heading)+'</div>'+
-     '<div class="gift-print-short">YOUR CHOICE • OUR GIFT • OUR THANKS</div>'+
-     '<div class="gift-print-description">'+esc(snap.description||snap.short_description||'Special promotional gift for this project.')+'</div>'+
-     '<div class="gift-print-range">Applicable project value: '+esc(giftRangeText(snap))+'</div></div></div>';
+ if(selected&&selected.image_url){
+   print.innerHTML='<div class="gift-print-card"><img src="'+esc(selected.image_url)+'" alt="'+esc(selected.heading||'Selected Gift')+'"></div>';
  }else print.innerHTML='';
 }
 
 function selectedGiftSnapshot(){
  const g=S.selectedGiftId?S.gifts.find(x=>x.id===S.selectedGiftId):null;
- return g?{presetId:g.id,heading:g.heading,short_description:g.short_description||'',description:g.description||'',image_url:g.image_url||'',min_project_value:g.min_project_value,max_project_value:g.max_project_value}:null;
+ return g?{presetId:g.id,heading:g.heading||'',image_url:g.image_url||'',min_project_value:g.min_project_value,max_project_value:g.max_project_value}:null;
 }
 async function loadGiftSelectionForEstimate(giftData){
  S.selectedGiftId=giftData?.presetId||'';
  S.selectedGiftSnapshot=giftData?.snapshot||null;
+ S.giftOfferVisible=giftData?.offerVisible!==false;
 }
 function renderGiftStats(){const active=(S.gifts||[]).filter(g=>g.active).length,total=(S.gifts||[]).length;if($('giftActiveCount'))$('giftActiveCount').textContent=active;if($('giftTotalCount'))$('giftTotalCount').textContent=total;}
 function renderGiftCatalog(){const c=$('giftCatalog');if(!c)return;renderGiftStats();c.innerHTML=(S.gifts||[]).map(g=>'<div class="gift-library-card"><div class="gift-library-card-head"><div><div class="gift-library-name">🎁 '+esc(g.heading)+'</div><div class="gift-library-desc">'+esc(g.short_description||g.description||'')+'</div></div><span class="gift-library-status '+(g.active?'':'off')+'">'+(g.active?'ACTIVE':'INACTIVE')+'</span></div><div class="gift-library-meta"><span class="gift-library-range">Project value: '+esc(giftRangeText(g))+'</span><div class="gift-library-actions"><button type="button" data-edit-gift="'+esc(g.id)+'" title="Edit Gift">✎</button><button type="button" class="delete" data-delete-gift="'+esc(g.id)+'" title="Delete Gift">🗑</button></div></div></div>').join('')||'<div class="gift-empty-library">🎁<br><br>No gift presets created yet.<br>Use <b>New</b> to create your first universal offer.</div>';}
 function openGiftSettings(){clearGiftForm();renderGiftCatalog();$('giftSettings').classList.remove('hidden')}function closeGiftSettings(){$('giftSettings').classList.add('hidden')}
 function updateGiftImagePreview(src){const box=$('giftImagePreview');if(!box)return;const value=String(src||'').trim();if(value){box.classList.remove('empty');box.innerHTML='<img src="'+esc(value)+'" alt="Gift preview">';}else{box.classList.add('empty');box.innerHTML='<span>Image preview</span>';}}
-function clearGiftForm(){$('giftEditId').value='';$('giftHeading').value='';$('giftShortDescription').value='';$('giftDescription').value='';$('giftImageUrl').value='';$('giftImageFile').value='';$('giftMinValue').value='0';$('giftMaxValue').value='';$('giftActive').checked=true;$('giftFormTitle').textContent='Create New Gift';updateGiftImagePreview('');}
-function editGiftPreset(id){const g=S.gifts.find(x=>x.id===id);if(!g)return;$('giftEditId').value=g.id;$('giftFormTitle').textContent='Edit Gift Preset';$('giftHeading').value=g.heading||'';$('giftShortDescription').value=g.short_description||'';$('giftDescription').value=g.description||'';$('giftImageUrl').value=g.image_url||'';$('giftImageFile').value='';$('giftMinValue').value=g.min_project_value??0;$('giftMaxValue').value=g.max_project_value??'';$('giftActive').checked=!!g.active;updateGiftImagePreview(g.image_url||'');$('giftHeading').focus();}
+function clearGiftForm(){$('giftEditId').value='';$('giftHeading').value='';$('giftImageUrl').value='';$('giftImageFile').value='';$('giftMinValue').value='0';$('giftMaxValue').value='';$('giftActive').checked=true;$('giftFormTitle').textContent='Create New Gift';updateGiftImagePreview('');}
+function editGiftPreset(id){const g=S.gifts.find(x=>x.id===id);if(!g)return;$('giftEditId').value=g.id;$('giftFormTitle').textContent='Edit Gift Preset';$('giftHeading').value=g.heading||'';$('giftImageUrl').value=g.image_url||'';$('giftImageFile').value='';$('giftMinValue').value=g.min_project_value??0;$('giftMaxValue').value=g.max_project_value??'';$('giftActive').checked=!!g.active;updateGiftImagePreview(g.image_url||'');$('giftHeading').focus();}
 async function optimizeGiftImage(file){if(!file)return null;if(!file.type.startsWith('image/'))throw new Error('Please select an image file.');if(file.size>2*1024*1024)throw new Error('Image must be 2 MB or smaller.');return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const maxW=1400,maxH=900;let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,maxW/w,maxH/h);w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);resolve(canvas.toDataURL('image/jpeg',.84));};img.onerror=()=>reject(new Error('Unable to read the selected image.'));img.src=reader.result;};reader.onerror=()=>reject(new Error('Unable to read the selected image file.'));reader.readAsDataURL(file);});}
-async function saveGiftPreset(){const heading=$('giftHeading').value.trim();if(!heading){alert('Gift Heading is required.');$('giftHeading').focus();return}const min=Math.max(0,Number($('giftMinValue').value)||0),maxRaw=$('giftMaxValue').value.trim(),max=maxRaw===''?null:Math.max(0,Number(maxRaw)||0);if(max!==null&&max<min){alert('Maximum Project Value cannot be lower than Minimum Project Value.');return}const editId=$('giftEditId').value;let imageUrl=$('giftImageUrl').value.trim()||null;const file=$('giftImageFile').files?.[0];try{if(file)imageUrl=await optimizeGiftImage(file)}catch(err){alert(err.message);return}const maxSort=(S.gifts||[]).reduce((m,g)=>Math.max(m,Number(g.sort_order)||0),0);const payload={heading,short_description:$('giftShortDescription').value.trim(),description:$('giftDescription').value.trim(),image_url:imageUrl,min_project_value:min,max_project_value:max,active:$('giftActive').checked,sort_order:editId?(S.gifts.find(g=>g.id===editId)?.sort_order||0):maxSort+1,updated_at:new Date().toISOString()};let res=editId?await S.sb.from('estimate_v2_gift_presets').update(payload).eq('id',editId).select('*').single():await S.sb.from('estimate_v2_gift_presets').insert({...payload,created_by:S.user?.id||null}).select('*').single();if(res.error){alert('Gift save failed: '+res.error.message);return}const idx=S.gifts.findIndex(g=>g.id===res.data.id);if(idx>=0)S.gifts[idx]=res.data;else S.gifts.push(res.data);clearGiftForm();renderGiftCatalog();renderGiftSelection(calculateGrandOnly());}
+async function saveGiftPreset(){const heading=$('giftHeading').value.trim();if(!heading){alert('Gift Heading is required.');$('giftHeading').focus();return}const min=Math.max(0,Number($('giftMinValue').value)||0),maxRaw=$('giftMaxValue').value.trim(),max=maxRaw===''?null:Math.max(0,Number(maxRaw)||0);if(max!==null&&max<min){alert('Maximum Project Value cannot be lower than Minimum Project Value.');return}const editId=$('giftEditId').value;let imageUrl=$('giftImageUrl').value.trim()||null;const file=$('giftImageFile').files?.[0];try{if(file)imageUrl=await optimizeGiftImage(file)}catch(err){alert(err.message);return}const maxSort=(S.gifts||[]).reduce((m,g)=>Math.max(m,Number(g.sort_order)||0),0);const payload={heading,short_description:'',description:'',image_url:imageUrl,min_project_value:min,max_project_value:max,active:$('giftActive').checked,sort_order:editId?(S.gifts.find(g=>g.id===editId)?.sort_order||0):maxSort+1,updated_at:new Date().toISOString()};let res=editId?await S.sb.from('estimate_v2_gift_presets').update(payload).eq('id',editId).select('*').single():await S.sb.from('estimate_v2_gift_presets').insert({...payload,created_by:S.user?.id||null}).select('*').single();if(res.error){alert('Gift save failed: '+res.error.message);return}const idx=S.gifts.findIndex(g=>g.id===res.data.id);if(idx>=0)S.gifts[idx]=res.data;else S.gifts.push(res.data);clearGiftForm();renderGiftCatalog();renderGiftSelection(calculateGrandOnly());}
 async function deleteGiftPreset(id){const g=S.gifts.find(x=>x.id===id);if(!g)return;if(!confirm('Delete gift preset "'+g.heading+'"?'))return;const res=await S.sb.from('estimate_v2_gift_presets').delete().eq('id',id);if(res.error){alert('Gift delete failed: '+res.error.message);return}S.gifts=S.gifts.filter(x=>x.id!==id);if(S.selectedGiftId===id){S.selectedGiftId='';S.selectedGiftSnapshot=null}renderGiftCatalog();renderGiftSelection(calculateGrandOnly());}
 function openSettings(){renderCatalog();renderRoomCatalog();$('settings').classList.remove('hidden')}function closeSettings(){$('settings').classList.add('hidden')}
 function roomSelectOptions(room){
@@ -1504,6 +1535,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.action==='dashboard'){location.href='/estimates';return}
  if(el.dataset.action==='settings'){openSettings();return}
  if(el.dataset.action==='gift-settings'){openGiftSettings();return}
+ if(el.dataset.action==='toggle-gift-visibility'){S.giftOfferVisible=!S.giftOfferVisible;renderGiftSelection(calculateGrandOnly());return}
  if(el.dataset.action==='close-gift-settings'){closeGiftSettings();return}
  if(el.dataset.action==='save-gift-preset'){saveGiftPreset();return}
  if(el.dataset.action==='clear-gift-form'){clearGiftForm();return}

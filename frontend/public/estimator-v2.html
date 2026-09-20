@@ -273,6 +273,13 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .room-list .room-accordion{border-left:3px solid #f2a23a!important;background:#fffdfa!important}.room-list .room-accordion-head{background:#fff8ed}
 .preset-sync-toast{position:fixed;right:24px;bottom:24px;z-index:99999;min-width:300px;max-width:460px;padding:12px 15px;border-radius:10px;background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.2);border-left:5px solid #16a34a;display:flex;flex-direction:column;gap:3px;transform:translateY(20px);opacity:0;transition:.22s}.preset-sync-toast.show{transform:translateY(0);opacity:1}.preset-sync-toast b{font-size:12px;color:#166534}.preset-sync-toast span{font-size:11px;color:#334155}.preset-sync-toast.error{border-left-color:#dc2626}.preset-sync-toast.error b{color:#b91c1c}
 @media(max-width:760px){.preset-cloud-status{align-items:flex-start;flex-direction:column}.preset-cloud-counts{width:100%}.preset-sync-toast{left:12px;right:12px;min-width:0}}
+</style><style id="inline-room-selector">
+.room-heading-select{min-width:260px;max-width:430px;flex:1}
+.room-template-select{width:100%;min-height:34px;border:1px solid #c9d8e6;border-radius:6px;background:#fff;color:#073b70;font-weight:800;padding:6px 30px 6px 10px;cursor:pointer}
+.room-template-select:focus{outline:2px solid rgba(7,59,112,.16);border-color:#073b70}
+.room-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.room-title .room-remark-inline{margin-left:auto}
+@media(max-width:760px){.room-heading-select{min-width:180px;max-width:none;flex:1 1 100%}.room-title .room-remark-inline{margin-left:0;width:100%}}
 </style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
@@ -316,7 +323,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <div id="presetPicker" class="modal hidden"><div class="modalcard" style="width:min(620px,94vw);max-height:80vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p);font-size:20px">Select Configuration</h2><div id="presetPickerItem" class="small" style="margin-top:4px"></div></div><button type="button" class="btn danger" data-action="close-picker">Close</button></div><div id="presetChoices"></div></div></div>
 
 <div id="settings" class="modal hidden"><div class="modalcard"><div class="modalhead"><h2 style="margin:0;color:var(--p)">V2 Preset Catalog + Room Templates</h2><button type="button" class="btn danger" data-action="close-settings">Close</button></div><p class="small">Create your universal item presets first. Rooms are sections only. Create reusable room names such as <b>MASTER BED ROOM</b> or <b>BEDROOM 1</b>. Items are added to rooms later and any universal item can be used in any room.</p><div id="presetCloudStatus" class="preset-cloud-status"><div class="preset-cloud-main"><span class="preset-cloud-dot"></span><b>Cloud Catalog</b><span id="presetCloudMessage">Loading catalog summary...</span></div><div class="preset-cloud-counts"><span class="cloud-count item-count">Items: <b id="cloudItemCount">0</b></span><span class="cloud-count preset-count">Presets: <b id="cloudPresetCount">0</b></span><span class="cloud-count room-count">Rooms: <b id="cloudRoomCount">0</b></span><span id="cloudSaveState" class="cloud-save-state">☁ Synced</span></div></div><div class="preset-add-bar"><button type="button" class="preset-add-btn item" data-action="add-catalog-item"><span class="preset-add-icon">＋</span><span><b>Add Item</b><small>Create Universal Item</small></span></button><button type="button" class="preset-add-btn room" data-action="add-room-template"><span class="preset-add-icon">⌂</span><span><b>Add Room</b><small>Create Room / Section</small></span></button></div><div class="preset-list-heading item-list-heading"><span class="list-heading-icon">▦</span><div><b>UNIVERSAL ITEM PRESETS</b><small>Items and their complete preset configurations</small></div></div><div id="catalog" class="preset-list item-list"></div><div class="preset-bottom-actions"><button type="button" class="preset-add-btn item" data-action="add-catalog-item"><span class="preset-add-icon">＋</span><span><b>Add Item</b><small>Create Universal Item</small></span></button></div><hr style="margin:24px 0;border:0;border-top:1px solid var(--bd)"><div class="room-preset-heading"><div><h3 style="margin:0;color:#9a5a00">ROOM PRESETS</h3><div class="small">Create the room / section name and optional room remarks only. Items are universal and are added from the estimate.</div></div></div><div class="preset-list-heading room-list-heading"><span class="list-heading-icon">⌂</span><div><b>ROOM / SECTION PRESETS</b><small>Reusable room / section names and remarks</small></div></div><div id="roomCatalog" class="preset-list room-list" style="margin-top:12px"></div><div class="preset-bottom-actions"><button type="button" class="preset-add-btn room" data-action="add-room-template"><span class="preset-add-icon">⌂</span><span><b>Add Room</b><small>Create Room / Section</small></span></button></div><div class="preset-modal-footer"><button type="button" class="btn danger preset-close-footer" data-action="close-settings">✕&nbsp; Close</button></div></div></div>
-<div id="roomPicker" class="modal hidden"><div class="modalcard" style="width:min(700px,94vw);max-height:80vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p)">Add Room / Section</h2><div class="small">Choose a room / section. Items are added separately after the room is created.</div></div><button type="button" class="btn danger" data-action="close-room-picker">Close</button></div><div id="roomChoices"></div></div></div><div id="itemPicker" class="modal hidden"><div class="modalcard" style="width:min(760px,94vw);max-height:82vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p)">Add Item to Room</h2><div id="itemPickerRoom" class="small" style="margin-top:4px"></div></div><button type="button" class="btn danger" data-action="close-item-picker">Close</button></div><div id="itemChoices" class="item-picker-grid"></div></div></div>
+<div id="itemPicker" class="modal hidden"><div class="modalcard" style="width:min(760px,94vw);max-height:82vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p)">Add Item to Room</h2><div id="itemPickerRoom" class="small" style="margin-top:4px"></div></div><button type="button" class="btn danger" data-action="close-item-picker">Close</button></div><div id="itemChoices" class="item-picker-grid"></div></div></div>
 
 <script>
 const params=new URLSearchParams(location.search);
@@ -438,7 +445,8 @@ function renderRoomSection(room,rows,nStart){
  const items=rows.map(r=>roomItemRow(r,++n)).join('');
  const subtotal=roomSubtotal(rows);
  const empty=!rows.length;
- return '<tr class="room-section-row"><td colspan="8"><div class="room-section"><div class="room-title"><strong>'+esc(room.name)+'</strong><div class="room-actions"><button type="button" class="btn room-add-item" data-add-item-to-room="'+esc(room.id)+'">+ Add Item</button><button type="button" class="rowdel" data-remove-room="'+esc(room.id)+'" title="Remove room">×</button></div><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(room.remarks||'')+'" data-room-id="'+esc(room.id)+'" data-room-remarks="1" placeholder="If any"></div></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+(empty?'<tr class="room-empty"><td colspan="8">No items added to this room yet. Use <b>+ Add Item</b> or configure items in Presets / Rooms.</td></tr>':'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">ROOM / SECTION TOTAL — '+esc(room.name)+'</td><td class="money">'+money(subtotal)+'</td><td></td></tr>')+'</tbody></table></div></td></tr>';
+ const roomTitle=room.name==='NEW ROOM'?'':esc(room.name);
+ return '<tr class="room-section-row"><td colspan="8"><div class="room-section"><div class="room-title"><div class="room-heading-select"><select class="room-template-select" data-room-id="'+esc(room.id)+'">'+roomSelectOptions(room)+'</select></div><div class="room-actions"><button type="button" class="btn room-add-item" data-add-item-to-room="'+esc(room.id)+'">+ Add Item</button><button type="button" class="rowdel" data-remove-room="'+esc(room.id)+'" title="Remove room">×</button></div><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(room.remarks||'')+'" data-room-id="'+esc(room.id)+'" data-room-remarks="1" placeholder="If any"></div></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+(empty?'<tr class="room-empty"><td colspan="8">No items added to this room yet. Use <b>+ Add Item</b> after selecting a room.</td></tr>':'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">ROOM / SECTION TOTAL — '+esc(room.name)+'</td><td class="money">'+money(subtotal)+'</td><td></td></tr>')+'</tbody></table></div></td></tr>';
 }
 function renderUnassignedSection(rows,nStart){
  if(!rows.length)return '';
@@ -489,11 +497,26 @@ async function selectLead(l){S.leadId=l.id||'';$('leadSearch').value=(l.name||''
 let leadTimer; $('leadSearch').addEventListener('input',()=>{clearTimeout(leadTimer);leadTimer=setTimeout(searchLeads,250)});
 document.addEventListener('click',e=>{if(!e.target.closest('.leadwrap'))$('leadList').classList.add('hidden')});
 function openSettings(){renderCatalog();renderRoomCatalog();$('settings').classList.remove('hidden')}function closeSettings(){$('settings').classList.add('hidden')}
-function openRoomPicker(){const box=$('roomChoices');if(!S.roomTemplates.length){box.innerHTML='<div class="small">No room presets created yet. Open Presets / Rooms and create a room.</div>';}else{box.innerHTML=S.roomTemplates.map(r=>'<button type="button" class="preset-choice" data-room-template="'+esc(r.id)+'"><span class="preset-choice-name">'+esc(r.name)+'</span><div class="preset-choice-meta">'+(r.remarks?esc(r.remarks):'Room / Section')+'</div></button>').join('');}$('roomPicker').classList.remove('hidden');}
-function closeRoomPicker(){$('roomPicker').classList.add('hidden')}
-function addRoomFromTemplate(roomId){const t=S.roomTemplates.find(x=>x.id===roomId);if(!t)return;const room={id:crypto.randomUUID(),templateId:t.id,name:t.name,remarks:t.remarks||''};S.rooms.push(room);closeRoomPicker();renderRows();}
+function roomSelectOptions(room){
+ const current=room?.templateId||'';
+ const options='<option value="">Select Room / Section...</option>'+S.roomTemplates.map(t=>'<option value="'+esc(t.id)+'" '+(current===t.id?'selected':'')+'>'+esc(t.name)+'</option>').join('');
+ return options;
+}
+function addRoomFromTemplate(roomId){const t=S.roomTemplates.find(x=>x.id===roomId);if(!t)return;const room={id:crypto.randomUUID(),templateId:t.id,name:t.name,remarks:t.remarks||''};S.rooms.push(room);renderRows();}
+function selectRoomTemplate(roomId,templateId){
+ const room=roomById(roomId);if(!room)return;
+ const t=S.roomTemplates.find(x=>x.id===templateId);
+ if(!t){room.templateId='';room.name='NEW ROOM';room.remarks='';}
+ else{room.templateId=t.id;room.name=t.name;room.remarks=t.remarks||'';}
+ renderRows();
+}
 function addItemToRoom(roomId){addRow({roomId:roomId,itemId:'',presetId:'',quantity:1});}
-function addBlankRoom(){const room={id:crypto.randomUUID(),name:'NEW ROOM',remarks:''};S.rooms.push(room);renderRows();}
+function addBlankRoom(){
+ const room={id:crypto.randomUUID(),templateId:'',name:'NEW ROOM',remarks:''};
+ S.rooms.push(room);
+ renderRows();
+ setTimeout(()=>document.querySelector('.room-template-select[data-room-id="'+CSS.escape(room.id)+'"]')?.focus(),0);
+}
 function renderRoomCatalog(openId=''){
  const c=$('roomCatalog');
  c.innerHTML=S.roomTemplates.map((r,ii)=>{
@@ -625,7 +648,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.toggleItem!==undefined){const body=el.closest('.item-accordion')?.querySelector('.item-accordion-body');const card=el.closest('.item-accordion');const open=body&&!body.hidden;if(body){document.querySelectorAll('.item-accordion-body').forEach(x=>{x.hidden=true;x.closest('.item-accordion')?.classList.remove('is-open');});document.querySelectorAll('.item-expand-btn').forEach(x=>{x.textContent='▼';x.setAttribute('aria-expanded','false');});if(!open){body.hidden=false;card.classList.add('is-open');const btn=card.querySelector('.item-expand-btn');if(btn){btn.textContent='▲';btn.setAttribute('aria-expanded','true')}}}return}
  if(el.dataset.action==='dashboard'){location.href='/estimates';return}
  if(el.dataset.action==='settings'){openSettings();return}
- if(el.dataset.action==='add-room'){openRoomPicker();return}
+ if(el.dataset.action==='add-room'){addBlankRoom();return}
  if(el.dataset.action==='close-room-picker'){closeRoomPicker();return}
  if(el.dataset.action==='add-room-template'){addRoomTemplate();return}
  if(el.dataset.action==='save'){saveEstimate();return}
@@ -640,7 +663,6 @@ document.addEventListener('click',e=>{
  if(el.dataset.removeRoomItem!==undefined){return}
  if(el.dataset.addRoomItem!==undefined){return}
  if(el.dataset.removeRoomTemplate!==undefined){S.roomTemplates=S.roomTemplates.filter(r=>r.id!==el.dataset.removeRoomTemplate);renderRoomCatalog();return}
- if(el.dataset.roomTemplate!==undefined){addRoomFromTemplate(el.dataset.roomTemplate);return}
  if(el.dataset.addItemToRoom!==undefined){addItemToRoom(el.dataset.addItemToRoom);return}
  if(el.dataset.universalItem!==undefined){addUniversalItemToRoom(el.dataset.roomId,el.dataset.universalItem);return}
  if(el.dataset.openPreset!==undefined){openPresetPicker(el.dataset.rowId);return}
@@ -655,6 +677,7 @@ document.addEventListener('change',e=>{
  else if(el.matches('[data-set-dim]'))setDim(el.dataset.rowId,el.dataset.dimKey,el.value);
  else if(el.matches('[data-set-direct]'))setDirect(el.dataset.rowId,el.value);
  else if(el.matches('[data-set-qty]'))setQty(el.dataset.rowId,el.value);
+ else if(el.matches('.room-template-select')){selectRoomTemplate(el.dataset.roomId,el.value)}
  else if(el.matches('[data-room-remarks]')){const r=roomById(el.dataset.roomId);if(r)r.remarks=el.value;}
  else if(el.matches('.ri-item')){const row=el.closest('.room-item-row');if(row){const p=row.querySelector('.ri-preset');const it=S.items.find(i=>i.id===el.value);p.innerHTML=presetOptions(el.value,'');if(it?.presets?.length)p.value=it.presets[0].id;}}
  else if(el.matches('.ci-measurement')){const box=el.closest('.catalog');if(box){const item=S.items.find(i=>i.id===box.dataset.item);if(item){item.measurement_type=el.value;box.querySelector('.ci-default-wrap').innerHTML=defaultEditorHTML({...item,measurement_type:el.value});}}}

@@ -280,7 +280,36 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .room-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .room-title .room-remark-inline{margin-left:auto}
 @media(max-width:760px){.room-heading-select{min-width:180px;max-width:none;flex:1 1 100%}.room-title .room-remark-inline{margin-left:0;width:100%}}
-</style></head>
+<style id="room-selector-same-header-bg">
+/* Room selector stays inside the orange/pink room header bar. */
+.room-title .room-heading-select{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+}
+.room-title .room-template-select{
+  background:#ffd0a1!important;
+  border:0!important;
+  border-radius:0!important;
+  color:#073b70!important;
+  min-height:36px!important;
+  padding:6px 34px 6px 8px!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+.room-title .room-template-select:focus{
+  outline:0!important;
+  box-shadow:none!important;
+}
+@media print{
+  .room-title .room-template-select{
+    background:#ffd0a1!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+}
+</style></style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 

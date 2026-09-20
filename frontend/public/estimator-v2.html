@@ -24,6 +24,50 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .toolbar-brand{display:flex;align-items:center;min-width:0}.company-switch{border-color:#cbd5e1;white-space:nowrap}.company-switch:hover{border-color:#f47b20;background:#fff7ed}
 @media(max-width:800px){.toolbar-brand{display:block}.toolbar-brand #toolbarCloudSummary{display:block;margin:3px 0 0!important}.company-switch{flex:1}}
 @media print{.company-switch{display:none!important}}
+
+/* Srijan has a wider company name/logo than Sankalp.
+   Keep the editing header compact on screen without changing the PDF layout. */
+@media(min-width:801px){
+  body.company-srijan .estimate-header-main{
+    grid-template-columns:23% 47% 30%;
+    min-height:132px;
+  }
+  body.company-srijan .estimate-logo{
+    max-width:250px;
+    max-height:82px;
+  }
+  body.company-srijan .estimate-brand-copy{
+    padding:0 14px;
+  }
+  body.company-srijan .estimate-brand-title{
+    font-size:clamp(22px,2.05vw,31px);
+    letter-spacing:-.6px;
+  }
+  body.company-srijan .estimate-brand-subtitle{
+    font-size:10px;
+    letter-spacing:2.2px;
+    margin-top:7px;
+  }
+  body.company-srijan .estimate-brand-tagline{
+    font-size:10px;
+    letter-spacing:1.7px;
+    margin-top:4px;
+  }
+  body.company-srijan .estimate-contact{
+    padding-left:10px;
+    font-size:9px;
+  }
+  body.company-srijan .contact-row{
+    gap:6px;
+    margin:3px 0;
+  }
+  body.company-srijan .contact-icon{
+    width:25px;
+    height:25px;
+    flex-basis:25px;
+    font-size:11px;
+  }
+}
 </style><style id="v2-print-fit">
 @media print{
   /* PRINT = the same layout structure as the V2 HTML screen.
@@ -632,6 +676,7 @@ const COMPANY_PROFILES={
 function applyCompanyBranding(key='sankalp'){
   const company=COMPANY_PROFILES[key]||COMPANY_PROFILES.sankalp;
   S.companyKey=company.key;
+  document.body.classList.toggle('company-srijan',company.key==='srijan');
   $('estimateLogo').src=company.logo;
   $('estimateLogo').alt=company.fullName.replace(/&amp;/g,'&');
   $('estimateBrandTitle').innerHTML=company.titleHtml;

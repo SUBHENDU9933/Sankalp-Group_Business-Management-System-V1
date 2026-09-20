@@ -887,7 +887,7 @@ function applyCompanyBranding(key='sankalp'){
   if(switchBtn)switchBtn.title='Switch estimate company — currently '+company.fullName.replace(/&amp;/g,'&');
   document.title=(company.key==='sankalp'?'Sankalp':'Srijan')+' Interior Estimate System V2';
 }
-function switchCompany(){applyCompanyBranding(S.companyKey==='sankalp'?'srijan':'sankalp');renderGiftSelection(calculateGrandOnly());}
+function switchCompany(){applyCompanyBranding(S.companyKey==='sankalp'?'srijan':'sankalp');if(S.selectedGiftSnapshot&&S.selectedGiftSnapshot.companyKey!==S.companyKey){S.selectedGiftId='';S.selectedGiftSnapshot=null;}renderGiftSelection(calculateGrandOnly());}
 function formatFeetInches(value){const n=Number(value);if(!Number.isFinite(n)||n<=0)return '';let totalInches=Math.round(n*12);let feet=Math.floor(totalInches/12);let inches=totalInches%12;return String(feet)+'.'+String(inches).padStart(2,'0');}
 function parseFeetInches(value){const s=String(value??'').trim().toLowerCase();if(!s)return 0;const unitMatch=s.match(/^(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|inches|")?$/);if(unitMatch){const feet=Number(unitMatch[1])||0;const inches=unitMatch[2]==null||unitMatch[2]===''?0:Number(unitMatch[2]);if(inches<0||inches>=12)return null;return feet+inches/12;}const compact=s.replace(/\s+/g,'');const m=compact.match(/^(\d+)(?:\.(\d{1,2}))?$/);if(!m)return null;const feet=Number(m[1])||0;const inches=m[2]==null?0:Number(m[2]);if(inches>=12)return null;return feet+inches/12;}
 function feetInchesDisplay(value){const n=Number(value);if(!Number.isFinite(n)||n<=0)return '';return formatFeetInches(n);}
@@ -1199,8 +1199,9 @@ function renderGiftSelection(total=0){
  const eligible=(S.gifts||[]).filter(g=>giftEligible(g,total)).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
  let selected=S.selectedGiftId?S.gifts.find(g=>g.id===S.selectedGiftId):null;
  if(selected&&!giftEligible(selected,total)){S.selectedGiftId='';selected=null;}
- if(!selected&&S.selectedGiftSnapshot&&S.selectedGiftSnapshot.heading){
-   selected=S.selectedGiftSnapshot;
+ if(!selected&&S.selectedGiftSnapshot&&S.selectedGiftSnapshot.heading&&S.selectedGiftSnapshot.companyKey===S.companyKey){
+   const snapMin=Number(S.selectedGiftSnapshot.min_project_value)||0;const snapMax=S.selectedGiftSnapshot.max_project_value==null||S.selectedGiftSnapshot.max_project_value===''?null:Number(S.selectedGiftSnapshot.max_project_value);
+   if(total>=snapMin&&(snapMax===null||total<=snapMax))selected=S.selectedGiftSnapshot;else{S.selectedGiftSnapshot=null;S.selectedGiftId='';}
  }
  elig.textContent=eligible.length?(selected?'Gift selected. You can change it below.':'Choose one eligible promotional gift for this project.'):'No promotional gift is currently available for this project value.';
  editor.innerHTML=eligible.length?eligible.map(g=>'<label class="gift-option '+(S.selectedGiftId===g.id?'selected':'')+'"><input type="radio" name="selectedGift" value="'+esc(g.id)+'" '+(S.selectedGiftId===g.id?'checked':'')+'><div style="flex:1"><div class="gift-option-title">'+esc(g.heading)+'</div><div class="gift-option-desc">'+esc(g.short_description||g.description||'')+'</div><div class="gift-option-range">Eligible project value: '+esc(giftRangeText(g))+'</div></div>'+(g.image_url?'<img src="'+esc(g.image_url)+'" alt="'+esc(g.heading)+'">':'')+'</label>').join(''):'<div class="small" style="padding:8px 0;color:#64748b">No eligible gift preset for the current project estimated grand total.</div>';

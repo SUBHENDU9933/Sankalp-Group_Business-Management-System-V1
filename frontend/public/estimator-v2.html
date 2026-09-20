@@ -323,86 +323,99 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   }
 }
 </style><style id="estimate-header-design">
+/* Compact Sankalp branded estimate header — screen + A4 portrait/landscape print */
 .estimate-header{
   display:block!important;
   position:relative;
-  border-bottom:0!important;
+  border:0!important;
   padding:0!important;
-  margin:0 0 18px!important;
+  margin:0 0 16px!important;
   overflow:hidden;
+  background:#fff;
+}
+.estimate-header-topbar{
+  height:7px;
+  width:100%;
+  background:linear-gradient(135deg,#f47b20 0%,#f47b20 57%,#123f7a 57.7%,#123f7a 100%);
 }
 .estimate-header-main{
   display:grid;
-  grid-template-columns:minmax(270px,1.05fr) minmax(330px,1.65fr) minmax(330px,1.15fr);
+  grid-template-columns:minmax(220px,25%) minmax(360px,46%) minmax(270px,29%);
   align-items:center;
-  min-height:126px;
-  gap:12px;
-  padding:0 0 5px;
+  min-height:142px;
+  gap:0;
+  padding:8px 0 6px;
 }
 .estimate-logo-wrap{
   display:flex;
   align-items:center;
-  justify-content:flex-start;
+  justify-content:center;
   min-width:0;
+  height:100%;
+  padding:0 14px 0 6px;
+  border-right:1px solid #cbd5e1;
 }
 .estimate-logo{
   display:block;
-  width:min(100%,365px);
-  max-height:102px;
+  width:100%;
+  max-width:285px;
+  max-height:108px;
   object-fit:contain;
-  object-position:left center;
+  object-position:center;
 }
 .estimate-brand-copy{
   min-width:0;
-  padding-left:15px;
-  border-left:1px solid #cbd5e1;
+  padding:0 18px;
+  border-right:1px solid #cbd5e1;
 }
 .estimate-brand-title{
   font-family:"Playfair Display",serif;
-  color:#123b78;
-  font-size:clamp(23px,2.3vw,38px);
-  line-height:1.05;
+  color:#123f7a;
+  font-size:clamp(25px,2.45vw,39px);
+  line-height:1.02;
   font-weight:700;
   white-space:nowrap;
+  letter-spacing:-.4px;
 }
+.estimate-brand-title .orange{color:#f47b20}
 .estimate-brand-subtitle{
-  color:#1f2937;
-  font-size:clamp(11px,1vw,17px);
+  color:#334155;
+  font-size:clamp(10px,1vw,16px);
   letter-spacing:4px;
-  margin-top:7px;
+  margin-top:8px;
   white-space:nowrap;
 }
 .estimate-brand-tagline{
   color:#64748b;
   font-family:"Playfair Display",serif;
   font-style:italic;
-  font-size:clamp(11px,.95vw,15px);
-  letter-spacing:2.5px;
+  font-size:clamp(10px,.9vw,14px);
+  letter-spacing:2.4px;
   margin-top:5px;
+  white-space:nowrap;
 }
 .estimate-contact{
-  border-left:1px solid #cbd5e1;
-  padding-left:16px;
+  padding:0 8px 0 15px;
   color:#24344d;
-  font-size:11px;
-  line-height:1.25;
+  font-size:clamp(9px,.78vw,12px);
+  line-height:1.2;
 }
 .contact-row{
   display:flex;
   align-items:center;
-  gap:9px;
-  margin:5px 0;
+  gap:8px;
+  margin:4px 0;
 }
 .contact-icon{
-  flex:0 0 31px;
-  width:31px;
-  height:31px;
+  flex:0 0 29px;
+  width:29px;
+  height:29px;
   border-radius:50%;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   color:#fff;
-  font-size:14px;
+  font-size:13px;
   font-weight:800;
 }
 .contact-icon.blue{background:#123f7a}
@@ -410,13 +423,12 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .estimate-header-ribbon{
   display:grid;
   grid-template-columns:1.08fr .92fr;
-  width:calc(100% + 76px);
-  margin-left:-38px;
-  min-height:38px;
+  width:100%;
+  min-height:39px;
   overflow:hidden;
   font-weight:700;
-  letter-spacing:4px;
-  font-size:11px;
+  letter-spacing:3.2px;
+  font-size:10px;
   color:#fff;
   text-align:center;
 }
@@ -429,54 +441,106 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .ribbon-blue{
   background:#063d78;
   clip-path:polygon(0 0,94% 0,100% 50%,94% 100%,0 100%);
-  padding-right:30px;
+  padding-right:26px;
 }
 .ribbon-orange{
   background:#f47b20;
   clip-path:polygon(6% 0,100% 0,100% 100%,6% 100%,0 50%);
-  padding-left:30px;
+  padding-left:26px;
 }
 @media(max-width:1000px){
-  .estimate-header-main{grid-template-columns:1fr 1.35fr;grid-template-areas:"logo brand" "contact contact";gap:10px}
-  .estimate-logo{max-height:120px}
-  .estimate-contact{grid-area:contact;border-left:0;border-top:1px solid #cbd5e1;padding:10px 0 0;display:grid;grid-template-columns:1fr 1fr}
-  .estimate-brand-copy{padding-left:12px}
+  .estimate-header-main{
+    grid-template-columns:24% 46% 30%;
+    min-height:128px;
+  }
+  .estimate-logo{max-height:96px}
+  .estimate-brand-copy{padding:0 12px}
+  .estimate-brand-title{font-size:clamp(22px,2.7vw,32px)}
+  .estimate-brand-subtitle{font-size:10px;letter-spacing:3px}
+  .estimate-brand-tagline{font-size:10px;letter-spacing:1.8px}
+  .estimate-contact{font-size:9px;padding-left:10px}
+  .contact-icon{width:25px;height:25px;flex-basis:25px;font-size:11px}
+  .estimate-header-ribbon{min-height:34px;font-size:8px;letter-spacing:2.2px}
 }
 @media(max-width:650px){
-  .estimate-header-main{display:block;min-height:0}
-  .estimate-logo{max-width:360px;margin-bottom:10px}
-  .estimate-brand-copy{border-left:0;padding:8px 0}
+  .estimate-header-main{display:block;min-height:0;padding:7px 0}
+  .estimate-logo-wrap{border-right:0;border-bottom:1px solid #cbd5e1;padding:0 0 7px}
+  .estimate-logo{max-width:320px;max-height:100px}
+  .estimate-brand-copy{border-right:0;border-bottom:1px solid #cbd5e1;padding:8px 0;text-align:center}
   .estimate-brand-title{font-size:28px;white-space:normal}
   .estimate-brand-subtitle{font-size:10px;letter-spacing:3px}
-  .estimate-contact{display:block}
-  .estimate-header-ribbon{grid-template-columns:1fr;width:calc(100% + 30px);margin-left:-15px;font-size:9px;letter-spacing:2px}
+  .estimate-brand-tagline{font-size:10px}
+  .estimate-contact{padding:7px 0 2px}
+  .estimate-header-ribbon{grid-template-columns:1fr;min-height:34px;font-size:8px}
   .ribbon-orange{display:none}
-  .ribbon-blue{clip-path:none;padding:0 8px;min-height:38px}
+  .ribbon-blue{clip-path:none;padding:0 8px}
 }
 @media print{
-  .estimate-header{break-inside:avoid!important;page-break-inside:avoid!important}
-  .estimate-header-main{min-height:150px}
-  .estimate-logo{max-height:120px}
-  .estimate-header-ribbon{width:calc(100% + 20mm);margin-left:-10mm}
-  .estimate-brand-title{font-size:28px}
-  .estimate-brand-subtitle{font-size:10px}
-  .estimate-brand-tagline{font-size:11px}
-  .estimate-contact{font-size:9px}
-  .contact-icon{width:28px;height:28px;flex-basis:28px;font-size:13px}
-  .estimate-header-ribbon{min-height:34px;font-size:8px;letter-spacing:2px}
+  .estimate-header{
+    width:100%!important;
+    margin:0 0 8px!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  .estimate-header-topbar{height:5px!important}
+  .estimate-header-main{
+    grid-template-columns:24% 46% 30%!important;
+    min-height:0!important;
+    height:118px!important;
+    padding:5px 0 4px!important;
+  }
+  .estimate-logo-wrap{padding:0 10px 0 2px!important}
+  .estimate-logo{max-width:100%!important;max-height:92px!important}
+  .estimate-brand-copy{padding:0 12px!important}
+  .estimate-brand-title{font-size:25px!important;letter-spacing:-.3px!important}
+  .estimate-brand-subtitle{font-size:8px!important;letter-spacing:3px!important;margin-top:6px!important}
+  .estimate-brand-tagline{font-size:9px!important;letter-spacing:1.8px!important;margin-top:4px!important}
+  .estimate-contact{padding-left:10px!important;font-size:8px!important}
+  .contact-row{gap:6px!important;margin:3px 0!important}
+  .contact-icon{width:23px!important;height:23px!important;flex-basis:23px!important;font-size:10px!important}
+  .estimate-header-ribbon{min-height:29px!important;font-size:7px!important;letter-spacing:1.8px!important}
+  .ribbon-blue{padding-right:18px!important}
+  .ribbon-orange{padding-left:18px!important}
 }
-</style></style></head>
+@media print and (orientation:landscape){
+  .estimate-header-main{
+    grid-template-columns:24% 47% 29%!important;
+    height:126px!important;
+  }
+  .estimate-logo{max-height:101px!important}
+  .estimate-brand-title{font-size:29px!important}
+  .estimate-brand-subtitle{font-size:9px!important;letter-spacing:3.2px!important}
+  .estimate-brand-tagline{font-size:10px!important}
+  .estimate-contact{font-size:8.5px!important}
+  .contact-icon{width:25px!important;height:25px!important;flex-basis:25px!important}
+  .estimate-header-ribbon{min-height:31px!important;font-size:7.5px!important;letter-spacing:2px!important}
+}
+@media print and (orientation:portrait){
+  .estimate-header-main{
+    grid-template-columns:24% 45% 31%!important;
+    height:112px!important;
+  }
+  .estimate-logo{max-height:86px!important}
+  .estimate-brand-title{font-size:22px!important}
+  .estimate-brand-subtitle{font-size:7px!important;letter-spacing:2.3px!important}
+  .estimate-brand-tagline{font-size:8px!important;letter-spacing:1.4px!important}
+  .estimate-contact{font-size:7.5px!important}
+  .contact-icon{width:21px!important;height:21px!important;flex-basis:21px!important;font-size:9px!important}
+  .estimate-header-ribbon{min-height:27px!important;font-size:6.5px!important;letter-spacing:1.45px!important}
+}
+</style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" style="margin-left:12px;font-size:11px;color:#047857;font-weight:700">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 
 <div class="sheet"><div class="inner">
 <header class="estimate-header">
+  <div class="estimate-header-topbar" aria-hidden="true"></div>
   <div class="estimate-header-main">
     <div class="estimate-logo-wrap">
       <img class="estimate-logo" src="https://www.sankalpinterior.com/uploads/upload_1.png" alt="Sankalp Interior Solution">
     </div>
     <div class="estimate-brand-copy">
-      <div class="estimate-brand-title">Sankalp Interior Solution</div>
+      <div class="estimate-brand-title"><span>Sankalp</span> <span class="orange">Interior Solution</span></div>
       <div class="estimate-brand-subtitle">DESIGN&nbsp;&nbsp; | &nbsp;&nbsp;BUILD&nbsp;&nbsp; | &nbsp;&nbsp;TRANSFORM</div>
       <div class="estimate-brand-tagline">Beautiful Spaces&nbsp;&nbsp;|&nbsp;&nbsp;Better Living</div>
     </div>

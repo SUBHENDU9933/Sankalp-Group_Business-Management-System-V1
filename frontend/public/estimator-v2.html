@@ -322,12 +322,176 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
     padding-right:0!important;
   }
 }
+</style><style id="estimate-header-design">
+.estimate-header{
+  display:block!important;
+  position:relative;
+  border-bottom:0!important;
+  padding:0!important;
+  margin:0 0 24px!important;
+  overflow:hidden;
+}
+.estimate-header-main{
+  display:grid;
+  grid-template-columns:minmax(280px,1.05fr) minmax(330px,1.65fr) minmax(330px,1.15fr);
+  align-items:center;
+  min-height:175px;
+  gap:18px;
+  padding:12px 0 16px;
+}
+.estimate-logo-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  min-width:0;
+}
+.estimate-logo{
+  display:block;
+  width:min(100%,430px);
+  max-height:145px;
+  object-fit:contain;
+  object-position:left center;
+}
+.estimate-brand-copy{
+  min-width:0;
+  padding-left:20px;
+  border-left:1px solid #cbd5e1;
+}
+.estimate-brand-title{
+  font-family:"Playfair Display",serif;
+  color:#123b78;
+  font-size:clamp(25px,2.55vw,43px);
+  line-height:1.05;
+  font-weight:700;
+  white-space:nowrap;
+}
+.estimate-brand-subtitle{
+  color:#1f2937;
+  font-size:clamp(11px,1vw,17px);
+  letter-spacing:5px;
+  margin-top:12px;
+  white-space:nowrap;
+}
+.estimate-brand-tagline{
+  color:#64748b;
+  font-family:"Playfair Display",serif;
+  font-style:italic;
+  font-size:clamp(12px,1vw,17px);
+  letter-spacing:3px;
+  margin-top:8px;
+}
+.estimate-contact{
+  border-left:1px solid #cbd5e1;
+  padding-left:28px;
+  color:#24344d;
+  font-size:12px;
+  line-height:1.35;
+}
+.contact-row{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  margin:8px 0;
+}
+.contact-icon{
+  flex:0 0 39px;
+  width:39px;
+  height:39px;
+  border-radius:50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:18px;
+  font-weight:800;
+}
+.contact-icon.blue{background:#123f7a}
+.contact-icon.orange{background:#f47b20}
+.estimate-header-ribbon{
+  display:grid;
+  grid-template-columns:1.08fr .92fr;
+  width:calc(100% + 76px);
+  margin-left:-38px;
+  min-height:48px;
+  overflow:hidden;
+  font-weight:700;
+  letter-spacing:4px;
+  font-size:12px;
+  color:#fff;
+  text-align:center;
+}
+.ribbon-blue,.ribbon-orange{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+}
+.ribbon-blue{
+  background:#063d78;
+  clip-path:polygon(0 0,94% 0,100% 50%,94% 100%,0 100%);
+  padding-right:30px;
+}
+.ribbon-orange{
+  background:#f47b20;
+  clip-path:polygon(6% 0,100% 0,100% 100%,6% 100%,0 50%);
+  padding-left:30px;
+}
+@media(max-width:1000px){
+  .estimate-header-main{grid-template-columns:1fr 1.35fr;grid-template-areas:"logo brand" "contact contact";gap:10px}
+  .estimate-logo{max-height:120px}
+  .estimate-contact{grid-area:contact;border-left:0;border-top:1px solid #cbd5e1;padding:10px 0 0;display:grid;grid-template-columns:1fr 1fr}
+  .estimate-brand-copy{padding-left:12px}
+}
+@media(max-width:650px){
+  .estimate-header-main{display:block;min-height:0}
+  .estimate-logo{max-width:360px;margin-bottom:10px}
+  .estimate-brand-copy{border-left:0;padding:8px 0}
+  .estimate-brand-title{font-size:28px;white-space:normal}
+  .estimate-brand-subtitle{font-size:10px;letter-spacing:3px}
+  .estimate-contact{display:block}
+  .estimate-header-ribbon{grid-template-columns:1fr;width:calc(100% + 30px);margin-left:-15px;font-size:9px;letter-spacing:2px}
+  .ribbon-orange{display:none}
+  .ribbon-blue{clip-path:none;padding:0 8px;min-height:38px}
+}
+@media print{
+  .estimate-header{break-inside:avoid!important;page-break-inside:avoid!important}
+  .estimate-header-main{min-height:150px}
+  .estimate-logo{max-height:120px}
+  .estimate-header-ribbon{width:calc(100% + 20mm);margin-left:-10mm}
+  .estimate-brand-title{font-size:28px}
+  .estimate-brand-subtitle{font-size:10px}
+  .estimate-brand-tagline{font-size:11px}
+  .estimate-contact{font-size:9px}
+  .contact-icon{width:28px;height:28px;flex-basis:28px;font-size:13px}
+  .estimate-header-ribbon{min-height:34px;font-size:8px;letter-spacing:2px}
+}
 </style></style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" style="margin-left:12px;font-size:11px;color:#047857;font-weight:700">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 
 <div class="sheet"><div class="inner">
-<header><div class="brand"><h1>Sankalp Interior Solution</h1><p>Interior • Civil • Turnkey Solutions</p></div><div class="company"><b>ESTIMATE — VERSION 2</b><br>Office/Flat No. GB, Ground Floor, Oishi Tower-II<br>Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br>Official WhatsApp: 9748297025</div></header>
+<header class="estimate-header">
+  <div class="estimate-header-main">
+    <div class="estimate-logo-wrap">
+      <img class="estimate-logo" src="https://www.sankalpinterior.com/uploads/upload_1.png" alt="Sankalp Interior Solution">
+    </div>
+    <div class="estimate-brand-copy">
+      <div class="estimate-brand-title">Sankalp Interior Solution</div>
+      <div class="estimate-brand-subtitle">DESIGN&nbsp;&nbsp; | &nbsp;&nbsp;BUILD&nbsp;&nbsp; | &nbsp;&nbsp;TRANSFORM</div>
+      <div class="estimate-brand-tagline">Beautiful Spaces&nbsp;&nbsp;|&nbsp;&nbsp;Better Living</div>
+    </div>
+    <div class="estimate-contact">
+      <div class="contact-row"><span class="contact-icon blue">●</span><span>Office: GB, Oishi Tower-II, Rabindra Pally,<br>Jyangra, Baguiati, VIP Rd, Kolkata – 700059</span></div>
+      <div class="contact-row"><span class="contact-icon orange">☎</span><span>+91 9748297025</span></div>
+      <div class="contact-row"><span class="contact-icon blue">✉</span><span>info.sankalpgrp@gmail.com</span></div>
+      <div class="contact-row"><span class="contact-icon orange">◎</span><span>www.sankalpdesign.com</span></div>
+    </div>
+  </div>
+  <div class="estimate-header-ribbon">
+    <div class="ribbon-blue">INTERIORS&nbsp;&nbsp; | &nbsp;&nbsp;CONSTRUCTION&nbsp;&nbsp; | &nbsp;&nbsp;TURNKEY SOLUTIONS</div>
+    <div class="ribbon-orange">RESIDENTIAL&nbsp;&nbsp; | &nbsp;&nbsp;COMMERCIAL&nbsp;&nbsp; | &nbsp;&nbsp;HOSPITALITY</div>
+  </div>
+</header>
 
 <div class="meta">
 <div class="box"><div class="title">Estimate Details</div>

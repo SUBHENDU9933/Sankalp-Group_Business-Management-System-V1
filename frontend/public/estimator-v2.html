@@ -666,7 +666,24 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   .contact-icon{width:21px!important;height:21px!important;flex-basis:21px!important;font-size:9px!important}
   .estimate-header-ribbon{min-height:27px!important;font-size:6.5px!important;letter-spacing:1.45px!important}
 }
-</style></head>
+<style id="estimate-toolbar-compact">
+/* Compact desktop toolbar: keep all controls on one line without changing estimate content. */
+@media(min-width:801px){
+  .toolbar{padding:8px 12px;gap:8px;min-height:58px}
+  .toolbar-brand{gap:8px;flex:1;min-width:0;white-space:nowrap}
+  .toolbar-brand>b{font-size:12px;white-space:nowrap}
+  .toolbar-cloud-status{padding:4px 8px;font-size:10px}
+  .tools{gap:5px;flex-wrap:nowrap;flex:0 0 auto}
+  .tools .btn{padding:7px 9px;font-size:12px;white-space:nowrap}
+}
+@media(max-width:1100px) and (min-width:801px){
+  .toolbar-brand{gap:5px}
+  .toolbar-brand>b{font-size:11px}
+  .toolbar-cloud-status{font-size:9px;padding:4px 6px}
+  .tools{gap:4px}
+  .tools .btn{padding:6px 7px;font-size:11px}
+}
+</style></style></head>
 <body>
 <div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" class="toolbar-cloud-status">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="gift-settings">🎁 Gift Settings</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 

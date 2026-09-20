@@ -19,280 +19,13 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .modal{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}.modal.hidden{display:none}.modalcard{background:#fff;border-radius:10px;width:min(1100px,96vw);max-height:90vh;overflow:auto;padding:22px;border-top:7px solid var(--a)}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.catalog{border:1px solid var(--bd);border-radius:7px;padding:12px;margin-bottom:12px}.presetrow{display:grid;grid-template-columns:1.2fr 90px 110px 1.8fr 100px 36px;gap:6px;margin:6px 0}.catalog input,.catalog select{width:100%;padding:7px;border:1px solid var(--bd);border-radius:4px}.small{font-size:11px;color:var(--mut)}.hidden{display:none!important}
 @media(max-width:800px){body{padding:7px}.inner{padding:15px}.meta,.summary,.grid,.fieldpair{grid-template-columns:1fr}header{display:block}.company{text-align:left;margin-top:15px}.toolbar{align-items:flex-start}.presetrow{grid-template-columns:1fr 80px 100px}.presetrow textarea{grid-column:1/-1}.sheet{box-shadow:none}.dims{grid-template-columns:1fr 1fr}}
 @media print{body{padding:0;background:#fff}.toolbar,.add,.del,.modal,.leadlist,.notice,.presetedit{display:none!important}.sheet{box-shadow:none;max-width:none}.inner{border-top:4px solid var(--p);padding:10mm}.field input,.field textarea,td input,td select,td textarea{border:0!important;padding:0!important}.tablebox{overflow:visible}.summary,.footer{break-inside:avoid}}
-
-/* Premium A4 print view */
-.print-head,.print-estimate-title,.print-services,.print-quote,.print-features,.print-bottom,.print-contact{display:none}
-@media print{
-  @page{size:A4 portrait;margin:0}
-  body{padding:0!important;background:#fff!important;color:#102a43}
-  .toolbar,.screen-header,.add,.del,.modal,.leadlist,.notice,.presetedit,.footer{display:none!important}
-  .sheet{width:210mm;max-width:none!important;min-height:297mm;margin:0!important;box-shadow:none!important;background:#fff}
-  .inner{padding:0 7mm 0!important;border:0!important}
-  .print-head{height:42mm;display:grid;grid-template-columns:1.05fr .72fr .9fr;align-items:stretch;position:relative;overflow:hidden;background:#fff;border-bottom:1px solid #d8e1ea}
-  .print-head:before{content:"";position:absolute;left:-9mm;top:-9mm;width:25mm;height:25mm;background:#ff8a00;transform:rotate(45deg)}
-  .print-head:after{content:"";position:absolute;right:-12mm;top:-13mm;width:52mm;height:52mm;background:#ff8a00;transform:rotate(45deg)}
-  .print-brand{padding:8mm 0 5mm 6mm;position:relative;z-index:2}
-  .print-logo{display:flex;align-items:center;gap:5mm;color:#073b70}
-  .print-logo-mark{width:15mm;height:15mm;border-radius:4mm 7mm 4mm 7mm;background:linear-gradient(145deg,#0b477f 0 52%,#ff8a00 53%);color:#fff;display:flex;align-items:center;justify-content:center;font:800 11mm/1 "Inter",Arial}
-  .print-logo b{display:block;font:800 13mm/1 "Playfair Display",Georgia;color:#073b70;letter-spacing:-.8px}
-  .print-logo em{display:block;font:800 4mm/1 "Inter",Arial;color:#ff7900;font-style:normal;letter-spacing:.7px;margin-top:1mm}
-  .print-tagline{margin-top:3mm;color:#073b70;letter-spacing:2.5px;font-size:2.5mm;font-weight:700}
-  .print-head-copy{padding:9mm 4mm 4mm 3mm;color:#073b70;font:italic 700 5mm/1.18 Georgia,serif;border-left:1px solid #d6dee7;position:relative;z-index:2}
-  .print-head-copy span{display:block}.print-head-copy small{display:block;margin-top:2mm;font:italic 3.1mm/1.2 Georgia,serif;color:#ff7900}
-  .print-hero-art{position:relative;z-index:1;background:linear-gradient(135deg,#0a3c6d 0%,#075b93 62%,#ff8a00 63%,#ff8a00 100%);color:#fff;padding:8mm 5mm 5mm 12mm;display:flex;align-items:center;justify-content:flex-end}
-  .print-hero-art b{font-size:4mm;line-height:1.35;letter-spacing:.5px;text-align:right;position:relative;z-index:2}
-  .hero-lines{position:absolute;width:38mm;height:55mm;right:23mm;top:-9mm;border-left:1px solid #ffffff55;border-right:1px solid #ffffff33;transform:skew(-22deg)}
-  .print-estimate-title{display:flex;align-items:center;gap:4mm;padding:5mm 0 3mm}
-  .print-title-bar{width:3mm;height:16mm;background:linear-gradient(#ff7900 0 50%,#0b477f 50%);border-radius:1mm}
-  .print-estimate-title h1{margin:0;color:#073b70;font-size:13mm;line-height:.95;letter-spacing:.4px;font-weight:800}
-  .print-estimate-title p{margin:2mm 0 0;color:#073b70;letter-spacing:2.3px;font-size:3.1mm}
-  .print-services{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;padding:0 0 4mm}
-  .print-services>div{display:flex;align-items:center;gap:3mm;color:#073b70;font-size:2.35mm;font-weight:800;line-height:1.3}
-  .print-services b{width:10mm;height:10mm;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff3e3;border:1px solid #f5c58d;color:#073b70;font-size:5mm}
-  .meta{grid-template-columns:1fr 1.22fr .64fr!important;gap:4mm;margin-bottom:4mm}
-  .box,.print-quote{border:1px solid #cad8e6;border-radius:2.2mm;background:linear-gradient(180deg,#fff,#f8fbfd);padding:4mm}
-  .box .title{font-size:3mm;padding:2.3mm 3mm;margin:-4mm -4mm 3mm;background:#edf4fa;border-bottom:1px solid #d9e5ef;color:#073b70;border-radius:2.2mm 2.2mm 0 0}
-  .field{gap:2.5mm;margin:2.2mm 0}.field label{width:24mm;font-size:2.55mm;color:#49657d}.fieldpair{gap:3mm;margin:2.2mm 0}.fieldpair .field label{width:17mm}.fieldfull{margin:2.2mm 0}.fieldfull .field label{width:24mm}
-  .field input,.field textarea,.field select{font-size:2.7mm;color:#0c2942;font-weight:600}
-  .print-quote{display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(145deg,#f9fcff,#eef5fa)}
-  .print-quote span{font:800 12mm/0.6 Georgia,serif;color:#ffb25c}
-  .print-quote p{margin:2mm 0;font:italic 700 4.5mm/1.25 Georgia,serif;color:#173b5f}
-  .print-quote small{font:italic 2.8mm Georgia,serif;color:#49657d}.print-quote i{width:12mm;border-top:1px solid #ff7900;margin-top:3mm}
-  .tablebox{border:1px solid #c9d7e5;border-radius:2mm;overflow:visible}
-  table{min-width:0!important;width:100%;table-layout:fixed}
-  th{background:#073b70!important;padding:2.5mm 1.4mm;font-size:2.45mm;letter-spacing:.25px;border-right:1px solid #ffffff55}
-  td{padding:2.1mm 1.5mm;font-size:2.55mm;line-height:1.28;border-color:#d3e0eb}
-  tbody tr:nth-child(even){background:#f3f8fc}
-  .itemcell select{font-size:3.1mm;font-weight:800;color:#073b70}.itemdesc{font-size:2.25mm;padding-left:1mm;color:#61798e}
-  .measurement-cell input,.measurement-cell .presetmeta,.measurement-cell .dims{font-size:2.2mm}.area{font-size:2.8mm;background:#fff7e8!important;color:#9b5b00!important}.money{font-size:2.7mm}.spec{min-width:0;font-size:2.35mm;line-height:1.35}
-  .qty{max-width:none;font-size:2.5mm}.rowdel{display:none!important}
-  .summary{grid-template-columns:1.35fr .95fr;gap:4mm;margin-top:4mm}
-  .notes,.totals{border:1px solid #cad8e6;border-radius:2.2mm;padding:4mm;background:#f8fbfd}
-  .notes .title{font-size:3mm;color:#073b70;margin-bottom:2mm}.notes textarea{min-height:28mm;font-size:2.5mm;line-height:1.45}
-  .trow{margin:2mm 0;font-size:2.8mm}.grand{border-top:1px solid #073b70;padding-top:3mm;margin-top:3mm;font-size:5mm;color:#073b70}.words{font-size:2.25mm;color:#ff7900}
-  .print-features{display:grid;grid-template-columns:repeat(5,1fr);margin:4mm 0 3mm;padding:3mm 2mm;background:linear-gradient(90deg,#f4f8fb,#fff,#f4f8fb);border-top:1px solid #dbe6ef;border-bottom:1px solid #dbe6ef}
-  .print-features>div{display:flex;align-items:center;justify-content:center;gap:2mm;border-right:1px solid #e5a35b;color:#073b70;font-size:2.35mm;font-weight:700;line-height:1.25}
-  .print-features>div:last-child{border-right:0}.print-features b{font-size:5mm;color:#ff7900}
-  .print-bottom{display:grid;grid-template-columns:1.2fr 1fr;gap:5mm;padding:3mm 0 4mm;border-bottom:1px solid #cbd9e6}
-  .print-terms h3,.sigbox h3{margin:0 0 2mm;color:#073b70;font-size:2.7mm;letter-spacing:.3px}.print-terms ol{margin:0;padding-left:4mm;color:#415b72;font-size:2.1mm;line-height:1.45}
-  .print-sign{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.sigbox{border-left:1px solid #d5e0e9;padding-left:4mm}.signature-script{font:italic 5mm "Brush Script MT",cursive;color:#073b70;margin:6mm 0 1mm}.sigbox strong,.sigbox span{display:block;font-size:2.2mm;color:#173b5f}.sigbox span{margin-top:1.2mm;color:#587087}.signature-line{height:10mm;border-bottom:1px solid #173b5f;margin-bottom:2mm}
-  .print-contact{display:grid;grid-template-columns:auto auto auto 1fr auto;gap:3mm;align-items:center;background:#073b70;color:#fff;margin:0 -7mm;padding:5mm 7mm 4mm;font-size:2.2mm;line-height:1.35}
-  .print-contact strong{background:#ff7900;margin:-5mm -7mm -4mm 0;padding:4mm 6mm;font-size:2.7mm;line-height:1.2;clip-path:polygon(16% 0,100% 0,100% 100%,0 100%)}
-  .print-contact div{white-space:nowrap}
-  .print-contact div:nth-child(4){white-space:normal}
-  .screen-header{display:none!important}
-}
-
-@media screen{
-  :root{--p:#073b70;--pd:#062f58;--a:#ff7900;--bg:#eef3f8;--bd:#cbd9e6;--tx:#102a43;--mut:#5d7488}
-  body{padding:0;background:#eef3f8;color:var(--tx)}
-  .toolbar{position:sticky;top:0;z-index:80;max-width:none;margin:0;background:#073b70;border:0;border-radius:0;padding:9px 22px;box-shadow:0 3px 14px #082f541f;color:#fff}
-  .toolbar>div:first-child{color:#fff!important}.toolbar b{color:#fff!important}.toolbar span{color:#c9d9e7!important}
-  .tools{gap:7px}.btn{border:1px solid #d4dfeb;background:#fff;color:#173b5f;border-radius:7px;padding:8px 12px;font-size:12px;box-shadow:0 1px 2px #0000000d}.btn:hover{border-color:#ff7900;color:#073b70}
-  .primary{background:#073b70;color:#fff;border-color:#073b70}.gold{background:#ff7900;color:#fff;border-color:#ff7900}.toolbar .gold{box-shadow:0 4px 12px #ff79004d}
-  .sheet{width:min(1180px,100%);max-width:none;min-height:0;margin:0 auto;background:#fff;box-shadow:0 10px 35px #073b7020}
-  .inner{padding:0 34px 34px;border-top:0}
-  .screen-header{display:none!important}
-  .print-head{height:235px;display:grid;grid-template-columns:1.05fr .72fr .9fr;align-items:stretch;position:relative;overflow:hidden;background:#fff;border-bottom:1px solid #d8e1ea}
-  .print-head:before{content:"";position:absolute;left:-65px;top:-65px;width:180px;height:180px;background:#ff8a00;transform:rotate(45deg)}
-  .print-head:after{content:"";position:absolute;right:-85px;top:-95px;width:360px;height:360px;background:#ff8a00;transform:rotate(45deg)}
-  .print-brand{padding:48px 0 25px 38px;position:relative;z-index:2}
-  .print-logo{display:flex;align-items:center;gap:18px;color:#073b70}
-  .print-logo-mark{width:76px;height:76px;border-radius:20px 34px 20px 34px;background:linear-gradient(145deg,#0b477f 0 52%,#ff8a00 53%);color:#fff;display:flex;align-items:center;justify-content:center;font:800 58px/1 Inter,Arial}
-  .print-logo b{display:block;font:800 62px/1 "Playfair Display",Georgia;color:#073b70;letter-spacing:-3px}
-  .print-logo em{display:block;font:800 18px/1 Inter,Arial;color:#ff7900;font-style:normal;letter-spacing:1.2px;margin-top:7px}
-  .print-tagline{margin-top:17px;color:#073b70;letter-spacing:6px;font-size:12px;font-weight:800}
-  .print-head-copy{padding:48px 20px 20px 24px;color:#073b70;font:italic 700 25px/1.18 Georgia,serif;border-left:1px solid #d6dee7;position:relative;z-index:2}
-  .print-head-copy span{display:block}.print-head-copy small{display:block;margin-top:12px;font:italic 16px/1.2 Georgia,serif;color:#ff7900}
-  .print-hero-art{position:relative;z-index:1;background:linear-gradient(135deg,#0a3c6d 0%,#075b93 62%,#ff8a00 63%,#ff8a00 100%);color:#fff;padding:48px 30px 28px 70px;display:flex;align-items:center;justify-content:flex-end}
-  .print-hero-art b{font-size:19px;line-height:1.35;letter-spacing:1px;text-align:right;position:relative;z-index:2}
-  .hero-lines{position:absolute;width:200px;height:310px;right:120px;top:-60px;border-left:1px solid #ffffff55;border-right:1px solid #ffffff33;transform:skew(-22deg)}
-  .print-estimate-title{display:flex;align-items:center;gap:22px;padding:28px 0 18px}
-  .print-title-bar{width:8px;height:88px;background:linear-gradient(#ff7900 0 50%,#0b477f 50%);border-radius:3px}
-  .print-estimate-title h1{margin:0;color:#073b70;font-size:64px;line-height:.95;letter-spacing:.4px;font-weight:800}
-  .print-estimate-title p{margin:10px 0 0;color:#073b70;letter-spacing:4px;font-size:15px}
-  .print-services{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:0 0 22px}
-  .print-services>div{display:flex;align-items:center;gap:12px;color:#073b70;font-size:11px;font-weight:800;line-height:1.3}
-  .print-services b{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff3e3;border:1px solid #f5c58d;color:#073b70;font-size:26px}
-  .meta{display:grid;grid-template-columns:1fr 1.22fr .64fr;gap:16px;margin-bottom:18px}
-  .box,.print-quote{border:1px solid #cad8e6;border-radius:11px;background:linear-gradient(180deg,#fff,#f8fbfd);padding:20px}
-  .box .title{font-size:13px;padding:12px 14px;margin:-20px -20px 15px;background:#edf4fa;border-bottom:1px solid #d9e5ef;color:#073b70;border-radius:11px 11px 0 0}
-  .field{gap:10px;margin:9px 0}.field label{width:100px;font-size:11px;color:#49657d}.fieldpair{gap:12px;margin:9px 0}.fieldpair .field label{width:70px}.fieldfull{margin:9px 0}.fieldfull .field label{width:100px}
-  .field input,.field textarea,.field select{font-size:12px;color:#0c2942;font-weight:600}
-  .leadlist{border-color:#cbd9e6;box-shadow:0 12px 25px #073b7025}.leaditem:hover{background:#fff3e3}
-  .print-quote{display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(145deg,#f9fcff,#eef5fa)}
-  .print-quote span{font:800 66px/.6 Georgia,serif;color:#ffb25c}
-  .print-quote p{margin:12px 0;font:italic 700 24px/1.25 Georgia,serif;color:#173b5f}
-  .print-quote small{font:italic 15px Georgia,serif;color:#49657d}.print-quote i{width:65px;border-top:2px solid #ff7900;margin-top:16px}
-  .notice{background:#edf5fb;border-color:#c9dbea;color:#1e4d73;border-radius:8px;padding:10px 14px;margin-bottom:16px}
-  .tablebox{border:1px solid #c9d7e5;border-radius:9px;overflow:auto}
-  table{min-width:1050px;width:100%;table-layout:fixed}
-  th{background:#073b70;color:#fff;padding:13px 8px;font-size:11px}
-  td{padding:10px 8px;font-size:12px;border-color:#d3e0eb}
-  tbody tr:nth-child(even){background:#f3f8fc}
-  .itemcell select{font-size:14px;font-weight:800;color:#073b70}.itemdesc{font-size:11px;color:#61798e}
-  .area{background:#fff7e8;color:#9b5b00}.money{font-size:12px}.spec{min-width:0;font-size:11px;line-height:1.4}
-  .presetedit{border-color:#cbd9e6!important;color:#073b70!important}.presetedit:hover{border-color:#ff7900!important;background:#fff7ed!important}
-  .rowdel{border-color:#ffd0c9!important}
-  .add{border:2px dashed #b9cad9;background:#f8fbfd;padding:12px;color:#073b70;border-radius:8px}.add:hover{border-color:#ff7900;background:#fffaf5}
-  .summary{grid-template-columns:1.35fr .95fr;gap:18px;margin-top:18px}
-  .notes,.totals{border:1px solid #cad8e6;border-radius:11px;padding:20px;background:#f8fbfd}
-  .notes .title{font-size:13px;color:#073b70;margin-bottom:8px}.notes textarea{min-height:125px;font-size:12px;line-height:1.45}
-  .trow{margin:9px 0;font-size:13px}.grand{border-top:2px solid #073b70;padding-top:13px;margin-top:14px;font-size:23px;color:#073b70}.words{font-size:11px;color:#ff7900}
-  .print-features{display:grid;grid-template-columns:repeat(5,1fr);margin:18px 0 14px;padding:15px 10px;background:linear-gradient(90deg,#f4f8fb,#fff,#f4f8fb);border-top:1px solid #dbe6ef;border-bottom:1px solid #dbe6ef}
-  .print-features>div{display:flex;align-items:center;justify-content:center;gap:10px;border-right:1px solid #e5a35b;color:#073b70;font-size:11px;font-weight:700;line-height:1.25}
-  .print-features>div:last-child{border-right:0}.print-features b{font-size:25px;color:#ff7900}
-  .print-bottom{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;padding:14px 0 18px;border-bottom:1px solid #cbd9e6}
-  .print-terms h3,.sigbox h3{margin:0 0 8px;color:#073b70;font-size:12px;letter-spacing:.3px}.print-terms ol{margin:0;padding-left:18px;color:#415b72;font-size:10px;line-height:1.5}
-  .print-sign{display:grid;grid-template-columns:1fr 1fr;gap:20px}.sigbox{border-left:1px solid #d5e0e9;padding-left:20px}.signature-script{font:italic 25px "Brush Script MT",cursive;color:#073b70;margin:28px 0 5px}.sigbox strong,.sigbox span{display:block;font-size:10px;color:#173b5f}.sigbox span{margin-top:5px;color:#587087}.signature-line{height:52px;border-bottom:1px solid #173b5f;margin-bottom:9px}
-  .print-contact{display:grid;grid-template-columns:auto auto auto 1fr auto;gap:18px;align-items:center;background:#073b70;color:#fff;margin:0 -34px;padding:24px 34px 20px;font-size:10px;line-height:1.35}
-  .print-contact strong{background:#ff7900;margin:-24px -34px -20px 0;padding:20px 30px;font-size:13px;line-height:1.2;clip-path:polygon(16% 0,100% 0,100% 100%,0 100%)}
-  .print-contact div{white-space:nowrap}.print-contact div:nth-child(4){white-space:normal}
-  @media(max-width:900px){
-    body{background:#fff}.toolbar{position:static}.sheet{width:100%;box-shadow:none}.inner{padding:0 16px 20px}
-    .print-head{height:190px}.print-logo b{font-size:42px}.print-logo em{font-size:13px}.print-logo-mark{width:58px;height:58px;font-size:44px}.print-head-copy{font-size:19px}.print-hero-art b{font-size:14px}.print-estimate-title h1{font-size:48px}
-    .meta{grid-template-columns:1fr}.print-services{grid-template-columns:repeat(2,1fr)}.summary{grid-template-columns:1fr}.print-bottom{grid-template-columns:1fr}.print-contact{grid-template-columns:1fr 1fr}.print-contact strong{margin:0;clip-path:none}.print-features{grid-template-columns:repeat(3,1fr);gap:10px}.print-features>div:nth-child(3){border-right:0}
-  }
-  @media(max-width:600px){
-    .toolbar{padding:8px 10px;align-items:flex-start}.toolbar>div:first-child{display:none}.tools{width:100%;justify-content:flex-end}
-    .print-head{height:145px;grid-template-columns:1fr .6fr .65fr}.print-brand{padding:28px 0 16px 20px}.print-logo{gap:8px}.print-logo-mark{width:42px;height:42px;font-size:30px}.print-logo b{font-size:28px;letter-spacing:-1px}.print-logo em{font-size:8px}.print-tagline{font-size:7px;letter-spacing:2px}.print-head-copy{padding:28px 8px;font-size:14px}.print-head-copy small{font-size:10px}.print-hero-art{padding:20px 10px}.print-hero-art b{font-size:9px}.hero-lines{right:45px;width:60px}.print-estimate-title{padding:18px 0 12px}.print-title-bar{height:60px}.print-estimate-title h1{font-size:36px}.print-estimate-title p{font-size:9px;letter-spacing:1.5px}
-    .print-services{gap:8px}.print-services>div{font-size:8px}.print-services b{width:38px;height:38px;font-size:19px}.box,.print-quote{padding:14px}.box .title{margin:-14px -14px 10px}.field{gap:7px}.field label{width:82px}.fieldpair{grid-template-columns:1fr}.fieldpair .field label{width:82px}
-    .print-features{grid-template-columns:1fr 1fr}.print-features>div{border-right:0;border-bottom:1px solid #e5a35b;padding:8px}.print-contact{margin:0 -16px;padding:18px 16px}.print-contact strong{padding:14px}
-  }
-}
-
-/* Landscape A4 — same visual page for screen + print */
-@media screen and (min-width:1100px){
-  body{padding:0;background:#eef3f8}
-  .sheet{width:min(1500px,100%);margin:0 auto;box-shadow:0 10px 35px #073b7020}
-  .inner{padding:0 28px 28px}
-  .print-head{height:205px}
-  .print-brand{padding:38px 0 20px 32px}
-  .print-logo b{font-size:54px}.print-logo-mark{width:68px;height:68px;font-size:51px}.print-logo em{font-size:16px}
-  .print-head-copy{padding:38px 18px 16px 20px;font-size:22px}
-  .print-hero-art{padding:38px 28px 22px 55px}.print-hero-art b{font-size:17px}
-  .print-estimate-title{padding:20px 0 12px}.print-estimate-title h1{font-size:56px}.print-title-bar{height:72px}
-  .print-estimate-title p{font-size:13px}
-  .print-services{gap:16px;padding-bottom:15px}.print-services b{width:46px;height:46px;font-size:23px}
-  .print-services>div{font-size:10px}
-  .meta{gap:14px;margin-bottom:14px}
-  .box,.print-quote{padding:16px}.box .title{margin:-16px -16px 11px;padding:9px 12px}
-  .field{margin:6px 0}.fieldpair{margin:6px 0}.fieldfull{margin:6px 0}
-  .print-quote p{font-size:20px}.print-quote span{font-size:55px}
-  .notice{padding:8px 12px;margin-bottom:12px;font-size:11px}
-  .tablebox{border-radius:8px}
-  th{padding:10px 6px;font-size:10px}td{padding:7px 6px;font-size:11px}
-  .itemcell select{font-size:13px}.itemdesc{font-size:10px}.spec{font-size:10px}
-  .summary{gap:14px;margin-top:12px}.notes,.totals{padding:15px}.notes textarea{min-height:76px}
-  .trow{margin:6px 0;font-size:12px}.grand{font-size:21px;padding-top:10px;margin-top:10px}
-  .print-features{margin:12px 0 10px;padding:10px 8px}.print-features>div{font-size:10px}.print-features b{font-size:22px}
-  .print-bottom{gap:18px;padding:10px 0 12px}.print-terms ol{font-size:9px;line-height:1.35}
-  .signature-script{margin:16px 0 3px;font-size:22px}.signature-line{height:32px}
-  .print-contact{margin:0 -28px;padding:16px 28px 14px;font-size:9px}
-  .print-contact strong{margin:-16px -28px -14px 0;padding:14px 22px;font-size:11px}
-}
-
-@media print{
-  @page{size:A4 landscape;margin:0}
-  html,body{width:297mm!important;min-height:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
-  body{font-family:Inter,Arial,sans-serif;color:#102a43}
-  .toolbar,.screen-header,.add,.del,.modal,.leadlist,.notice,.presetedit,.rowdel,.footer{display:none!important}
-  .sheet{
-    width:297mm!important;
-    max-width:none!important;
-    min-height:210mm!important;
-    height:auto!important;
-    margin:0!important;
-    box-shadow:none!important;
-    background:#fff!important;
-  }
-  .inner{
-    width:297mm!important;
-    padding:0 7mm!important;
-    border:0!important;
-    margin:0!important;
-  }
-  .print-head{
-    height:35mm!important;
-    display:grid!important;
-    grid-template-columns:1.05fr .68fr .82fr!important;
-    overflow:hidden!important;
-  }
-  .print-brand{padding:6mm 0 3mm 5mm!important}
-  .print-logo{gap:3.5mm!important}
-  .print-logo-mark{width:12mm!important;height:12mm!important;font-size:9mm!important;border-radius:3mm 5mm 3mm 5mm!important}
-  .print-logo b{font-size:11.5mm!important;letter-spacing:-.6px!important}
-  .print-logo em{font-size:3.2mm!important;letter-spacing:.5px!important;margin-top:1mm!important}
-  .print-tagline{margin-top:2.5mm!important;font-size:2mm!important;letter-spacing:1.8px!important}
-  .print-head-copy{padding:6mm 3mm 2mm 3mm!important;font-size:4.3mm!important}
-  .print-head-copy small{margin-top:1.5mm!important;font-size:2.5mm!important}
-  .print-hero-art{padding:6mm 4mm 3mm 9mm!important}
-  .print-hero-art b{font-size:3.1mm!important;line-height:1.28!important}
-  .hero-lines{width:34mm!important;height:47mm!important;right:20mm!important;top:-8mm!important}
-  .print-estimate-title{padding:3mm 0 1.8mm!important;gap:3mm!important}
-  .print-title-bar{width:2.2mm!important;height:11mm!important}
-  .print-estimate-title h1{font-size:10mm!important}
-  .print-estimate-title p{margin-top:1mm!important;font-size:2.3mm!important;letter-spacing:1.5px!important}
-  .print-services{grid-template-columns:repeat(4,1fr)!important;gap:2mm!important;padding:0 0 2.5mm!important}
-  .print-services>div{gap:2mm!important;font-size:1.8mm!important}
-  .print-services b{width:7mm!important;height:7mm!important;font-size:3.3mm!important}
-  .meta{grid-template-columns:1fr 1.2fr .62fr!important;gap:2.5mm!important;margin-bottom:2.5mm!important}
-  .box,.print-quote{padding:2.5mm!important;border-radius:1.5mm!important}
-  .box .title{font-size:2.1mm!important;padding:1.5mm 2mm!important;margin:-2.5mm -2.5mm 2mm!important;border-radius:1.5mm 1.5mm 0 0!important}
-  .field{gap:1.8mm!important;margin:1.2mm 0!important}
-  .field label{width:20mm!important;font-size:1.9mm!important}
-  .fieldpair{gap:2mm!important;margin:1.2mm 0!important}
-  .fieldpair .field label{width:13mm!important}
-  .fieldfull{margin:1.2mm 0!important}.fieldfull .field label{width:20mm!important}
-  .field input,.field textarea,.field select{font-size:2mm!important;padding:1mm 0!important;min-height:0!important}
-  .print-quote span{font-size:9mm!important}.print-quote p{margin:1mm 0!important;font-size:3.4mm!important}.print-quote small{font-size:2.1mm!important}.print-quote i{width:9mm!important;margin-top:2mm!important}
-  .tablebox{border-radius:1.5mm!important}
-  table{width:100%!important;min-width:0!important;table-layout:fixed!important}
-  th{padding:1.8mm 1mm!important;font-size:1.8mm!important}
-  td{padding:1.5mm 1mm!important;font-size:1.9mm!important;line-height:1.2!important}
-  .itemcell{gap:1mm!important}.itemcell select{font-size:2.4mm!important}.itemdesc{font-size:1.7mm!important;padding-left:.5mm!important}
-  .measurement-cell input,.measurement-cell .presetmeta,.measurement-cell .dims{font-size:1.65mm!important}
-  .measurement-cell .dims{gap:1mm!important}.measurement-cell .dims label{font-size:1.4mm!important}
-  .area{font-size:2mm!important}.area div{font-size:1.35mm!important}.money{font-size:2mm!important}.qty{font-size:1.8mm!important}.spec{font-size:1.75mm!important;line-height:1.25!important}
-  .summary{grid-template-columns:1.2fr .8fr!important;gap:2.5mm!important;margin-top:2.5mm!important}
-  .notes,.totals{padding:2.5mm!important;border-radius:1.5mm!important}
-  .notes .title{font-size:2mm!important;margin-bottom:1mm!important}.notes textarea{min-height:18mm!important;font-size:1.8mm!important;line-height:1.3!important}
-  .trow{margin:1.2mm 0!important;font-size:2mm!important}.grand{padding-top:1.8mm!important;margin-top:1.8mm!important;font-size:4mm!important}.words{font-size:1.6mm!important}
-  .print-features{grid-template-columns:repeat(5,1fr)!important;margin:2.5mm 0 2mm!important;padding:1.8mm 1mm!important}
-  .print-features>div{gap:1.5mm!important;font-size:1.7mm!important}.print-features b{font-size:3.5mm!important}
-  .print-bottom{grid-template-columns:1.2fr 1fr!important;gap:3mm!important;padding:2mm 0 2.5mm!important}
-  .print-terms h3,.sigbox h3{font-size:2mm!important;margin-bottom:1mm!important}
-  .print-terms ol{font-size:1.55mm!important;line-height:1.3!important;padding-left:3mm!important}
-  .print-sign{gap:2.5mm!important}.sigbox{padding-left:2.5mm!important}.signature-script{font-size:4.2mm!important;margin:3mm 0 1mm!important}
-  .sigbox strong,.sigbox span{font-size:1.7mm!important}.sigbox span{margin-top:.7mm!important}.signature-line{height:6mm!important;margin-bottom:1mm!important}
-  .print-contact{grid-template-columns:auto auto auto 1fr auto!important;gap:2mm!important;margin:0 -7mm!important;padding:3mm 7mm 2.5mm!important;font-size:1.65mm!important}
-  .print-contact strong{margin:-3mm -7mm -2.5mm 0!important;padding:2.5mm 4mm!important;font-size:2.1mm!important}
-  .print-contact div{white-space:nowrap!important}.print-contact div:nth-child(4){white-space:normal!important}
-  .print-head,.print-estimate-title,.print-services,.meta,.tablebox,.summary,.print-features,.print-bottom,.print-contact{break-inside:avoid!important}
-  table{break-inside:auto!important}tr{break-inside:avoid!important;page-break-inside:avoid!important}
-}
 </style>
 </head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
 
 <div class="sheet"><div class="inner">
-<header class="screen-header"><div class="brand"><h1>Sankalp Interior Solution</h1><p>Interior • Civil • Turnkey Solutions</p></div><div class="company"><b>ESTIMATE — VERSION 2</b><br>Office/Flat No. GB, Ground Floor, Oishi Tower-II<br>Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br>Official WhatsApp: 9748297025</div></header>
-<div class="print-head">
-  <div class="print-brand">
-    <div class="print-logo"><span class="print-logo-mark">S</span><span><b>Sankalp</b><em>INTERIOR SOLUTION</em></span></div>
-    <div class="print-tagline">SPACES THAT INSPIRE</div>
-  </div>
-  <div class="print-head-copy"><span>Design</span><span>Build</span><span>Transform</span><small>Your Dream Space</small></div>
-  <div class="print-hero-art"><div class="hero-lines"></div><b>BETTER<br>SPACES<br>BRIGHTER<br>LIVES</b></div>
-</div>
-<div class="print-estimate-title"><div class="print-title-bar"></div><div><h1>ESTIMATE</h1><p>INTERIOR DESIGN &amp; EXECUTION</p></div></div>
-<div class="print-services">
-  <div><b>⌂</b><span>RESIDENTIAL<br>INTERIORS</span></div>
-  <div><b>▥</b><span>COMMERCIAL<br>SPACES</span></div>
-  <div><b>◉</b><span>CIVIL &amp; TURNKEY<br>SOLUTIONS</span></div>
-  <div><b>▣</b><span>MODULAR<br>FURNITURE</span></div>
-</div>
+<header><div class="brand"><h1>Sankalp Interior Solution</h1><p>Interior • Civil • Turnkey Solutions</p></div><div class="company"><b>ESTIMATE — VERSION 2</b><br>Office/Flat No. GB, Ground Floor, Oishi Tower-II<br>Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br>Official WhatsApp: 9748297025</div></header>
 
 <div class="meta">
 <div class="box"><div class="title">Estimate Details</div>
@@ -315,7 +48,6 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <div class="field"><label>Address</label><input id="cliAddr"></div>
 <div class="field"><label>Budget</label><input id="cliBudget" type="number" min="0" step="1" placeholder="Enter budget"></div>
 </div>
-<div class="print-quote"><span>“</span><p>A well-designed<br>space is an investment<br>in a better you.</p><small>Let’s build it together.</small><i></i></div>
 </div>
 
 <div class="notice"><b>V2 rule:</b> Select an item. If multiple configurations are available, choose the required configuration from the selection window. The selected configuration supplies the rate, specification and measurement method. The configuration name is not shown in the public estimate.</div>
@@ -325,44 +57,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 
 <div class="summary"><div class="notes"><div class="title">Scope / Special Notes</div><textarea id="notes" placeholder="Enter project notes, exclusions, payment terms or special instructions..."></textarea></div><div class="totals"><div class="trow"><span>Subtotal</span><b id="subtotal">₹0</b></div><div class="trow"><span>Discount</span><span><input id="discount" type="number" value="0" min="0" oninput="calculate()"> <select id="discountType" onchange="calculate()" style="padding:5px;border:1px solid #cbd5e1;border-radius:4px"><option value="amount">₹</option><option value="percent">%</option></select></span></div><div class="trow"><span>GST</span><span><input id="gst" type="number" value="0" min="0" oninput="calculate()"> %</span></div><div class="trow grand"><span>Grand Total</span><span id="grand">₹0</span></div><div id="words" class="words">Rupees Zero Only</div></div></div>
 
-<div class="print-features">
-  <div><b>◇</b><span>QUALITY<br>MATERIALS</span></div>
-  <div><b>⚙</b><span>EXPERT<br>WORKMANSHIP</span></div>
-  <div><b>◷</b><span>ON-TIME<br>DELIVERY</span></div>
-  <div><b>♟</b><span>DEDICATED<br>SUPPORT</span></div>
-  <div><b>✓</b><span>TRANSPARENT<br>PRICING</span></div>
-</div>
-
-<div class="print-bottom">
-  <div class="print-terms">
-    <h3>▤ &nbsp; TERMS &amp; CONDITIONS</h3>
-    <ol>
-      <li>This estimate is valid for the validity period mentioned above.</li>
-      <li>Scope, measurements, materials and specifications are subject to final approval.</li>
-      <li>Additional civil, electrical, plumbing or other work not listed will be charged separately.</li>
-      <li>Execution will follow the approved estimate, drawings and agreed specifications.</li>
-      <li>Payment, warranty and handover terms shall be as per the final agreement.</li>
-      <li>By accepting this estimate, the client agrees to the above terms and conditions.</li>
-    </ol>
-  </div>
-  <div class="print-sign">
-    <div class="sigbox"><h3>FOR SANKALP INTERIOR SOLUTION</h3><div class="signature-script">Subhendu Biswas</div><strong>Subhendu Biswas</strong><span>Founder / Director</span></div>
-    <div class="sigbox client-sig"><h3>CLIENT SIGNATURE</h3><div class="signature-line"></div><span>Name: ____________________</span><span>Date: _____________________</span></div>
-  </div>
-</div>
-
-<div class="footer">
-  <div class="sign"><div style="height:55px"></div><div class="signline">Prepared By</div></div>
-  <div class="sign"><div style="height:55px"></div><div class="signline">For Sankalp Interior Solution</div></div>
-</div>
-
-<div class="print-contact">
-  <div>☎ &nbsp;+91 97482 97025</div>
-  <div>✉ &nbsp;info@sankalps.com</div>
-  <div>◎ &nbsp;www.sankalps.com</div>
-  <div>⌖ &nbsp;Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati,<br>Kolkata – 700059</div>
-  <strong>BUILDING<br>BEAUTIFUL SPACES<br>TOGETHER</strong>
-</div>
+<div class="footer"><div class="sign"><div style="height:55px"></div><div class="signline">Prepared By</div></div><div class="sign"><div style="height:55px"></div><div class="signline">For Sankalp Interior Solution</div></div></div>
 </div></div>
 
 <div id="presetPicker" class="modal hidden"><div class="modalcard" style="width:min(620px,94vw);max-height:80vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p);font-size:20px">Select Configuration</h2><div id="presetPickerItem" class="small" style="margin-top:4px"></div></div><button type="button" class="btn danger" data-action="close-picker">Close</button></div><div id="presetChoices"></div></div></div>
@@ -485,16 +180,7 @@ function addPresetRow(btn){const wrap=btn.parentElement;const row=document.creat
 function parseSize(s,type){const parts=String(s||'').split(/\s*(?:x|×)\s*/i).map(x=>x.trim()).filter(Boolean);if(!parts.length)return{l:null,w:null,h:null,q:1};const vals=parts.map(x=>parseFeetInches(x));const valid=vals.every(v=>v!==null&&Number.isFinite(v));if(!valid)return{l:null,w:null,h:null,q:1};if(type==='LxH')return{l:vals[0]||null,w:null,h:vals[1]||null,q:1};if(type==='LxW')return{l:vals[0]||null,w:vals[1]||null,h:null,q:1};if(type==='SQFT'||type==='RFT')return{l:vals[0]||null,w:null,h:null,q:1};return{l:null,w:null,h:null,q:vals[0]||1}}
 function formatPresetDefault(p){const type=p.measurement_type;if(type==='LxW')return [feetInchesDisplay(p.default_length),feetInchesDisplay(p.default_width)].filter(Boolean).join('x');if(type==='LxH')return [feetInchesDisplay(p.default_length),feetInchesDisplay(p.default_height)].filter(Boolean).join('x');if(type==='SQFT'||type==='RFT')return p.default_length??'';return p.default_quantity??1}
 async function saveCatalog(){if(!S.sb||!S.authReady||!S.user){alert('Database session is not ready. Please reopen V2 from the logged-in Estimates dashboard.');return}try{for(const box of document.querySelectorAll('.catalog')){const old=S.items.find(i=>i.id===box.dataset.item);const name=box.querySelector('.ci-name').value.trim();if(!name)continue;const type=box.querySelector('.ci-measurement').value;const defaultRaw=box.querySelector('.ci-default')?.value||'';const size=(type==='LxW'||type==='LxH')?parseSize(defaultRaw,'LxW'):{l:(type==='SQFT'||type==='RFT')?(Number(defaultRaw)||0):null,w:null,h:null,q:type==='NOS'?(Number(defaultRaw)||1):1};let itemId=old?.id;if(!itemId||itemId.startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_items').insert({name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,sort_order:S.items.indexOf(old)*10||0,active:true}).select().single();if(error)throw error;itemId=data.id;if(old)old.id=itemId}else{const {error}=await S.sb.from('estimate_v2_items').update({name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,active:true}).eq('id',itemId);if(error)throw error}const rows=box.querySelectorAll('.presetrow[data-preset]');for(const [pi,row] of Array.from(rows).entries()){const n=row.querySelector('.pn').value.trim();if(!n)continue;const payload={item_id:itemId,name:n,rate:Number(row.querySelector('.pr').value)||0,specification:row.querySelector('.ps').value,sort_order:(pi+1)*10,active:true};const pid=row.dataset.preset;if(pid&&pid.startsWith('new-')){const {error}=await S.sb.from('estimate_v2_presets').insert(payload);if(error)throw error}else{const {error}=await S.sb.from('estimate_v2_presets').update(payload).eq('id',pid);if(error)throw error}}}await loadCatalog();renderRows();closeSettings();alert('V2 preset catalog saved.')}catch(e){console.error(e);alert('Catalog save failed: '+e.message)}}
-// === V1-compatible PDF print function ===
-function printEstimate(){
- const cli=($('cliName').value||'Client').replace(/[^a-zA-Z0-9]+/g,'-');
- const d=new Date();
- const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
- const original=document.title;
- document.title=`EST-${cli}-${dateStr}`;
- window.print();
- setTimeout(()=>{document.title=original},1000);
-}
+function printEstimate(){const old=document.title;document.title='Sankalp-V2-'+(($('cliName').value||'Client').replace(/[^a-z0-9]+/gi,'-'));window.print();setTimeout(()=>document.title=old,800)}
 document.addEventListener('click',e=>{
  const el=e.target.closest('[data-action],[data-open-preset],[data-remove-row],[data-choose-preset],[data-remove-preset],[data-add-preset]');
  if(!el)return;

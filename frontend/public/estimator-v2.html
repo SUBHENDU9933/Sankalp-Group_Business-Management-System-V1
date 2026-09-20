@@ -307,6 +307,19 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
     background:#ffd0a1!important;
     -webkit-print-color-adjust:exact!important;
     print-color-adjust:exact!important;
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    background-image:none!important;
+    padding-right:8px!important;
+  }
+
+  /* Room and Item are selectors only while editing.
+     In the printed/PDF estimate show the selected text without dropdown arrows. */
+  .itemcell select{
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    background-image:none!important;
+    padding-right:0!important;
   }
 }
 </style></style></head>

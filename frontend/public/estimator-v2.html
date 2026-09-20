@@ -22,17 +22,65 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 </style>
 <style id="v2-print-fit">
 @media print{
-  /* Keep the existing V2 design, but make the table printer-friendly. */
-  .rowdel,.del,.presetedit{display:none!important}
-  .itemcell{grid-template-columns:minmax(0,1fr)!important;gap:2px!important}
-  .itemcell select{width:100%!important}
-  .itemdesc{grid-column:1!important}
-  .tablebox{overflow:visible!important;width:100%!important}
-  table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important}
-  th,td{overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important}
-  th{vertical-align:middle!important}
-  td{vertical-align:middle!important}
-  /* Give specification the largest flexible column and prevent horizontal overflow. */
+  /* PRINT = the same layout structure as the V2 HTML screen.
+     Only editing controls are removed; cards, columns and table structure stay the same. */
+  body{
+    padding:0!important;
+    background:#fff!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  .toolbar,.add,.del,.modal,.leadlist,.notice,.presetedit,.rowdel{display:none!important}
+  .sheet{
+    width:100%!important;
+    max-width:1250px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+  .inner{
+    width:100%!important;
+    padding:38px!important;
+    border-top:8px solid var(--p)!important;
+  }
+  /* Keep the exact two-column HTML structure for the top information cards. */
+  .meta{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:18px!important;
+    margin-bottom:24px!important;
+  }
+  .box{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  .fieldfull .field{
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+  }
+  .fieldfull .field label{
+    white-space:nowrap!important;
+  }
+  /* Table remains one continuous HTML table. */
+  .tablebox{
+    overflow:visible!important;
+    width:100%!important;
+    border:1px solid var(--bd)!important;
+  }
+  table{
+    width:100%!important;
+    min-width:0!important;
+    table-layout:fixed!important;
+    border-collapse:collapse!important;
+  }
+  th,td{
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+    white-space:normal!important;
+    vertical-align:middle!important;
+  }
   th:nth-child(1),td:nth-child(1){width:4%!important}
   th:nth-child(2),td:nth-child(2){width:19%!important}
   th:nth-child(3),td:nth-child(3){width:18%!important}
@@ -41,6 +89,12 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   th:nth-child(6),td:nth-child(6){width:10%!important}
   th:nth-child(7),td:nth-child(7){width:10%!important}
   th:nth-child(8),td:nth-child(8){width:25%!important}
+  .itemcell{
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:2px!important;
+  }
+  .itemcell select{width:100%!important}
+  .itemdesc{grid-column:1!important}
   .spec{
     min-width:0!important;
     width:100%!important;
@@ -50,11 +104,23 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
     word-break:normal!important;
     line-height:1.3!important;
   }
-  .spec *{max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .spec *{
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
   .money{white-space:nowrap!important}
   .measurement-cell,.measurement-cell *{white-space:normal!important}
-  /* Do not let one long specification force a second paper width. */
-  @page{size:A4 landscape;margin:8mm}
+  .summary,.footer{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  tr{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  /* Deliberately no @page size/orientation rule:
+     Chrome/Edge Print Preview keeps its own Portrait/Landscape control. */
 }
 </style><style id="creation-by-single-line">
 @media screen{

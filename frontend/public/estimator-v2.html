@@ -231,6 +231,15 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .item-action-btn.delete:hover{background:#fff1f1}
 .item-action-btn.edit{font-size:15px}
 @media(max-width:700px){.item-action-btn{width:28px;height:28px;font-size:13px}.item-row-actions{gap:3px}}
+</style><style id="room-preset-accordion">
+.room-accordion{padding:0!important;overflow:hidden;border:1px solid #cbd9e6!important;border-radius:8px!important;background:#fff!important;margin:8px 0!important}
+.room-accordion-head{min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;cursor:pointer;background:#f7fafc;border-bottom:1px solid transparent}
+.room-accordion.is-open .room-accordion-head{background:#eef5fa;border-bottom-color:#cbd9e6}
+.room-accordion-title{display:flex;align-items:center;gap:10px;min-width:0}
+.room-accordion-title strong{font-size:13px;color:#073b70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-accordion-body{padding:14px}
+.room-accordion-body[hidden]{display:none!important}
+@media(max-width:700px){.room-accordion-title{gap:6px}.room-accordion-body{padding:10px}}
 </style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="add-room">＋ Add Room</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
@@ -438,7 +447,47 @@ function closeRoomPicker(){$('roomPicker').classList.add('hidden')}
 function addRoomFromTemplate(roomId){const t=S.roomTemplates.find(x=>x.id===roomId);if(!t)return;const room={id:crypto.randomUUID(),templateId:t.id,name:t.name,remarks:t.remarks||''};S.rooms.push(room);closeRoomPicker();renderRows();}
 function addItemToRoom(roomId){addRow({roomId:roomId,itemId:'',presetId:'',quantity:1});}
 function addBlankRoom(){const room={id:crypto.randomUUID(),name:'NEW ROOM',remarks:''};S.rooms.push(room);renderRows();}
-function renderRoomCatalog(){const c=$('roomCatalog');c.innerHTML=S.roomTemplates.map(r=>'<div class="catalog room-template" data-room-template-edit="'+r.id+'"><div class="grid" style="grid-template-columns:1fr 1.5fr"><div><label class="small">ROOM / SECTION NAME</label><input class="rt-name" value="'+esc(r.name)+'" placeholder="MASTER BED ROOM"></div><div><label class="small">ROOM REMARKS</label><input class="rt-remarks" value="'+esc(r.remarks||'')+'" placeholder="Optional room remarks"></div></div><div class="small" style="margin-top:10px">Items are universal. Select this room in an estimate, then add any required items under it.</div><button type="button" class="btn danger" style="float:right;margin-top:10px" data-remove-room-template="'+r.id+'">Delete Room</button></div>').join('');}
+function renderRoomCatalog(openId=''){
+ const c=$('roomCatalog');
+ c.innerHTML=S.roomTemplates.map((r,ii)=>{
+  const isOpen=openId===r.id;
+  return '<div class="catalog room-template room-accordion '+(isOpen?'is-open':'')+'" data-room-template-edit="'+esc(r.id)+'">'+
+   '<div class="room-accordion-head" data-toggle-room="'+esc(r.id)+'">'+
+    '<div class="room-accordion-title"><span class="item-index">'+(ii+1)+'</span><strong>'+esc(r.name)+'</strong><span class="item-preset-count">ROOM / SECTION</span></div>'+
+    '<div class="item-row-actions"><button type="button" class="item-action-btn edit" data-toggle-room="'+esc(r.id)+'" title="View / Edit Room">✎</button><button type="button" class="item-action-btn" data-save-room="'+esc(r.id)+'" title="Save Room">💾</button><button type="button" class="item-action-btn delete" data-delete-room-template="'+esc(r.id)+'" title="Delete Room">🗑</button><button type="button" class="item-expand-btn room-expand-btn" data-toggle-room="'+esc(r.id)+'" aria-expanded="'+(isOpen?'true':'false')+'" title="'+(isOpen?'Collapse':'Expand')+'">'+(isOpen?'▲':'▼')+'</button></div>'+
+   '</div>'+
+   '<div class="room-accordion-body" '+(isOpen?'':'hidden')+'>'+
+    '<div class="grid" style="grid-template-columns:1fr 1.5fr">'+
+     '<div><label class="small">ROOM / SECTION NAME</label><input class="rt-name" value="'+esc(r.name)+'" placeholder="MASTER BED ROOM"></div>'+
+     '<div><label class="small">ROOM REMARKS</label><input class="rt-remarks" value="'+esc(r.remarks||'')+'" placeholder="Optional room remarks"></div>'+
+    '</div>'+
+    '<div class="small" style="margin-top:10px">Items are universal. Select this room in an estimate, then add any required items under it.</div>'+
+   '</div>'+
+  '</div>';
+ }).join('');
+}
+async function saveRoomTemplate(roomId){
+ if(!S.sb||!S.authReady||!S.user){alert('Database session is not ready.');return}
+ const box=document.querySelector('.room-template[data-room-template-edit="'+CSS.escape(roomId)+'"]');
+ const old=S.roomTemplates.find(r=>r.id===roomId);if(!box||!old)return;
+ const name=box.querySelector('.rt-name').value.trim();if(!name){alert('Room / Section name is required.');return}
+ const payload={name,remarks:box.querySelector('.rt-remarks').value,sort_order:S.roomTemplates.indexOf(old)*10,active:true};
+ try{
+  let savedId=roomId;
+  if(String(roomId).startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_rooms').insert(payload).select().single();if(error)throw error;savedId=data.id;}
+  else{const {error}=await S.sb.from('estimate_v2_rooms').update(payload).eq('id',roomId);if(error)throw error;}
+  await loadRoomTemplates();renderRoomCatalog(savedId);alert('Room / Section saved successfully.');
+ }catch(e){console.error(e);alert('Room save failed: '+e.message)}
+}
+async function deleteRoomTemplate(roomId){
+ const old=S.roomTemplates.find(r=>r.id===roomId);if(!old)return;
+ if(!confirm('Delete "'+old.name+'"? The room / section will be removed from the active room presets.'))return;
+ if(String(roomId).startsWith('new-')){S.roomTemplates=S.roomTemplates.filter(r=>r.id!==roomId);renderRoomCatalog();return}
+ try{
+  const {error}=await S.sb.from('estimate_v2_rooms').update({active:false}).eq('id',roomId);if(error)throw error;
+  S.roomTemplates=S.roomTemplates.filter(r=>r.id!==roomId);renderRoomCatalog();alert('Room / Section deleted from the active presets.');
+ }catch(e){console.error(e);alert('Room delete failed: '+e.message)}
+}
 function addRoomTemplate(){S.roomTemplates.push({id:'new-'+crypto.randomUUID(),name:'NEW ROOM',remarks:'',sort_order:S.roomTemplates.length*10});renderRoomCatalog();}
 function measurementEditorTypeLabel(type){if(type==='LxW'||type==='LxH')return 'SQ FEET (DIMENSION)';if(type==='SQFT')return 'SQ FEET TOTAL';if(type==='RFT')return 'RUNNING FEET';if(type==='NOS')return 'UNIT / NO';return 'LUMSUM';}
 function formatItemDefault(i){const t=i.measurement_type||'LxW';if(t==='LxW'||t==='LxH')return [feetInchesDisplay(i.default_length),feetInchesDisplay(t==='LxH'?i.default_height:i.default_width)].filter(Boolean).join(' × ');if(t==='SQFT'||t==='RFT')return i.default_length??'';if(t==='NOS')return i.default_quantity??1;return 'PRICE VARIES ON FINAL SELECTION / EXECUTION';}
@@ -510,9 +559,13 @@ function formatPresetDefault(p){const type=p.measurement_type;if(type==='LxW')re
 async function saveCatalog(){if(!S.sb||!S.authReady||!S.user){alert('Database session is not ready. Please reopen V2 from the logged-in Estimates dashboard.');return}try{for(const box of document.querySelectorAll('.catalog:not(.room-template)')){const old=S.items.find(i=>i.id===box.dataset.item);const name=box.querySelector('.ci-name').value.trim();if(!name)continue;const type=box.querySelector('.ci-measurement').value;const defaultRaw=box.querySelector('.ci-default')?.value||'';const size=(type==='LxW'||type==='LxH')?parseSize(defaultRaw,'LxW'):{l:(type==='SQFT'||type==='RFT')?(Number(defaultRaw)||0):null,w:null,h:null,q:type==='NOS'?(Number(defaultRaw)||1):1};let itemId=old?.id;if(!itemId||itemId.startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_items').insert({name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,sort_order:S.items.indexOf(old)*10||0,active:true}).select().single();if(error)throw error;itemId=data.id;if(old)old.id=itemId}else{const {error}=await S.sb.from('estimate_v2_items').update({name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,active:true}).eq('id',itemId);if(error)throw error}for(const [pi,row] of Array.from(box.querySelectorAll('.presetrow[data-preset]')).entries()){const n=row.querySelector('.pn').value.trim();if(!n)continue;const payload={item_id:itemId,name:n,rate:Number(row.querySelector('.pr').value)||0,specification:row.querySelector('.ps').value,sort_order:(pi+1)*10,active:true};const pid=row.dataset.preset;if(pid&&pid.startsWith('new-')){const {error}=await S.sb.from('estimate_v2_presets').insert(payload);if(error)throw error}else{const {error}=await S.sb.from('estimate_v2_presets').update(payload).eq('id',pid);if(error)throw error}}}for(const box of document.querySelectorAll('.room-template')){const old=S.roomTemplates.find(x=>x.id===box.dataset.roomTemplateEdit);if(!old)continue;const name=box.querySelector('.rt-name').value.trim();if(!name)continue;const payload={name,remarks:box.querySelector('.rt-remarks').value,sort_order:S.roomTemplates.indexOf(old)*10,active:true};let roomId=old.id;if(roomId.startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_rooms').insert(payload).select().single();if(error)throw error;roomId=data.id;old.id=roomId}else{const {error}=await S.sb.from('estimate_v2_rooms').update(payload).eq('id',roomId);if(error)throw error}}await loadCatalog();await loadRoomTemplates();renderRows();closeSettings();alert('V2 items and room sections saved.')}catch(e){console.error(e);alert('Catalog / room save failed: '+e.message)}}
 function printEstimate(){const old=document.title;document.title='Sankalp-V2-'+(($('cliName').value||'Client').replace(/[^a-z0-9]+/gi,'-'));window.print();setTimeout(()=>document.title=old,800)}
 document.addEventListener('click',e=>{
- const el=e.target.closest('[data-action],[data-open-preset],[data-remove-row],[data-remove-room],[data-choose-preset],[data-remove-preset],[data-add-preset],[data-remove-room-item],[data-add-room-item],[data-remove-room-template],[data-room-template],[data-add-item-to-room],[data-universal-item],[data-toggle-item],[data-save-item],[data-delete-item]');
+ const el=e.target.closest('[data-action],[data-open-preset],[data-remove-row],[data-remove-room],[data-choose-preset],[data-remove-preset],[data-add-preset],[data-remove-room-item],[data-add-room-item],[data-remove-room-template],[data-room-template],[data-add-item-to-room],[data-universal-item],[data-toggle-item],[data-save-item],[data-delete-item],[data-toggle-room],[data-save-room],[data-delete-room-template]');
  if(!el)return;
  if(el.dataset.saveItem!==undefined){saveCatalogItem(el.dataset.saveItem);return}
+ if(el.dataset.saveRoom!==undefined){saveRoomTemplate(el.dataset.saveRoom);return}
+ if(el.dataset.deleteRoomTemplate!==undefined){deleteRoomTemplate(el.dataset.deleteRoomTemplate);return}
+ if(el.dataset.toggleRoom!==undefined){const body=el.closest('.room-accordion')?.querySelector('.room-accordion-body');const card=el.closest('.room-accordion');const open=body&&!body.hidden;if(body){document.querySelectorAll('.room-accordion-body').forEach(x=>{x.hidden=true;x.closest('.room-accordion')?.classList.remove('is-open');});document.querySelectorAll('.room-expand-btn').forEach(x=>{x.textContent='▼';x.setAttribute('aria-expanded','false');});if(!open){body.hidden=false;card.classList.add('is-open');const btn=card.querySelector('.room-expand-btn');if(btn){btn.textContent='▲';btn.setAttribute('aria-expanded','true')}}}return}
+ 
  if(el.dataset.deleteItem!==undefined){deleteCatalogItem(el.dataset.deleteItem);return}
  if(el.dataset.toggleItem!==undefined){const body=el.closest('.item-accordion')?.querySelector('.item-accordion-body');const card=el.closest('.item-accordion');const open=body&&!body.hidden;if(body){document.querySelectorAll('.item-accordion-body').forEach(x=>{x.hidden=true;x.closest('.item-accordion')?.classList.remove('is-open');});document.querySelectorAll('.item-expand-btn').forEach(x=>{x.textContent='▼';x.setAttribute('aria-expanded','false');});if(!open){body.hidden=false;card.classList.add('is-open');const btn=card.querySelector('.item-expand-btn');if(btn){btn.textContent='▲';btn.setAttribute('aria-expanded','true')}}}return}
  if(el.dataset.action==='dashboard'){location.href='/estimates';return}

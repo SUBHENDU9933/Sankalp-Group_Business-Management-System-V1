@@ -683,9 +683,16 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   .tools{gap:4px}
   .tools .btn{padding:6px 7px;font-size:11px}
 }
+</style><style id="estimate-toolbar-icons">
+@media(min-width:801px){
+  .toolbar-icon-btn{width:38px;min-width:38px;padding:7px 5px!important;font-size:16px!important;display:inline-flex;align-items:center;justify-content:center}
+}
+@media(max-width:1100px) and (min-width:801px){
+  .toolbar-icon-btn{width:34px;min-width:34px;padding:6px 4px!important;font-size:15px!important}
+}
 </style></style></head>
 <body>
-<div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" class="toolbar-cloud-status">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="gift-settings">🎁 Gift Settings</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
+<div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" class="toolbar-cloud-status">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn toolbar-icon-btn" data-action="settings" title="Presets / Rooms" aria-label="Presets / Rooms">⚙</button><button type="button" class="btn toolbar-icon-btn" data-action="gift-settings" title="Gift Settings" aria-label="Gift Settings">🎁</button><button type="button" class="btn toolbar-icon-btn" data-action="save" title="Save" aria-label="Save">💾</button><button type="button" class="btn gold toolbar-icon-btn" data-action="print" title="PDF" aria-label="PDF">🖨</button></div></div>
 
 <div class="sheet"><div class="inner">
 <header class="estimate-header" id="estimateHeader">

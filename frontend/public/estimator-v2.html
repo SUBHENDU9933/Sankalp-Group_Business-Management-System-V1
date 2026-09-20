@@ -56,6 +56,17 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   /* Do not let one long specification force a second paper width. */
   @page{size:A4 landscape;margin:8mm}
 }
+</style><style id="creation-by-single-line">
+@media screen{
+  .fieldfull .field{display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:12px!important}
+  .fieldfull .field label{width:auto!important;min-width:105px!important;white-space:nowrap!important;flex:0 0 auto!important}
+  .fieldfull .field select#createdBy{min-width:0!important;width:100%!important;flex:1 1 auto!important;white-space:nowrap!important}
+}
+@media print{
+  .fieldfull .field{display:flex!important;align-items:center!important;flex-wrap:nowrap!important}
+  .fieldfull .field label{white-space:nowrap!important;width:30mm!important;min-width:30mm!important}
+  .fieldfull .field select#createdBy{min-width:0!important;flex:1!important}
+}
 </style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
@@ -122,13 +133,21 @@ async function profileName(id){if(!id)return null;const {data,error}=await S.sb.
 async function setCreationByOptions(selectedId='',leadId=''){
  const opts=[];const seen=new Set();
  const add=(id,name)=>{if(!id||seen.has(id))return;seen.add(id);opts.push({id,name:name||'Unnamed'});};
+
+ // Available creator choices:
+ // 1) Lead Owner
+ // 2) Current logged-in user
+ // 3) Assigned / co-assigned RM/RE
  if(leadId){
    const {data:lead,error}=await S.sb.from('leads').select('created_by,assigned_to').eq('id',leadId).maybeSingle();
    if(error)throw error;
+
    const owner=lead?.created_by?await profileName(lead.created_by):null;
    if(owner)add(owner.id,owner.full_name);
+
    const assigned=lead?.assigned_to?await profileName(lead.assigned_to):null;
    if(assigned)add(assigned.id,assigned.full_name);
+
    const {data:coAssigned,error:coError}=await S.sb.from('lead_assignees').select('user_id').eq('lead_id',leadId);
    if(coError)throw coError;
    for(const row of (coAssigned||[])){
@@ -136,10 +155,13 @@ async function setCreationByOptions(selectedId='',leadId=''){
      if(person)add(person.id,person.full_name);
    }
  }
- if(!opts.length&&S.user){
+
+ // Current user is always available as a creator choice.
+ if(S.user){
    const me=await profileName(S.user.id);
    if(me)add(me.id,me.full_name);
  }
+
  const select=$('createdBy');
  select.innerHTML=opts.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.name)+'</option>').join('');
  if(selectedId&&seen.has(selectedId))select.value=selectedId;

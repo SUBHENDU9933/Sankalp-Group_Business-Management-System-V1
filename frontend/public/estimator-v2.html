@@ -49,7 +49,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .offer-grand{border-top:2px solid var(--p);margin-top:5px;padding-top:12px;color:var(--p)}
 .offer-note{font-size:9px;color:#64748b;margin-top:8px;line-height:1.4}
 @media(max-width:800px){.grand-total-grid{grid-template-columns:1fr}}
-@media print{.grand-total-grid{grid-template-columns:1fr 1fr;gap:8mm;margin-top:6mm}.grand-total-grid .totals{padding:5mm}.project-breakdown-row{padding:2.5mm 0}.project-grand-row{font-size:13px}.project-grand-row b{font-size:19px}.offer-control input{border:0;background:transparent}.offer-control select{border:0;background:transparent}.offer-note{font-size:8px}}
+@media print{.special-cash-discount-print-hidden{display:none!important}}@media print{.grand-total-grid{grid-template-columns:1fr 1fr;gap:8mm;margin-top:6mm}.grand-total-grid .totals{padding:5mm}.project-breakdown-row{padding:2.5mm 0}.project-grand-row{font-size:13px}.project-grand-row b{font-size:19px}.offer-control input{border:0;background:transparent}.offer-control select{border:0;background:transparent}.offer-note{font-size:8px}}
 .footer{margin-top:40px;border-top:2px solid var(--bd);padding-top:25px;display:flex;justify-content:space-between;gap:20px}.sign{text-align:center;width:220px}.signline{border-top:1px solid var(--p);padding-top:8px;font-weight:700;color:var(--p)}
 .modal{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}.modal.hidden{display:none}.modalcard{background:#fff;border-radius:10px;width:min(1100px,96vw);max-height:90vh;overflow:auto;padding:22px;border-top:7px solid var(--a)}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.catalog{border:1px solid var(--bd);border-radius:7px;padding:12px;margin-bottom:12px}.presetrow{display:grid;grid-template-columns:1.2fr 90px 110px 1.8fr 100px 36px;gap:6px;margin:6px 0}.catalog input,.catalog select{width:100%;padding:7px;border:1px solid var(--bd);border-radius:4px}.small{font-size:11px;color:var(--mut)}.hidden{display:none!important}
 @media(max-width:800px){body{padding:7px}.inner{padding:15px}.meta,.summary,.grid,.fieldpair{grid-template-columns:1fr}header{display:block}.company{text-align:left;margin-top:15px}.toolbar{align-items:flex-start}.presetrow{grid-template-columns:1fr 80px 100px}.presetrow textarea{grid-column:1/-1}.sheet{box-shadow:none}.dims{grid-template-columns:1fr 1fr}}
@@ -707,7 +707,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
       <div><b>Consultancy &amp; Designer Charge</b><small id="offerConsultancyValue">Not Included</small></div>
       <div class="offer-control"><input id="offerConsultancyDiscount" type="number" min="0" max="100" step="1" value="100" oninput="calculate()"> <span>%</span><b id="offerConsultancyLess">Less ₹0</b></div>
     </div>
-    <div class="offer-line cash-line">
+    <div class="offer-line cash-line" id="specialCashDiscountRow">
       <div><b>Special Cash Discount</b><small>Additional discount on offer balance</small></div>
       <div class="offer-control"><input id="offerCashDiscount" type="number" min="0" step="1" value="0" oninput="calculate()"> <select id="offerCashDiscountType" onchange="calculate()"><option value="percent">%</option><option value="amount">₹</option></select></div>
     </div>
@@ -1070,7 +1070,8 @@ function calculate(){
  const designLess=designValue*designPct/100;
  const consultancyLess=consultancyValue*consultancyPct/100;
  const promoLess=designLess+consultancyLess;
- const cashInput=Math.max(0,Number($('offerCashDiscount').value)||0);
+ const cashDiscountInputValue=Math.max(0,Number($('offerCashDiscount').value)||0);$('specialCashDiscountRow').classList.toggle('special-cash-discount-print-hidden',cashDiscountInputValue<=0);
+const cashInput=Math.max(0,Number($('offerCashDiscount').value)||0);
  const offerBeforeCash=Math.max(0,grand-promoLess);
  const cashLess=$('offerCashDiscountType').value==='percent'?offerBeforeCash*cashInput/100:Math.min(cashInput,offerBeforeCash);
  const offerGrand=Math.max(0,offerBeforeCash-cashLess);

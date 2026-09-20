@@ -1216,12 +1216,20 @@ function renderGiftSelection(total=0){
  if(!editor||!print||!section)return;
  const eligible=(S.gifts||[]).filter(g=>giftEligible(g,total)).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
  let selected=S.selectedGiftId?S.gifts.find(g=>g.id===S.selectedGiftId):null;
- if(selected&&!giftEligible(selected,total)){S.selectedGiftId='';selected=null;}
+ if(selected&&!giftEligible(selected,total)){S.selectedGiftId='';S.selectedGiftSnapshot=null;selected=null;}
  if(!selected&&S.selectedGiftSnapshot&&S.selectedGiftSnapshot.heading){
    const snapMin=Number(S.selectedGiftSnapshot.min_project_value)||0;const snapMax=S.selectedGiftSnapshot.max_project_value==null||S.selectedGiftSnapshot.max_project_value===''?null:Number(S.selectedGiftSnapshot.max_project_value);
    if(total>=snapMin&&(snapMax===null||total<=snapMax))selected=S.selectedGiftSnapshot;else{S.selectedGiftSnapshot=null;S.selectedGiftId='';}
  }
- elig.textContent=eligible.length?(selected?'Gift selected. You can change it below.':'Choose one eligible promotional gift for this project.'):'No promotional gift is currently available for this project value.';
+ /* V2 gift behavior: when an active universal gift is eligible, show it automatically.
+    The user can still change the selection when multiple eligible gifts exist. */
+ if(!selected&&eligible.length){
+   const first=eligible[0];
+   S.selectedGiftId=first.id;
+   S.selectedGiftSnapshot=null;
+   selected=first;
+ }
+ elig.textContent=eligible.length?(eligible.length===1?'Eligible promotional gift included with this project.':'Gift selected. You can change it below.'):'No promotional gift is currently available for this project value.';
  editor.innerHTML=eligible.length?eligible.map(g=>'<label class="gift-option '+(S.selectedGiftId===g.id?'selected':'')+'"><input type="radio" name="selectedGift" value="'+esc(g.id)+'" '+(S.selectedGiftId===g.id?'checked':'')+'><div style="flex:1"><div class="gift-option-title">'+esc(g.heading)+'</div><div class="gift-option-desc">'+esc(g.short_description||g.description||'')+'</div><div class="gift-option-range">Eligible project value: '+esc(giftRangeText(g))+'</div></div>'+(g.image_url?'<img src="'+esc(g.image_url)+'" alt="'+esc(g.heading)+'">':'')+'</label>').join(''):'<div class="small" style="padding:8px 0;color:#64748b">No eligible gift preset for the current project estimated grand total.</div>';
  let snap=selected;
  if(snap&&snap.heading){

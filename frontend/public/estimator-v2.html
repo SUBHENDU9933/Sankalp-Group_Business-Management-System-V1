@@ -26,6 +26,12 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .estimate-additional-note-input::placeholder{color:#64748b}
 @media(max-width:800px){.estimate-terms-section{grid-template-columns:1fr}.estimate-terms-panel{padding:14px}}
 @media print{.estimate-terms-section{grid-template-columns:1fr 1fr;gap:10mm;margin-top:8mm}.estimate-terms-panel{padding:5mm}.estimate-terms-list,.estimate-project-list{font-size:9.5px;line-height:1.55}}
+.project-breakdown{display:flex;flex-direction:column;gap:0;margin-top:4px}
+.project-breakdown-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed #dbe3ee;font-size:12px;color:#334155}
+.project-breakdown-row span{min-width:0}.project-breakdown-row b{white-space:nowrap;color:#0f3f78;font-size:12px}
+.project-breakdown-row.empty{color:#64748b}
+.project-grand-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-top:2px solid var(--p);margin-top:8px;padding-top:12px;color:var(--p);font-size:15px;font-weight:800}
+.project-grand-row b{font-size:22px;white-space:nowrap}
 .grand-total-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:20px;align-items:stretch}
 .grand-total-grid .totals{margin:0;border:1px solid var(--bd);border-radius:8px;padding:18px;background:#fff;box-sizing:border-box;min-width:0}
 .offer-card-title{font-weight:800;color:var(--p);font-size:14px;letter-spacing:.3px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid #dbe3ee}
@@ -43,7 +49,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .offer-grand{border-top:2px solid var(--p);margin-top:5px;padding-top:12px;color:var(--p)}
 .offer-note{font-size:9px;color:#64748b;margin-top:8px;line-height:1.4}
 @media(max-width:800px){.grand-total-grid{grid-template-columns:1fr}}
-@media print{.grand-total-grid{grid-template-columns:1fr 1fr;gap:8mm;margin-top:6mm}.grand-total-grid .totals{padding:5mm}.offer-control input{border:0;background:transparent}.offer-control select{border:0;background:transparent}.offer-note{font-size:8px}}
+@media print{.grand-total-grid{grid-template-columns:1fr 1fr;gap:8mm;margin-top:6mm}.grand-total-grid .totals{padding:5mm}.project-breakdown-row{padding:2.5mm 0}.project-grand-row{font-size:13px}.project-grand-row b{font-size:19px}.offer-control input{border:0;background:transparent}.offer-control select{border:0;background:transparent}.offer-note{font-size:8px}}
 .footer{margin-top:40px;border-top:2px solid var(--bd);padding-top:25px;display:flex;justify-content:space-between;gap:20px}.sign{text-align:center;width:220px}.signline{border-top:1px solid var(--p);padding-top:8px;font-weight:700;color:var(--p)}
 .modal{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}.modal.hidden{display:none}.modalcard{background:#fff;border-radius:10px;width:min(1100px,96vw);max-height:90vh;overflow:auto;padding:22px;border-top:7px solid var(--a)}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.catalog{border:1px solid var(--bd);border-radius:7px;padding:12px;margin-bottom:12px}.presetrow{display:grid;grid-template-columns:1.2fr 90px 110px 1.8fr 100px 36px;gap:6px;margin:6px 0}.catalog input,.catalog select{width:100%;padding:7px;border:1px solid var(--bd);border-radius:4px}.small{font-size:11px;color:var(--mut)}.hidden{display:none!important}
 @media(max-width:800px){body{padding:7px}.inner{padding:15px}.meta,.summary,.grid,.fieldpair{grid-template-columns:1fr}header{display:block}.company{text-align:left;margin-top:15px}.toolbar{align-items:flex-start}.presetrow{grid-template-columns:1fr 80px 100px}.presetrow textarea{grid-column:1/-1}.sheet{box-shadow:none}.dims{grid-template-columns:1fr 1fr}}
@@ -680,13 +686,12 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <div class="tablebox"><table><tbody id="rows"></tbody></table></div>
 <div style="margin-top:10px"><button type="button" class="add" data-action="add-room">＋ Add Room / Section</button></div>
 
-<section class="grand-total-grid">
-  <div class="totals normal-total-card">
-    <div class="offer-card-title">GRAND TOTAL</div>
-    <div class="trow"><span>Subtotal</span><b id="subtotal">₹0</b></div>
-    <div class="trow"><span>Discount</span><span><input id="discount" type="number" value="0" min="0" oninput="calculate()"> <select id="discountType" onchange="calculate()" style="padding:5px;border:1px solid #cbd5e1;border-radius:4px"><option value="amount">₹</option><option value="percent">%</option></select></span></div>
-    <div class="trow"><span>GST</span><span><input id="gst" type="number" value="0" min="0" oninput="calculate()"> %</span></div>
-    <div class="trow grand"><span>Grand Total</span><span id="grand">₹0</span></div>
+<div class="totals normal-total-card">
+    <div class="offer-card-title">GRAND TOTAL PROJECT ESTIMATE VALUE</div>
+    <div class="project-breakdown" id="projectBreakdown">
+      <div class="project-breakdown-row empty"><span>Project values will appear here</span><b>₹0</b></div>
+    </div>
+    <div class="project-grand-row"><span>GRAND TOTAL PROJECT ESTIMATE VALUE</span><b id="grand">₹0</b></div>
     <div id="words" class="words">Rupees Zero Only</div>
   </div>
   <div class="totals special-offer-card">
@@ -931,7 +936,7 @@ function unlinkLead(){
  setLeadLinkedState(false);
 }
 
-async function loadEstimate(){if(!S.estimateId)return;const {data,error}=await S.sb.from('estimates_v2').select('*').eq('id',S.estimateId).maybeSingle();if(error)throw error;if(!data)return;const d=data.data||{};$('estNo').value=data.estimate_no||'';$('estDateTime').value=d.meta?.estimateDateTime||toLocalDateTimeInput(data.created_at);$('validityDays').value=String(d.meta?.validityDays||15);$('fieldVisitStatus').value=d.meta?.fieldVisitStatus||'NO';$('visitDate').value=d.meta?.visitDate||'';$('cliName').value=data.customer_name||d.meta?.name||'';$('cliPhone').value=data.phone||d.meta?.phone||'';$('cliWork').value=d.meta?.work||'';$('cliAddr').value=d.meta?.address||'';$('cliBudget').value=d.meta?.budget??'';$('notes').value=d.meta?.notes||'';$('discount').value=d.meta?.discount||0;$('discountType').value=d.meta?.discountType||'amount';$('gst').value=d.meta?.gst||0;$('offerDesignDiscount').value=d.meta?.specialOffer?.designDiscount??100;$('offerConsultancyDiscount').value=d.meta?.specialOffer?.consultancyDiscount??100;$('offerCashDiscount').value=d.meta?.specialOffer?.cashDiscount??0;$('offerCashDiscountType').value=d.meta?.specialOffer?.cashDiscountType||'percent';applyCompanyBranding(d.meta?.companyKey||'sankalp');if(data.lead_id){S.leadId=data.lead_id;await loadLead(data.lead_id);}else if(!S.leadId){setLeadLinkedState(false);await setCreationByOptions(d.meta?.creationById||'',S.leadId);}else{await setCreationByOptions(d.meta?.creationById||'',S.leadId);}toggleVisitDate();updateValidUntil();S.rooms=Array.isArray(d.rooms)?d.rooms:[];S.rows=Array.isArray(d.rows)?d.rows:[];renderRows();calculate();}
+async function loadEstimate(){if(!S.estimateId)return;const {data,error}=await S.sb.from('estimates_v2').select('*').eq('id',S.estimateId).maybeSingle();if(error)throw error;if(!data)return;const d=data.data||{};$('estNo').value=data.estimate_no||'';$('estDateTime').value=d.meta?.estimateDateTime||toLocalDateTimeInput(data.created_at);$('validityDays').value=String(d.meta?.validityDays||15);$('fieldVisitStatus').value=d.meta?.fieldVisitStatus||'NO';$('visitDate').value=d.meta?.visitDate||'';$('cliName').value=data.customer_name||d.meta?.name||'';$('cliPhone').value=data.phone||d.meta?.phone||'';$('cliWork').value=d.meta?.work||'';$('cliAddr').value=d.meta?.address||'';$('cliBudget').value=d.meta?.budget??'';$('notes').value=d.meta?.notes||'';$('offerDesignDiscount').value=d.meta?.specialOffer?.designDiscount??100;$('offerConsultancyDiscount').value=d.meta?.specialOffer?.consultancyDiscount??100;$('offerCashDiscount').value=d.meta?.specialOffer?.cashDiscount??0;$('offerCashDiscountType').value=d.meta?.specialOffer?.cashDiscountType||'percent';applyCompanyBranding(d.meta?.companyKey||'sankalp');if(data.lead_id){S.leadId=data.lead_id;await loadLead(data.lead_id);}else if(!S.leadId){setLeadLinkedState(false);await setCreationByOptions(d.meta?.creationById||'',S.leadId);}else{await setCreationByOptions(d.meta?.creationById||'',S.leadId);}toggleVisitDate();updateValidUntil();S.rooms=Array.isArray(d.rooms)?d.rooms:[];S.rows=Array.isArray(d.rows)?d.rows:[];renderRows();calculate();}
 async function ensureEstimateNo(){if($('estNo').value)return;const {data,error}=await S.sb.rpc('next_estimate_no');if(!error&&data)$('estNo').value=data;else $('estNo').value='EST-V2-'+Date.now();}
 function addRow(snapshot){const r={id:crypto.randomUUID(),itemId:snapshot?.itemId||'',presetId:snapshot?.presetId||'',roomId:snapshot?.roomId||'',length:snapshot?.length??'',width:snapshot?.width??'',height:snapshot?.height??'',area:snapshot?.area??0,quantity:snapshot?.quantity??1,rate:snapshot?.rate??0,specification:snapshot?.specification||'',measurementType:snapshot?.measurementType||'',unit:snapshot?.unit||'sqft',presetName:snapshot?.presetName||'',itemName:snapshot?.itemName||''};S.rows.push(r);renderRows();}
 function itemOptions(selected){return '<option value="">Select item…</option>'+S.items.map(i=>'<option value="'+i.id+'" '+(i.id===selected?'selected':'')+'>'+esc(i.name)+'</option>').join('');}
@@ -1032,12 +1037,30 @@ function calculate(){
    if(name.includes('3d/2d design'))designValue+=line;
    if(name.includes('consultancy charge'))consultancyValue+=line;
  });
- const d=Number($('discount').value)||0;
- const discount=$('discountType').value==='percent'?sub*d/100:d;
- const taxable=Math.max(0,sub-discount);
- const gst=taxable*(Number($('gst').value)||0)/100;
- const grand=taxable+gst;
- $('subtotal').textContent=money(sub);$('grand').textContent=money(grand);$('words').textContent=rupeesWords(grand);
+ const categoryTotals=[];
+ const designConsultancyTotal=designValue+consultancyValue;
+ S.rooms.forEach(room=>{
+   const total=S.rows.filter(r=>r.roomId===room.id).reduce((sum,r)=>{
+     const item=(S.items||[]).find(i=>i.id===r.itemId);
+     const name=(item?.name||r.itemName||'').toLowerCase();
+     if(name.includes('3d/2d design')||name.includes('consultancy charge'))return sum;
+     return sum+roomLineTotal(r);
+   },0);
+   if(total>0)categoryTotals.push({label:room.name,total});
+ });
+ const roomIds=new Set(S.rooms.map(r=>r.id));
+ const generalTotal=S.rows.filter(r=>!r.roomId||!roomIds.has(r.roomId)).reduce((sum,r)=>{
+   const item=(S.items||[]).find(i=>i.id===r.itemId);
+   const name=(item?.name||r.itemName||'').toLowerCase();
+   if(name.includes('3d/2d design')||name.includes('consultancy charge'))return sum;
+   return sum+roomLineTotal(r);
+ },0);
+ if(generalTotal>0)categoryTotals.push({label:'Other Works (General / Whole House)',total:generalTotal});
+ if(designConsultancyTotal>0)categoryTotals.push({label:'3D DESIGN & CONSULTANCY CHARGES',total:designConsultancyTotal});
+ const grand=categoryTotals.reduce((sum,x)=>sum+x.total,0);
+ $('grand').textContent=money(grand);$('words').textContent=rupeesWords(grand);
+ const breakdown=$('projectBreakdown');
+ breakdown.innerHTML=categoryTotals.length?categoryTotals.map((x,i)=>'<div class="project-breakdown-row"><span>'+(i+1)+'. '+esc(x.label)+'</span><b>'+money(x.total)+'</b></div>').join(''):'<div class="project-breakdown-row empty"><span>No project items added</span><b>₹0</b></div>';
 
  const designPct=Math.min(100,Math.max(0,Number($('offerDesignDiscount').value)||0));
  const consultancyPct=Math.min(100,Math.max(0,Number($('offerConsultancyDiscount').value)||0));
@@ -1065,7 +1088,7 @@ function calculate(){
  $('specialOfferValidTill').textContent=offerDateText;
  return{subtotal:sub,discount,taxable,gst,grand,specialOffer:{designValue,designPct,designLess,consultancyValue,consultancyPct,consultancyLess,promoLess,cashInput,cashDiscountType:$('offerCashDiscountType').value,cashLess,offerGrand,savings,validityDays:7,validUntil:offerDateText}};
 }
-function collect(){const c=calculate();return{meta:{estNo:$('estNo').value,estimateDateTime:$('estDateTime').value,validityDays:Number($('validityDays').value)||15,validUntil:$('validUntil').value,fieldVisitStatus:$('fieldVisitStatus').value,visitDate:$('visitDate').value,creationById:$('createdBy').value,creationByLabel:$('createdBy').selectedOptions[0]?.textContent||'',companyKey:S.companyKey,name:$('cliName').value,phone:$('cliPhone').value,work:$('cliWork').value,address:$('cliAddr').value,budget:$('cliBudget').value,notes:$('notes').value,discount:$('discount').value,discountType:$('discountType').value,gst:$('gst').value,specialOffer:{designDiscount:Number($('offerDesignDiscount').value)||0,consultancyDiscount:Number($('offerConsultancyDiscount').value)||0,cashDiscount:Number($('offerCashDiscount').value)||0,cashDiscountType:$('offerCashDiscountType').value,validityDays:7,validUntil:$('specialOfferValidTill').textContent||''}},rooms:S.rooms,rows:S.rows.map(r=>({...r,lineTotal:(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?Number(r.quantity||0)*Number(r.rate||0):Number(r.area||0)*Number(r.quantity||0)*Number(r.rate||0))})),totals:c};}
+function collect(){const c=calculate();return{meta:{estNo:$('estNo').value,estimateDateTime:$('estDateTime').value,validityDays:Number($('validityDays').value)||15,validUntil:$('validUntil').value,fieldVisitStatus:$('fieldVisitStatus').value,visitDate:$('visitDate').value,creationById:$('createdBy').value,creationByLabel:$('createdBy').selectedOptions[0]?.textContent||'',companyKey:S.companyKey,name:$('cliName').value,phone:$('cliPhone').value,work:$('cliWork').value,address:$('cliAddr').value,budget:$('cliBudget').value,notes:$('notes').value,discount:0,discountType:'amount',gst:0,specialOffer:{designDiscount:Number($('offerDesignDiscount').value)||0,consultancyDiscount:Number($('offerConsultancyDiscount').value)||0,cashDiscount:Number($('offerCashDiscount').value)||0,cashDiscountType:$('offerCashDiscountType').value,validityDays:7,validUntil:$('specialOfferValidTill').textContent||''}},rooms:S.rooms,rows:S.rows.map(r=>({...r,lineTotal:(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?Number(r.quantity||0)*Number(r.rate||0):Number(r.area||0)*Number(r.quantity||0)*Number(r.rate||0))})),totals:c};}
 async function saveEstimate(){if(!S.sb||!S.authReady||!S.user){alert('Database session is not ready. Please reopen V2 from the logged-in Estimates dashboard.');return}try{await ensureEstimateNo();const no=$('estNo').value.trim();if(!no){alert('Estimate No. is required.');$('estNo').focus();return}const dup=await S.sb.from('estimates_v2').select('id').eq('estimate_no',no).is('deleted_at',null).neq('id',S.estimateId||'00000000-0000-0000-0000-000000000000').limit(1);if(dup.error)throw dup.error;if(dup.data?.length){alert('Duplicate Estimate No.\n\nEstimate No. '+no+' already exists. Please enter a different Estimate No.');$('estNo').focus();return}const rec=collect();const payload={estimate_no:no,customer_name:$('cliName').value||null,phone:$('cliPhone').value||null,final_amount:rec.totals.grand,data:rec,lead_id:S.leadId||null};let res;if(S.estimateId){res=await S.sb.from('estimates_v2').update({...payload,updated_at:new Date().toISOString()}).eq('id',S.estimateId).select('*').single()}else{payload.created_by=S.user.id;res=await S.sb.from('estimates_v2').insert(payload).select('*').single()}if(res.error){if(res.error.code==='23505'){alert('Duplicate Estimate No.\n\nEstimate No. '+no+' already exists. Please enter a different Estimate No.');return}throw res.error}S.estimateId=res.data.id;sessionStorage.removeItem('sankalp_v2_draft_started_'+(S.leadId||'new'));history.replaceState({},'',location.pathname+'?id='+encodeURIComponent(S.estimateId)+(S.leadId?'&lead_id='+encodeURIComponent(S.leadId):''));alert('Estimate '+res.data.estimate_no+' saved — '+money(rec.totals.grand));}catch(e){console.error(e);alert('Save failed: '+e.message)}}
 async function searchLeads(){if(S.leadId)return;const q=$('leadSearch').value.trim();if(!q||!S.sb||!S.authReady)return;const safe=q.replace(/[%_]/g,'\\$&');const {data,error}=await S.sb.from('leads').select('id,name,phone,location,budget,project_type,requirement,created_by,assigned_to').or('name.ilike.%'+safe+'%,phone.ilike.%'+safe+'%').limit(20);if(error){console.error('Lead search failed:',error);setConnectionStatus('Lead search failed: '+error.message,'error');return}const list=$('leadList');list.innerHTML='';(data||[]).forEach(l=>{const el=document.createElement('div');el.className='leaditem';el.innerHTML='<b>'+esc(l.name)+'</b><div class="small">'+esc(l.phone||'')+' · '+esc(l.location||'')+'</div>';el.addEventListener('click',()=>selectLead(l));list.appendChild(el)});if(!data?.length)list.innerHTML='<div class="leaditem">No matching lead</div>';list.classList.remove('hidden');}
 async function selectLead(l){await applyLeadLink(l);}
@@ -1261,7 +1284,7 @@ document.addEventListener('change',e=>{
  else if(el.matches('.ci-measurement')){const box=el.closest('.catalog');if(box){const item=S.items.find(i=>i.id===box.dataset.item);if(item){item.measurement_type=el.value;box.querySelector('.ci-default-wrap').innerHTML=defaultEditorHTML({...item,measurement_type:el.value});}}}
 });
 document.addEventListener('input',e=>{if(e.target.matches('[data-room-remarks]')){const r=roomById(e.target.dataset.roomId);if(r)r.remarks=e.target.value;}});
-$('discount').addEventListener('input',calculate);$('gst').addEventListener('input',calculate);$('estDateTime').addEventListener('change',updateValidUntil);$('validityDays').addEventListener('change',updateValidUntil);$('fieldVisitStatus').addEventListener('change',toggleVisitDate);
+$('estDateTime').addEventListener('change',()=>{updateValidUntil();calculate();});$('validityDays').addEventListener('change',updateValidUntil);$('fieldVisitStatus').addEventListener('change',toggleVisitDate);
 window.addEventListener('error',e=>{console.error('V2 page error',e.error||e.message);const n=document.querySelector('.notice');if(n)n.innerHTML='<b>V2 Page Error:</b> '+esc(e.message||'Unexpected browser error');});window.addEventListener('unhandledrejection',e=>{console.error('V2 promise error',e.reason);});init();
 </script>
 </body></html>

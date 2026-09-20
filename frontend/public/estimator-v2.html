@@ -163,6 +163,45 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
  .room-remark-inline input{border:0!important}
  .room-subtotal td{background:#f8fbfd!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+</style><style id="room-section-layout-v2">
+.room-section-row>td,.other-section-row>td{padding:0!important;border:0!important;background:#fff!important}
+.room-section{width:100%;margin:0 0 12px 0}
+.room-title{min-height:36px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:#ffd0a1;border:1px solid #f0b97d;color:#073b70;padding:0 10px;text-transform:uppercase}
+.room-title strong{text-align:center;font-size:12px;letter-spacing:.35px}
+.room-title .rowdel{justify-self:end}
+.room-remark-inline{justify-self:end;display:flex;align-items:center;gap:7px;min-width:260px}
+.room-remark-inline span{font-size:9px;font-weight:800;letter-spacing:.4px;white-space:nowrap}
+.room-remark-inline input{width:170px;border:0;border-bottom:1px dashed #073b70;background:transparent;padding:4px 3px;font-size:10px;color:#173b5f;outline:none}
+.room-section-table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important;margin:0!important}
+.room-section-table thead{display:table-header-group!important}
+.room-table-head th{background:#073b70!important;color:#fff!important;padding:8px 6px!important;font-size:9px!important;border:1px solid #174e82!important;text-align:center!important}
+.room-section-table th:nth-child(1),.room-section-table td:nth-child(1){width:4%!important}
+.room-section-table th:nth-child(2),.room-section-table td:nth-child(2){width:19%!important}
+.room-section-table th:nth-child(3),.room-section-table td:nth-child(3){width:18%!important}
+.room-section-table th:nth-child(4),.room-section-table td:nth-child(4){width:8%!important}
+.room-section-table th:nth-child(5),.room-section-table td:nth-child(5){width:6%!important}
+.room-section-table th:nth-child(6),.room-section-table td:nth-child(6){width:10%!important}
+.room-section-table th:nth-child(7),.room-section-table td:nth-child(7){width:10%!important}
+.room-section-table th:nth-child(8),.room-section-table td:nth-child(8){width:25%!important}
+.room-subtotal td{background:#f8fbfd!important;border-top:1px solid #cbd9e6!important;padding:7px 8px!important}
+.room-subtotal-label{text-align:right!important;font-size:10px!important;font-weight:800!important;color:#073b70!important}
+@media screen and (max-width:700px){
+ .room-title{grid-template-columns:1fr auto;gap:6px;padding:5px}
+ .room-title strong{text-align:left}
+ .room-remark-inline{grid-column:1/-1;justify-self:stretch;min-width:0}
+ .room-remark-inline input{width:100%}
+}
+@media print{
+ .room-section-row>td,.other-section-row>td{padding:0!important}
+ .room-section{break-inside:auto!important;page-break-inside:auto!important;margin-bottom:8px}
+ .room-title{background:#ffd0a1!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ .room-table-head th{background:#073b70!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ .room-remark-inline input{border:0!important}
+ .room-subtotal td{background:#f8fbfd!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ .room-section-table thead{display:table-header-group!important}
+ .room-section-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+ .room-section-table td,.room-section-table th{overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important}
+}
 </style></head>
 <body>
 <div class="toolbar"><div><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span style="margin-left:8px;font-size:11px;color:#64748b">Item → Preset → Measurement → Auto Calculation</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn" data-action="settings">⚙ Presets / Rooms</button><button type="button" class="btn" data-action="add-room">＋ Add Room</button><button type="button" class="btn" data-action="save">💾 Save</button><button type="button" class="btn gold" data-action="print">🖨 PDF</button></div></div>
@@ -195,7 +234,7 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 
 <div class="notice"><b>V2 rule:</b> Select an item. If multiple configurations are available, choose the required configuration from the selection window. The selected configuration supplies the rate, specification and measurement method. The configuration name is not shown in the public estimate.</div>
 
-<div class="tablebox"><table><thead><tr><th style="width:38px">SL</th><th style="width:205px">Item</th><th style="width:190px">Measurement</th><th style="width:80px">Area</th><th style="width:65px">Qty</th><th style="width:90px">Unit Price</th><th style="width:105px">Total</th><th>Material & Specification</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="tablebox"><table><tbody id="rows"></tbody></table></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button type="button" class="add" data-action="add-room">＋ Add Room</button><button type="button" class="add" data-action="add-row">+ Add Estimate Item</button></div>
 
 <div class="summary"><div class="notes"><div class="title">Scope / Special Notes</div><textarea id="notes" placeholder="Enter project notes, exclusions, payment terms or special instructions..."></textarea></div><div class="totals"><div class="trow"><span>Subtotal</span><b id="subtotal">₹0</b></div><div class="trow"><span>Discount</span><span><input id="discount" type="number" value="0" min="0" oninput="calculate()"> <select id="discountType" onchange="calculate()" style="padding:5px;border:1px solid #cbd5e1;border-radius:4px"><option value="amount">₹</option><option value="percent">%</option></select></span></div><div class="trow"><span>GST</span><span><input id="gst" type="number" value="0" min="0" oninput="calculate()"> %</span></div><div class="trow grand"><span>Grand Total</span><span id="grand">₹0</span></div><div id="words" class="words">Rupees Zero Only</div></div></div>
@@ -300,26 +339,35 @@ function getPreset(r){return S.items.find(i=>i.id===r.itemId)?.presets.find(p=>p
 function roomById(id){return S.rooms.find(r=>r.id===id);}
 function roomLineTotal(r){return (r.measurementType==='NOS'||r.measurementType==='LUMSUM')?Number(r.quantity||0)*Number(r.rate||0):Number(r.area||0)*Number(r.quantity||0)*Number(r.rate||0);}
 function roomSubtotal(rows){return rows.reduce((sum,r)=>sum+roomLineTotal(r),0);}
-function roomTableHead(){return '<tr class="room-table-head"><th>SL</th><th>ITEM</th><th>MEASUREMENT</th><th>AREA</th><th>QTY</th><th>UNIT PRICE</th><th>TOTAL</th><th>MATERIAL &amp; SPECIFICATION</th></tr>';}
+function roomTableHead(){return '<thead><tr class="room-table-head"><th>SL</th><th>ITEM</th><th>MEASUREMENT</th><th>AREA</th><th>QTY</th><th>UNIT PRICE</th><th>TOTAL</th><th>MATERIAL &amp; SPECIFICATION</th></tr></thead>';}
+function roomItemRow(r,n){
+ const p=getPreset(r),rid=esc(r.id);
+ return '<tr><td class="center">'+n+'</td><td><div class="itemcell"><select data-row-id="'+rid+'" data-change-item="1">'+itemOptions(r.itemId)+'</select>'+(r.itemId&&p?'<button type="button" class="presetedit" title="Change configuration" data-row-id="'+rid+'" data-open-preset="1">⚙</button>':'')+'<button type="button" class="rowdel" title="Remove item" data-row-id="'+rid+'" data-remove-row="1">×</button>'+(r.itemId?'<div class="itemdesc">'+esc(S.items.find(i=>i.id===r.itemId)?.description||'')+'</div>':'')+'</div></td><td class="measurement-cell">'+measurementHTML(r)+'</td><td class="area">'+((r.measurementType==='NOS'||r.measurementType==='LUMSUM')?'—':Number(r.area||0).toFixed(2))+'<div style="font-size:9px">'+((r.measurementType==='RFT')?'RFT':(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?'':'SQFT'))+'</div></td><td class="center"><select class="qty" data-row-id="'+rid+'" data-set-qty="1">'+qtyOptions(r.quantity??1)+'</select></td><td class="money">'+money(r.rate)+'</td><td class="money">'+money(roomLineTotal(r))+'</td><td class="spec">'+esc(r.specification||'')+'</td></tr>';
+}
+function renderRoomSection(room,rows,nStart){
+ let n=nStart;
+ const items=rows.map(r=>roomItemRow(r,++n)).join('');
+ const subtotal=roomSubtotal(rows);
+ return '<tr class="room-section-row"><td colspan="8"><div class="room-section"><div class="room-title"><strong>'+esc(room.name)+'</strong><button type="button" class="rowdel" data-remove-room="'+esc(room.id)+'" title="Remove room">×</button><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(room.remarks||'')+'" data-room-id="'+esc(room.id)+'" data-room-remarks="1" placeholder="If any"></div></div><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+'<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">'+esc(room.name)+' SUBTOTAL</td><td class="money">'+money(subtotal)+'</td><td></td></tr></tbody></table></div></td></tr>';
+}
+function renderUnassignedSection(rows,nStart){
+ if(!rows.length)return '';
+ let n=nStart;
+ const items=rows.map(r=>roomItemRow(r,++n)).join('');
+ return '<tr class="other-section-row"><td colspan="8"><table class="room-section-table">'+roomTableHead()+'<tbody>'+items+'</tbody></table></td></tr>';
+}
 function renderRows(){
  const tb=$('rows');let html='';let n=0;
  const roomIds=S.rooms.map(r=>r.id);
- const roomGroups=[...S.rooms.map(r=>({room:r,rows:S.rows.filter(x=>x.roomId===r.id)})),{room:null,rows:S.rows.filter(x=>!x.roomId||!roomIds.includes(x.roomId))}];
- roomGroups.forEach(g=>{
-   if(!g.room&&!g.rows.length)return;
-   if(g.room){
-     html+='<tr class="room-header"><td colspan="8"><div class="room-title"><strong>'+esc(g.room.name)+'</strong><button type="button" class="rowdel" data-remove-room="'+esc(g.room.id)+'" title="Remove room">×</button><div class="room-remark-inline"><span>ROOM REMARKS</span><input value="'+esc(g.room.remarks||'')+'" data-room-id="'+esc(g.room.id)+'" data-room-remarks="1" placeholder="If any"></div></div></td></tr>';
-     html+=roomTableHead();
-   }
-   g.rows.forEach(r=>{
-     n++;const p=getPreset(r);const rid=esc(r.id);
-     html+='<tr><td class="center">'+n+'</td><td><div class="itemcell"><select data-row-id="'+rid+'" data-change-item="1">'+itemOptions(r.itemId)+'</select>'+(r.itemId&&p?'<button type="button" class="presetedit" title="Change configuration" data-row-id="'+rid+'" data-open-preset="1">⚙</button>':'')+'<button type="button" class="rowdel" title="Remove item" data-row-id="'+rid+'" data-remove-row="1">×</button>'+(r.itemId?'<div class="itemdesc">'+esc(S.items.find(i=>i.id===r.itemId)?.description||'')+'</div>':'')+'</div></td><td class="measurement-cell">'+measurementHTML(r)+'</td><td class="area">'+((r.measurementType==='NOS'||r.measurementType==='LUMSUM')?'—':Number(r.area||0).toFixed(2))+'<div style="font-size:9px">'+((r.measurementType==='RFT')?'RFT':(r.measurementType==='NOS'||r.measurementType==='LUMSUM'?'':'SQFT'))+'</div></td><td class="center"><select class="qty" data-row-id="'+rid+'" data-set-qty="1">'+qtyOptions(r.quantity??1)+'</select></td><td class="money">'+money(r.rate)+'</td><td class="money">'+money(roomLineTotal(r))+'</td><td class="spec">'+esc(r.specification||'')+'</td></tr>';
-   });
-   if(g.room&&g.rows.length){
-     html+='<tr class="room-subtotal"><td colspan="6" class="room-subtotal-label">'+esc(g.room.name)+' SUBTOTAL</td><td class="money">'+money(roomSubtotal(g.rows))+'</td><td></td></tr>';
-   }
+ S.rooms.forEach(room=>{
+   const rows=S.rows.filter(x=>x.roomId===room.id);
+   html+=renderRoomSection(room,rows,n);
+   n+=rows.length;
  });
- tb.innerHTML=html;calculate();
+ const unassigned=S.rows.filter(x=>!x.roomId||!roomIds.includes(x.roomId));
+ html+=renderUnassignedSection(unassigned,n);
+ tb.innerHTML=html;
+ calculate();
 }
 function openPresetPicker(id){const r=S.rows.find(x=>x.id===id);if(!r||!r.itemId)return;const it=S.items.find(i=>i.id===r.itemId);if(!it||!Array.isArray(it.presets)||!it.presets.length){alert('No configuration found for this item.');return;}$('presetPickerItem').textContent=it.name+' — select one configuration';$('presetChoices').innerHTML=it.presets.map(p=>'<button type="button" class="preset-choice" data-row-id="'+esc(id)+'" data-preset-id="'+esc(p.id)+'" data-choose-preset="1"><span class="preset-choice-name">'+esc(p.name)+'</span><span class="preset-choice-rate">'+money(p.rate)+'</span><div class="preset-choice-meta">'+esc(measurementLabel(p.measurement_type))+' · '+esc(p.unit||'')+'</div><div class="preset-choice-spec">'+esc(p.specification||'')+'</div></button>').join('');const modal=$('presetPicker');modal.classList.remove('hidden');modal.style.setProperty('display','flex','important');modal.setAttribute('aria-hidden','false');}
 function closePresetPicker(){const modal=$('presetPicker');modal.classList.add('hidden');modal.style.removeProperty('display');modal.setAttribute('aria-hidden','true');}

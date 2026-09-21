@@ -585,6 +585,8 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .item-accordion-title strong{font-size:13px;color:#073b70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-index{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#073b70;color:#fff;font-size:10px;font-weight:800;flex:0 0 auto}
 .item-preset-count{font-size:9px;color:#64748b;border:1px solid #d5e0ea;border-radius:12px;padding:3px 7px;background:#fff}
+.item-last-updated{font-size:9px;color:#64748b;margin-left:2px;white-space:nowrap}
+@media(max-width:900px){.item-last-updated{display:none}}
 .item-expand-btn{width:30px;height:30px;border:1px solid #b8ccdd;border-radius:5px;background:#fff;color:#073b70;font-weight:800;cursor:pointer;flex:0 0 auto}
 .item-expand-btn:hover{background:#eef5fa}
 .item-accordion-body{padding:14px}
@@ -1504,7 +1506,7 @@ function calculateGrandOnly(){
    :Math.min(cashInput,offerBeforeCash);
  return Math.max(0,offerBeforeCash-cashLess);
 }
-async function loadCatalog(){const itemsRes=await S.sb.from('estimate_v2_items').select('id,name,description,unit,measurement_type,default_length,default_width,default_height,default_quantity,active,sort_order').eq('active',true).order('sort_order',{ascending:true});if(itemsRes.error)throw itemsRes.error;const presetRes=await S.sb.from('estimate_v2_presets').select('id,item_id,name,rate,specification,measurement_type,unit,default_length,default_width,default_height,default_quantity,allow_measurement_edit,formula,active,sort_order').eq('active',true).order('sort_order',{ascending:true});if(presetRes.error)throw presetRes.error;const byItem={};(presetRes.data||[]).forEach(p=>{(byItem[p.item_id]||(byItem[p.item_id]=[])).push(p)});S.items=(itemsRes.data||[]).map(i=>({...i,presets:(byItem[i.id]||[]).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}))})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
+async function loadCatalog(){const itemsRes=await S.sb.from('estimate_v2_items').select('id,name,description,unit,measurement_type,default_length,default_width,default_height,default_quantity,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(itemsRes.error)throw itemsRes.error;const presetRes=await S.sb.from('estimate_v2_presets').select('id,item_id,name,rate,specification,measurement_type,unit,default_length,default_width,default_height,default_quantity,allow_measurement_edit,formula,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(presetRes.error)throw presetRes.error;const byItem={};(presetRes.data||[]).forEach(p=>{(byItem[p.item_id]||(byItem[p.item_id]=[])).push(p)});S.items=(itemsRes.data||[]).map(i=>({...i,presets:(byItem[i.id]||[]).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}))})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
 async function loadRoomTemplates(){const {data:rooms,error}=await S.sb.from('estimate_v2_rooms').select('id,name,remarks,sort_order,active').eq('active',true).order('sort_order',{ascending:true});if(error)throw error;S.roomTemplates=(rooms||[]).map(r=>({...r})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
 function toLocalDateTimeInput(iso){const d=iso?new Date(iso):new Date();if(Number.isNaN(d.getTime()))return'';const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());}
 function syncTermsValidity(){
@@ -1923,6 +1925,16 @@ function addRoomTemplate(){S.roomTemplates.push({id:'new-'+crypto.randomUUID(),n
 function measurementEditorTypeLabel(type){if(type==='LxW'||type==='LxH')return 'SQ FEET (DIMENSION)';if(type==='SQFT')return 'SQ FEET TOTAL';if(type==='RFT')return 'RUNNING FEET';if(type==='NOS')return 'UNIT / NO';return 'LUMSUM';}
 function formatItemDefault(i){const t=i.measurement_type||'LxW';if(t==='LxW'||t==='LxH')return [feetInchesDisplay(i.default_length),feetInchesDisplay(t==='LxH'?i.default_height:i.default_width)].filter(Boolean).join(' × ');if(t==='SQFT'||t==='RFT')return i.default_length??'';if(t==='NOS')return i.default_quantity??1;return 'PRICE VARIES ON FINAL SELECTION / EXECUTION';}
 function defaultEditorHTML(i){const t=i.measurement_type||'LxW';if(t==='LxW'||t==='LxH')return '<input class="ci-default" data-default-kind="dimension" placeholder="6.08 × 7.00" value="'+esc(formatItemDefault(i))+'" title="FF.II format: 6.08 = 6 ft 08 in">';if(t==='SQFT'||t==='RFT')return '<input class="ci-default" data-default-kind="number" type="number" min="0" step="0.01" placeholder="10" value="'+esc(formatItemDefault(i))+'">';if(t==='NOS')return '<select class="ci-default" data-default-kind="qty">'+qtyOptions(i.default_quantity??1)+'</select>';return '<input class="ci-default" value="PRICE VARIES ON FINAL SELECTION / EXECUTION" readonly>'; }
+function formatCatalogUpdatedAt(value){
+ const d=value?new Date(value):null;
+ if(!d||Number.isNaN(d.getTime()))return '—';
+ return d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+}
+function latestPresetUpdatedAt(item){
+ const dates=[item.updated_at,...(item.presets||[]).map(p=>p.updated_at)].filter(Boolean).map(v=>new Date(v)).filter(d=>!Number.isNaN(d.getTime()));
+ if(!dates.length)return null;
+ return new Date(Math.max(...dates.map(d=>d.getTime())));
+}
 function renderCatalog(openId=''){
  const c=$('catalog');
  c.innerHTML=S.items.map((it,ii)=>{
@@ -1930,7 +1942,7 @@ function renderCatalog(openId=''){
   const presetCount=it.presets?.length||0;
   return '<div class="catalog item-accordion '+(isOpen?'is-open':'')+'" data-item="'+esc(it.id)+'">'+
    '<div class="item-accordion-head" data-toggle-item="'+esc(it.id)+'">'+
-    '<div class="item-accordion-title"><span class="item-index">'+(ii+1)+'</span><strong>'+esc(it.name)+'</strong><span class="item-preset-count">'+presetCount+' preset'+(presetCount===1?'':'s')+'</span></div>'+
+    '<div class="item-accordion-title"><span class="item-index">'+(ii+1)+'</span><strong>'+esc(it.name)+'</strong><span class="item-preset-count">'+presetCount+' preset'+(presetCount===1?'':'s')+'</span><span class="item-last-updated">Last updated: '+esc(formatCatalogUpdatedAt(latestPresetUpdatedAt(it)))+'</span></div>'+
     '<div class="item-row-actions"><button type="button" class="item-action-btn edit" data-toggle-item="'+esc(it.id)+'" title="View / Edit">✎</button><button type="button" class="item-action-btn" data-save-item="'+esc(it.id)+'" title="Save Item">💾</button><button type="button" class="item-action-btn delete" data-delete-item="'+esc(it.id)+'" title="Delete Item">🗑</button><button type="button" class="item-expand-btn" data-toggle-item="'+esc(it.id)+'" aria-expanded="'+(isOpen?'true':'false')+'" title="'+(isOpen?'Collapse':'Expand')+'">'+(isOpen?'▲':'▼')+'</button></div>'+
    '</div>'+
    '<div class="item-accordion-body" '+(isOpen?'':'hidden')+'>'+
@@ -1958,14 +1970,14 @@ async function saveCatalogItem(itemId){
  const name=box.querySelector('.ci-name').value.trim();if(!name){alert('Item name is required.');return}
  const type=box.querySelector('.ci-measurement').value;const defaultRaw=box.querySelector('.ci-default')?.value||'';
  const size=(type==='LxW'||type==='LxH')?parseSize(defaultRaw,type):{l:(type==='SQFT'||type==='RFT')?(Number(defaultRaw)||0):null,w:null,h:null,q:type==='NOS'?(Number(defaultRaw)||1):1};
- const payload={name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,sort_order:S.items.indexOf(old)*10||0,active:true};
+ const payload={name,description:box.querySelector('.ci-desc').value,unit:type==='RFT'?'rft':(type==='NOS'?'nos':(type==='LUMSUM'?'lumsum':'sqft')),measurement_type:type,default_length:size.l,default_width:size.w,default_height:size.h,default_quantity:size.q||1,sort_order:S.items.indexOf(old)*10||0,active:true,updated_at:new Date().toISOString()};
  try{
   let savedId=itemId;
   if(String(itemId).startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_items').insert(payload).select().single();if(error)throw error;savedId=data.id;}
   else{const {error}=await S.sb.from('estimate_v2_items').update(payload).eq('id',itemId);if(error)throw error;}
   for(const [pi,row] of Array.from(box.querySelectorAll('.presetrow[data-preset]')).entries()){
    const n=row.querySelector('.pn').value.trim();if(!n)continue;
-   const pp={item_id:savedId,name:n,rate:Number(row.querySelector('.pr').value)||0,specification:row.querySelector('.ps').value,sort_order:(pi+1)*10,active:true};
+   const pp={item_id:savedId,name:n,rate:Number(row.querySelector('.pr').value)||0,specification:row.querySelector('.ps').value,sort_order:(pi+1)*10,active:true,updated_at:new Date().toISOString()};
    const pid=row.dataset.preset;
    if(pid&&String(pid).startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_presets').insert(pp).select().single();if(error)throw error;row.dataset.preset=data.id;}
    else{const {error}=await S.sb.from('estimate_v2_presets').update(pp).eq('id',pid);if(error)throw error;}

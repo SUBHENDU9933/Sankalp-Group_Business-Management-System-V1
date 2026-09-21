@@ -1805,7 +1805,7 @@ function renderGiftSelection(total=0){
  }
  if(status)status.textContent=S.giftOfferVisible?'Visible to customer':'Hidden manually for this estimate';
  section.classList.toggle('gift-no-selection',count===0||!S.giftOfferVisible);
- elig.textContent=count===0?'No promotional gift is currently available for this project value.':'Based on project value '+money(total)+' • Choose one gift';
+ elig.textContent=count===0?'No promotional gift is currently available for this special offer price.':'Based on Special Offer Price '+money(total)+' • Choose one gift';
  editor.innerHTML=count?eligible.map(g=>{
    const isSelected=S.selectedGiftId===g.id;
    const img=g.image_url?'<img src="'+esc(g.image_url)+'" alt="'+esc(g.heading||'Gift')+'">':'<div class="gift-card-missing">Gift Card Image Required</div>';

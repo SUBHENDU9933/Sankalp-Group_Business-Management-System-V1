@@ -183,6 +183,14 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .modal{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}.modal.hidden{display:none}.modalcard{background:#fff;border-radius:10px;width:min(1100px,96vw);max-height:90vh;overflow:auto;padding:22px;border-top:7px solid var(--a)}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.catalog{border:1px solid var(--bd);border-radius:7px;padding:12px;margin-bottom:12px}.presetrow{display:grid;grid-template-columns:1.2fr 90px 110px 1.8fr 100px 36px;gap:6px;margin:6px 0}.catalog input,.catalog select{width:100%;padding:7px;border:1px solid var(--bd);border-radius:4px}.small{font-size:11px;color:var(--mut)}.hidden{display:none!important}
 @media(max-width:800px){body{padding:7px}.inner{padding:15px}.meta,.summary,.grid,.fieldpair{grid-template-columns:1fr}header{display:block}.company{text-align:left;margin-top:15px}.toolbar{align-items:flex-start}.presetrow{grid-template-columns:1fr 80px 100px}.presetrow textarea{grid-column:1/-1}.sheet{box-shadow:none}.dims{grid-template-columns:1fr 1fr}}
 @media print{body{padding:0;background:#fff}.toolbar,.add,.del,.modal,.leadlist,.notice,.presetedit{display:none!important}.sheet{box-shadow:none;max-width:none}.inner{border-top:4px solid var(--p);padding:10mm}.field input,.field textarea,td input,td select,td textarea{border:0!important;padding:0!important}.tablebox{overflow:visible}.summary,.footer{break-inside:avoid}}
+
+/* Print-only visibility safeguard: keep the existing Gift Section visible in both A4 orientations. */
+@media print and (orientation: portrait), print and (orientation: landscape){
+  .gift-promo-section:not(.gift-no-selection){display:block!important;visibility:visible!important}
+  .gift-promo-section:not(.gift-no-selection) .gift-promo-head{display:flex!important;visibility:visible!important}
+  .gift-promo-section:not(.gift-no-selection) .gift-promo-editor{display:grid!important;visibility:visible!important}
+  .gift-promo-section:not(.gift-no-selection) .gift-premium-footer{display:flex!important;visibility:visible!important}
+}
 </style>
 <style id="estimate-client-layout">
 /* Client details are intentionally kept one field per row for a clean, contained layout. */

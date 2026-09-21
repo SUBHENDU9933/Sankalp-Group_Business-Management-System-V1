@@ -929,7 +929,211 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 @media(max-width:1100px) and (min-width:801px){
   .toolbar-icon-btn{width:34px;min-width:34px;padding:6px 4px!important;font-size:15px!important}
 }
-</style></style></head>
+</style></style>
+<style id="estimate-v2-print-optimization">
+/* Print optimization v1 — pagination/readability only.
+   No estimate calculations, data, gift graphics, or database logic are changed. */
+@media print{
+  /* Let the outer room wrapper fragment between pages.
+     Individual item rows remain intact. This prevents large blank areas caused
+     by an avoid rule on the outer table row. */
+  .tablebox>table>tbody>.room-section-row,
+  .tablebox>table>tbody>.other-section-row{
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+  }
+  .room-section-row>td,
+  .other-section-row>td{
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+  }
+  .room-section{
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+    margin-bottom:4mm!important;
+  }
+  .room-section-table{
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+  }
+  .room-section-table tr{
+    break-inside:avoid-page!important;
+    page-break-inside:avoid!important;
+  }
+
+  /* More balanced use of the A4 width: less wrapping in Item/Measurement,
+     while preserving enough width for full specifications. */
+  .room-section-table th:nth-child(1),.room-section-table td:nth-child(1),
+  .tablebox>table th:nth-child(1),.tablebox>table td:nth-child(1){width:4%!important}
+  .room-section-table th:nth-child(2),.room-section-table td:nth-child(2),
+  .tablebox>table th:nth-child(2),.tablebox>table td:nth-child(2){width:21%!important}
+  .room-section-table th:nth-child(3),.room-section-table td:nth-child(3),
+  .tablebox>table th:nth-child(3),.tablebox>table td:nth-child(3){width:16%!important}
+  .room-section-table th:nth-child(4),.room-section-table td:nth-child(4),
+  .tablebox>table th:nth-child(4),.tablebox>table td:nth-child(4){width:7%!important}
+  .room-section-table th:nth-child(5),.room-section-table td:nth-child(5),
+  .tablebox>table th:nth-child(5),.tablebox>table td:nth-child(5){width:6%!important}
+  .room-section-table th:nth-child(6),.room-section-table td:nth-child(6),
+  .tablebox>table th:nth-child(6),.tablebox>table td:nth-child(6){width:10%!important}
+  .room-section-table th:nth-child(7),.room-section-table td:nth-child(7),
+  .tablebox>table th:nth-child(7),.tablebox>table td:nth-child(7){width:10%!important}
+  .room-section-table th:nth-child(8),.room-section-table td:nth-child(8),
+  .tablebox>table th:nth-child(8),.tablebox>table td:nth-child(8){width:26%!important}
+
+  .room-section-table td{
+    padding:5px 6px!important;
+    font-size:10.2px!important;
+    line-height:1.28!important;
+  }
+  .room-section-table .spec{
+    font-size:10px!important;
+    line-height:1.34!important;
+  }
+  .room-section-table .itemcell select{
+    font-size:11px!important;
+    line-height:1.25!important;
+  }
+  .room-section-table .itemdesc{
+    font-size:9px!important;
+    line-height:1.2!important;
+  }
+  .room-section-table .presetmeta,
+  .room-section-table .dims label{
+    font-size:8px!important;
+  }
+  .room-section-table .measurement-cell input,
+  .room-section-table .qty{
+    font-size:10px!important;
+  }
+  .room-table-head th{
+    padding:6px 5px!important;
+    font-size:8.2px!important;
+    line-height:1.15!important;
+  }
+  .room-subtotal td{padding:5px 7px!important}
+  .room-subtotal-label{font-size:9px!important}
+
+  /* Keep the top information block compact but readable. */
+  .meta{
+    gap:12px!important;
+    margin-bottom:16px!important;
+  }
+  .meta .box{padding:10px!important}
+  .meta .title{font-size:10.5px!important;padding-bottom:6px!important;margin-bottom:8px!important}
+  .meta .field{margin:6px 0!important;gap:8px!important}
+  .meta .field label{font-size:10px!important}
+  .meta .field input,
+  .meta .field select{font-size:10.5px!important;padding:3px 0!important}
+  .meta .fieldpair{gap:9px!important;margin:6px 0!important}
+
+  /* Give the portrait header slightly more readable branding without adding
+     a new block or changing its structure. */
+  .estimate-header-main{height:116px!important}
+  .estimate-brand-title{font-size:24px!important}
+  .estimate-brand-subtitle{font-size:7.5px!important}
+  .estimate-brand-tagline{font-size:8.5px!important}
+  .estimate-contact{font-size:8px!important}
+
+  /* Avoid creating a nearly empty page for the totals area. */
+  .grand-total-grid{
+    break-inside:avoid-page!important;
+    page-break-inside:avoid!important;
+    margin-top:5mm!important;
+    gap:5mm!important;
+  }
+  .grand-total-grid .totals{padding:4mm!important}
+  .project-breakdown-row{padding:2mm 0!important;font-size:10px!important}
+  .project-breakdown-row b{font-size:10px!important}
+  .project-grand-row{font-size:12px!important;padding-top:2.5mm!important}
+  .project-grand-row b{font-size:18px!important}
+  .offer-card-title{font-size:11px!important;margin-bottom:7px!important;padding-bottom:6px!important}
+  .offer-validity{margin:7px 0 8px!important;padding:7px 9px!important;font-size:10px!important}
+  .offer-validity b{font-size:11px!important}
+  .offer-original,.offer-saving{padding:4px 0!important;font-size:10px!important}
+  .offer-line{padding:5px 0!important;gap:8px!important}
+  .offer-line small{font-size:8px!important}
+  .offer-control input,.offer-control select{padding:3px!important}
+  .offer-control b{font-size:9px!important}
+  .offer-note{font-size:7.5px!important}
+
+  /* Terms stay together as one visual block, but the text gets a small
+     readability lift instead of being reduced to tiny print. */
+  .estimate-terms-section{
+    gap:6mm!important;
+    margin-top:6mm!important;
+    padding:4mm!important;
+    break-inside:avoid-page!important;
+    page-break-inside:avoid!important;
+  }
+  .estimate-terms-title{font-size:10.5px!important;padding-bottom:6px!important}
+  .estimate-terms-list,.estimate-project-list{
+    margin-top:7px!important;
+    padding-left:19px!important;
+    font-size:10.2px!important;
+    line-height:1.45!important;
+  }
+  .estimate-terms-list li,.estimate-project-list li{padding:1px 0 2px!important}
+
+  /* Closing section: readable minimums without changing the visual design. */
+  .estimate-closing-wrap{
+    margin-top:5mm!important;
+    gap:2.5mm!important;
+  }
+  .estimate-why-intro b{font-size:7pt!important}
+  .estimate-why-intro small{font-size:5.3pt!important}
+  .estimate-why-item b{font-size:6pt!important}
+  .estimate-why-item small{font-size:5.1pt!important}
+  .estimate-brands-title{font-size:7pt!important}
+  .estimate-brands-note{font-size:5.2pt!important}
+  .estimate-brand-fallback{font-size:5pt!important}
+  .estimate-brands-disclaimer{font-size:4.8pt!important}
+  .estimate-thanks-title{font-size:10.5pt!important}
+  .estimate-thanks-copy{font-size:6pt!important}
+  .estimate-thanks-tag{font-size:8pt!important}
+  .estimate-sign-script{font-size:9.5pt!important}
+  .estimate-sign-title{font-size:6pt!important}
+  .estimate-sign-meta{font-size:5.2pt!important}
+  .estimate-footer-brand-text{font-size:5.2pt!important}
+  .estimate-footer-brand-text b{font-size:6pt!important}
+  .estimate-footer-contact{font-size:5.2pt!important}
+  .estimate-footer-tag{font-size:7.5pt!important}
+  .estimate-footer-tag small{font-size:4.8pt!important}
+  .estimate-footer-services{font-size:4.8pt!important}
+
+  /* Explicitly preserve the existing Gift Section artwork/layout.
+     Only pagination visibility is controlled here. */
+  .gift-promo-section:not(.gift-no-selection){
+    break-inside:avoid-page!important;
+    page-break-inside:avoid!important;
+  }
+}
+
+/* Portrait: use the page height efficiently while keeping readable type. */
+@media print and (orientation:portrait){
+  .inner{padding:12mm 10mm 14mm!important}
+  .estimate-header-main{height:108px!important}
+  .estimate-brand-title{font-size:22px!important}
+  .estimate-brand-subtitle{font-size:7.2px!important}
+  .estimate-brand-tagline{font-size:8px!important}
+  .estimate-contact{font-size:7.8px!important}
+  .estimate-header-ribbon{min-height:27px!important;font-size:6.8px!important}
+  .room-section-table td{font-size:9.8px!important}
+  .room-section-table .spec{font-size:9.7px!important}
+  .estimate-terms-list,.estimate-project-list{font-size:9.8px!important}
+}
+
+/* Landscape: use the extra width to reduce wrapping and therefore row height. */
+@media print and (orientation:landscape){
+  .inner{padding:10mm 11mm 12mm!important}
+  .estimate-header-main{height:116px!important}
+  .estimate-brand-title{font-size:27px!important}
+  .estimate-brand-subtitle{font-size:8.2px!important}
+  .estimate-brand-tagline{font-size:9px!important}
+  .estimate-contact{font-size:8.2px!important}
+  .room-section-table td{font-size:10.3px!important}
+  .room-section-table .spec{font-size:10.1px!important}
+}
+</style></head>
 <body>
 <div class="toolbar"><div class="toolbar-brand"><b style="color:var(--p)">SANKALP ESTIMATE V2</b><span id="toolbarCloudSummary" class="toolbar-cloud-status">V2 Database: Connected ✓ · 147 Items · 434 Presets loaded</span></div><div class="tools"><button type="button" class="btn" data-action="dashboard">← Dashboard</button><button type="button" class="btn company-switch" id="companySwitch" data-action="switch-company" title="Switch estimate company">⇄ <span id="companySwitchLabel">Srijan</span></button><button type="button" class="btn toolbar-icon-btn" data-action="settings" title="Presets / Rooms" aria-label="Presets / Rooms">⚙</button><button type="button" class="btn toolbar-icon-btn" data-action="gift-settings" title="Gift Settings" aria-label="Gift Settings">🎁</button><button type="button" class="btn toolbar-icon-btn" data-action="save" title="Save" aria-label="Save">💾</button><button type="button" class="btn gold toolbar-icon-btn" data-action="print" title="PDF" aria-label="PDF">🖨</button></div></div>
 

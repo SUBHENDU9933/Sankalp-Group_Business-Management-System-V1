@@ -144,6 +144,139 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 }
 @media(max-width:950px){.gift-premium .gift-promo-editor{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.gift-premium .gift-promo-editor{grid-template-columns:1fr}}
+
+.estimate-closing-wrap{margin-top:22px;display:grid;gap:12px;break-inside:avoid;page-break-inside:avoid}
+.estimate-why-strip{display:grid;grid-template-columns:1.05fr repeat(4,1fr);border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:linear-gradient(105deg,#eef5ff,#fff,#f8fbff)}
+.estimate-why-intro{background:linear-gradient(135deg,#123b78,#1e3a8a);color:#fff;padding:12px 15px;display:flex;align-items:center;gap:10px}
+.estimate-why-intro-icon{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.estimate-why-intro b{display:block;font-size:13px;letter-spacing:.3px}
+.estimate-why-intro small{display:block;margin-top:3px;font-size:8px;color:#dbeafe}
+.estimate-why-item{padding:10px 11px;border-left:1px solid #dbe3ee;display:flex;align-items:center;gap:8px;min-width:0}
+.estimate-why-icon{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;background:#fff4df;color:#b77908;font-size:15px;flex:0 0 auto}
+.estimate-why-item:nth-child(3) .estimate-why-icon{background:#eaf3ff;color:#1e5aa8}
+.estimate-why-item:nth-child(4) .estimate-why-icon{background:#eefbf3;color:#18864b}
+.estimate-why-item:nth-child(5) .estimate-why-icon{background:#fff0ec;color:#c54c2b}
+.estimate-why-item b{display:block;font-size:9.5px;color:#123b78;line-height:1.2}
+.estimate-why-item small{display:block;font-size:7.5px;color:#64748b;line-height:1.25;margin-top:2px}
+.estimate-brands{border:1px solid #e6c66f;border-radius:10px;background:linear-gradient(135deg,#fffdf8,#fff,#fffaf0);padding:10px 11px 9px}
+.estimate-brands-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.estimate-brands-title{display:flex;align-items:center;gap:7px;color:#8b5a05;font-size:11px;font-weight:900;letter-spacing:.65px}
+.estimate-brands-title span{width:22px;height:22px;border-radius:6px;background:#d4a017;color:#fff;display:grid;place-items:center;font-size:12px}
+.estimate-brands-note{font-size:7px;color:#64748b;text-align:right}
+.estimate-brand-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+.estimate-brand-card{height:36px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;padding:4px 5px;overflow:hidden}
+.estimate-brand-card img{display:block;width:100%;height:25px;object-fit:contain}
+.estimate-brand-fallback{font-size:7px;font-weight:900;color:#173d72;text-align:center;line-height:1.05}
+.estimate-brands-disclaimer{text-align:center;margin-top:7px;font-size:7px;color:#7b8797;font-style:italic}
+.estimate-thanks{display:grid;grid-template-columns:52px 1.35fr 1fr;align-items:center;gap:12px;border:1px solid #e6c66f;border-radius:10px;padding:10px 13px;background:linear-gradient(110deg,#fffaf0,#fff,#fffdf7)}
+.estimate-thanks-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ffe5a3,#d9a22c);font-size:22px;box-shadow:0 4px 10px rgba(185,130,18,.14)}
+.estimate-thanks-title{font-family:"Playfair Display",serif;font-size:20px;font-weight:700;color:#173d72;line-height:1}
+.estimate-thanks-title span{color:#c88713}
+.estimate-thanks-copy{font-size:8.5px;color:#475569;line-height:1.4;margin-top:4px}
+.estimate-thanks-tag{text-align:right;font-family:"Playfair Display",serif;font-size:14px;font-style:italic;color:#173d72}
+.estimate-thanks-tag:after{content:"";display:block;width:95px;height:2px;background:#d4a017;margin:5px 0 0 auto}
+.estimate-signatures{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px;align-items:end;padding:7px 4px 2px}
+.estimate-sign-block{min-height:72px;text-align:center;padding:0 12px;border-right:1px solid #dbe3ee}
+.estimate-sign-block:last-child{border-right:0}
+.estimate-sign-script{height:22px;font-family:"Playfair Display",serif;font-style:italic;font-size:17px;color:#172554}
+.estimate-signline{border-top:1px solid #173d72;margin:5px auto 5px;max-width:180px}
+.estimate-sign-title{font-size:10px;font-weight:900;color:#173d72}
+.estimate-sign-meta{font-size:7.5px;color:#64748b;margin-top:2px;line-height:1.35}
+.estimate-footer-main{display:grid;grid-template-columns:1.15fr 1.55fr 1fr;align-items:center;gap:14px;border-radius:10px 10px 5px 5px;overflow:hidden;padding:12px 15px;color:#fff;background:linear-gradient(110deg,#071f49,#123b78 58%,#0b2b5e);position:relative;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.estimate-footer-main:after{content:"";position:absolute;right:-40px;bottom:-45px;width:210px;height:90px;border-radius:50%;border-top:5px solid #d4a017;transform:rotate(-7deg);opacity:.95}
+.estimate-footer-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.estimate-footer-logo{width:110px;height:42px;object-fit:contain;object-position:left center;filter:brightness(0) invert(1);flex:0 0 auto}
+.estimate-footer-brand-text{font-size:8px;color:#dbeafe;line-height:1.35;border-left:1px solid rgba(255,255,255,.25);padding-left:10px}
+.estimate-footer-brand-text b{display:block;color:#fff;font-size:10px}
+.estimate-footer-contact{border-left:1px solid rgba(255,255,255,.2);padding-left:14px;font-size:8px;line-height:1.55;color:#e5edf9}
+.estimate-footer-contact b{color:#fff}
+.estimate-footer-tag{text-align:right;font-family:"Playfair Display",serif;font-size:12px;letter-spacing:2px;color:#fff;position:relative;z-index:1}
+.estimate-footer-tag small{display:block;font-family:Inter,Arial,sans-serif;font-size:7px;letter-spacing:1.5px;color:#f8d66e;margin-top:5px}
+.estimate-footer-services{text-align:center;border:1px solid #dbe3ee;border-top:0;border-radius:0 0 8px 8px;padding:5px 8px;font-size:6.5px;letter-spacing:2px;color:#64748b;background:#fff}
+@media(max-width:950px){
+ .estimate-why-strip{grid-template-columns:1fr 1fr}
+ .estimate-why-intro{grid-column:1/-1}
+ .estimate-brand-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .estimate-thanks{grid-template-columns:45px 1fr}
+ .estimate-thanks-tag{grid-column:2;text-align:left}
+ .estimate-thanks-tag:after{margin-left:0}
+ .estimate-signatures{grid-template-columns:1fr 1fr}
+ .estimate-sign-block:nth-child(2){border-right:0}
+ .estimate-sign-block:nth-child(3){grid-column:1/-1;border-right:0;border-top:1px solid #dbe3ee;padding-top:10px}
+ .estimate-footer-main{grid-template-columns:1fr 1fr}
+ .estimate-footer-tag{display:none}
+}
+@media(max-width:650px){
+ .estimate-why-strip{grid-template-columns:1fr}
+ .estimate-why-intro{grid-column:auto}
+ .estimate-why-item{border-left:0;border-top:1px solid #dbe3ee}
+ .estimate-brand-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .estimate-brands-head{align-items:flex-start;flex-direction:column}
+ .estimate-brands-note{text-align:left}
+ .estimate-thanks{grid-template-columns:42px 1fr}
+ .estimate-thanks-title{font-size:18px}
+ .estimate-signatures{grid-template-columns:1fr}
+ .estimate-sign-block{border-right:0!important;border-top:1px solid #dbe3ee;padding-top:9px}
+ .estimate-sign-block:first-child{border-top:0}
+ .estimate-footer-main{grid-template-columns:1fr}
+ .estimate-footer-contact{border-left:0;border-top:1px solid rgba(255,255,255,.2);padding:8px 0 0}
+}
+@media print{
+ .estimate-closing-wrap{margin-top:6mm;gap:3mm}
+ .estimate-why-strip{grid-template-columns:1.1fr repeat(4,1fr);border-radius:6px}
+ .estimate-why-intro{padding:2.5mm 3mm}
+ .estimate-why-intro-icon{width:8mm;height:8mm;font-size:4.5mm}
+ .estimate-why-intro b{font-size:7.5pt}
+ .estimate-why-intro small{font-size:5pt}
+ .estimate-why-item{padding:2mm 2.2mm;gap:1.5mm}
+ .estimate-why-icon{width:6.5mm;height:6.5mm;font-size:3.5mm}
+ .estimate-why-item b{font-size:5.7pt}
+ .estimate-why-item small{font-size:4.5pt}
+ .estimate-brands{padding:2.5mm 2.5mm 2mm;border-radius:6px}
+ .estimate-brands-head{margin-bottom:1.8mm}
+ .estimate-brands-title{font-size:6.5pt}
+ .estimate-brands-title span{width:5mm;height:5mm;font-size:3mm}
+ .estimate-brands-note{font-size:4.3pt}
+ .estimate-brand-grid{grid-template-columns:repeat(10,minmax(0,1fr));gap:1.1mm}
+ .estimate-brand-card{height:9.5mm;border-radius:3px;padding:1mm}
+ .estimate-brand-card img{height:6.5mm}
+ .estimate-brand-fallback{font-size:4pt}
+ .estimate-brands-disclaimer{margin-top:1.5mm;font-size:4pt}
+ .estimate-thanks{grid-template-columns:13mm 1.35fr 1fr;gap:3mm;padding:2.5mm 3mm;border-radius:6px}
+ .estimate-thanks-icon{width:10.5mm;height:10.5mm;font-size:5.5mm}
+ .estimate-thanks-title{font-size:11pt}
+ .estimate-thanks-copy{font-size:5.2pt;margin-top:1mm}
+ .estimate-thanks-tag{font-size:8pt}
+ .estimate-thanks-tag:after{width:25mm;height:.5mm;margin-top:1mm}
+ .estimate-signatures{grid-template-columns:1fr 1.25fr 1fr;gap:4mm;padding:1mm 0}
+ .estimate-sign-block{min-height:18mm;padding:0 2mm}
+ .estimate-sign-script{height:6mm;font-size:9pt}
+ .estimate-signline{margin:1.2mm auto 1mm}
+ .estimate-sign-title{font-size:5.5pt}
+ .estimate-sign-meta{font-size:4.2pt}
+ .estimate-footer-main{grid-template-columns:1.15fr 1.55fr 1fr;gap:3mm;border-radius:6px 6px 3px 3px;padding:2.8mm 3.5mm;min-height:17mm}
+ .estimate-footer-main:after{right:-10mm;bottom:-10mm;width:45mm;height:20mm;border-top-width:1mm}
+ .estimate-footer-logo{width:30mm;height:11mm}
+ .estimate-footer-brand-text{font-size:4.5pt;padding-left:2.5mm}
+ .estimate-footer-brand-text b{font-size:5.5pt}
+ .estimate-footer-contact{padding-left:3mm;font-size:4.5pt;line-height:1.45}
+ .estimate-footer-tag{font-size:7pt;letter-spacing:1.2pt}
+ .estimate-footer-tag small{font-size:4pt;letter-spacing:.8pt;margin-top:1mm}
+ .estimate-footer-services{padding:1.2mm 1mm;font-size:3.8pt;letter-spacing:1pt}
+ .estimate-closing-wrap img{break-inside:avoid}
+}
+@media print and (orientation:portrait){
+ .estimate-brand-grid{grid-template-columns:repeat(10,minmax(0,1fr))}
+ .estimate-why-item b{font-size:5.3pt}
+ .estimate-why-item small{font-size:4.1pt}
+ .estimate-brand-card{height:8.5mm}
+ .estimate-brand-card img{height:5.7mm}
+ .estimate-thanks-title{font-size:10pt}
+ .estimate-thanks-copy{font-size:4.8pt}
+ .estimate-sign-block{min-height:16mm}
+ .estimate-footer-main{min-height:15.5mm}
+}
+
 .estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:25px;padding:18px;border:1px solid var(--bd);border-radius:8px;background:#f8fafc;break-inside:avoid;min-width:0}
 .estimate-terms-panel{border:0;border-radius:0;padding:0;background:transparent;min-width:0}
 .estimate-terms-title{font-size:13px;font-weight:800;color:var(--p);padding-bottom:10px;border-bottom:1px solid #e2e8f0;letter-spacing:.2px}
@@ -959,7 +1092,64 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   </div>
 </section>
 
-<div class="footer"><div class="sign"><div style="height:55px"></div><div class="signline">Prepared By</div></div><div class="sign"><div style="height:55px"></div><div class="signline" id="estimateFooterCompany">For Sankalp Interior Solution</div></div></div>
+<section class="estimate-closing-wrap">
+  <div class="estimate-why-strip">
+    <div class="estimate-why-intro"><span class="estimate-why-intro-icon">★</span><div><b>WHY CHOOSE US?</b><small>Your Dream Space · Our Commitment</small></div></div>
+    <div class="estimate-why-item"><span class="estimate-why-icon">✓</span><div><b>QUALITY WORKMANSHIP</b><small>Skilled team &amp; selected materials</small></div></div>
+    <div class="estimate-why-item"><span class="estimate-why-icon">◷</span><div><b>ON-TIME DELIVERY</b><small>Planned execution &amp; clear timelines</small></div></div>
+    <div class="estimate-why-item"><span class="estimate-why-icon">₹</span><div><b>TRANSPARENT PRICING</b><small>Clear scope &amp; pricing</small></div></div>
+    <div class="estimate-why-item"><span class="estimate-why-icon">⌂</span><div><b>COMPLETE SUPPORT</b><small>From design to handover</small></div></div>
+  </div>
+
+  <div class="estimate-brands">
+    <div class="estimate-brands-head">
+      <div class="estimate-brands-title"><span>✦</span> BRANDS &amp; MATERIALS WE WORK WITH</div>
+      <div class="estimate-brands-note">Selected according to project requirements, availability &amp; final approval</div>
+    </div>
+    <div class="estimate-brand-grid">
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=godrej.com&amp;sz=128" alt="Godrej" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">GODREJ</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=hettich.com&amp;sz=128" alt="Hettich" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">HETTICH</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=hafele.com&amp;sz=128" alt="Häfele" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">HÄFELE</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=ebco.in&amp;sz=128" alt="Ebco" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">EBCO</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=dorsetindia.com&amp;sz=128" alt="Dorset" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">DORSET</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=ozone-india.com&amp;sz=128" alt="Ozone" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">OZONE</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=greenply.com&amp;sz=128" alt="Greenply" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">GREENPLY</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=greenlam.com&amp;sz=128" alt="Greenlam" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">GREENLAM</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=merinolaminates.com&amp;sz=128" alt="Merino" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">MERINO</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=kajariaceramics.com&amp;sz=128" alt="Kajaria" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">KAJARIA</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=asianpaints.com&amp;sz=128" alt="Asian Paints" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">ASIAN PAINTS</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=bergerpaints.com&amp;sz=128" alt="Berger" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">BERGER</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=jaquar.com&amp;sz=128" alt="Jaquar" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">JAQUAR</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=havells.com&amp;sz=128" alt="Havells" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">HAVELLS</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=legrand.co.in&amp;sz=128" alt="Legrand" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">LEGRAND</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=crompton.co.in&amp;sz=128" alt="Crompton" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">CROMPTON</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=orient-electric.com&amp;sz=128" alt="Orient Electric" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">ORIENT ELECTRIC</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=faberindia.com&amp;sz=128" alt="Faber" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">FABER</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=elicaindia.com&amp;sz=128" alt="Elica" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">ELICA</span></div>
+      <div class="estimate-brand-card"><img src="https://www.google.com/s2/favicons?domain=philips.co.in&amp;sz=128" alt="Philips" loading="eager" onerror="this.style.display='none'"><span class="estimate-brand-fallback">PHILIPS</span></div>
+    </div>
+    <div class="estimate-brands-disclaimer">Brand selection is subject to project requirements, availability and final client approval. All trademarks remain the property of their respective owners.</div>
+  </div>
+
+  <div class="estimate-thanks">
+    <div class="estimate-thanks-icon">⌂</div>
+    <div><div class="estimate-thanks-title">Thank <span>You!</span></div><div class="estimate-thanks-copy">We appreciate the opportunity to be part of your dream project and look forward to a long &amp; valued relationship.</div></div>
+    <div class="estimate-thanks-tag">Let’s Build Something Beautiful Together</div>
+  </div>
+
+  <div class="estimate-signatures">
+    <div class="estimate-sign-block"><div class="estimate-sign-script">Subhendu Biswas</div><div class="estimate-signline"></div><div class="estimate-sign-title">Prepared By</div><div class="estimate-sign-meta">Founder &amp; Director</div></div>
+    <div class="estimate-sign-block"><div class="estimate-sign-script">&nbsp;</div><div class="estimate-signline"></div><div class="estimate-sign-title">Client Acceptance</div><div class="estimate-sign-meta">Client Name / Signature / Date</div></div>
+    <div class="estimate-sign-block"><div class="estimate-sign-script">&nbsp;</div><div class="estimate-signline"></div><div class="estimate-sign-title" id="estimateFooterCompany">For Sankalp Interior Solution</div><div class="estimate-sign-meta">Authorised Signatory</div></div>
+  </div>
+
+  <div class="estimate-footer-main">
+    <div class="estimate-footer-brand"><img id="estimateFooterLogo" class="estimate-footer-logo" src="https://www.sankalpinterior.com/uploads/upload_1.png" alt="Sankalp Interior Solution"><div class="estimate-footer-brand-text"><b id="estimateFooterBrandName">Sankalp Interior Solution</b>DESIGN · BUILD · TRANSFORM</div></div>
+    <div class="estimate-footer-contact"><b>Office:</b> GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br><b>Phone:</b> +91 9748297025 &nbsp; <b>WhatsApp:</b> 9748297025<br><b>Website:</b> www.sankalpdesign.com &nbsp; <b>Email:</b> info.sankalpgrp@gmail.com</div>
+    <div class="estimate-footer-tag">BEAUTIFUL SPACES<br>BETTER LIVING<small>INTERIORS · CONSTRUCTION · TURNKEY SOLUTIONS</small></div>
+  </div>
+  <div class="estimate-footer-services">INTERIORS &nbsp; | &nbsp; CONSTRUCTION &nbsp; | &nbsp; TURNKEY SOLUTIONS &nbsp; | &nbsp; RESIDENTIAL &nbsp; | &nbsp; COMMERCIAL &nbsp; | &nbsp; HOSPITALITY</div>
+</section>
 </div></div>
 
 <div id="presetPicker" class="modal hidden"><div class="modalcard" style="width:min(620px,94vw);max-height:80vh"><div class="modalhead"><div><h2 style="margin:0;color:var(--p);font-size:20px">Select Configuration</h2><div id="presetPickerItem" class="small" style="margin-top:4px"></div></div><button type="button" class="btn danger" data-action="close-picker">Close</button></div><div id="presetChoices"></div></div></div>
@@ -1023,6 +1213,8 @@ function applyCompanyBranding(key='sankalp'){
   $('estimateRibbonLeft').innerHTML=company.ribbonLeft;
   $('estimateRibbonRight').innerHTML=company.ribbonRight;
   $('estimateFooterCompany').textContent='For '+company.fullName.replace(/&amp;/g,'&');
+  const footerLogo=$('estimateFooterLogo'); if(footerLogo){footerLogo.src=company.logo;footerLogo.alt=company.fullName.replace(/&amp;/g,'&');}
+  const footerBrandName=$('estimateFooterBrandName'); if(footerBrandName)footerBrandName.textContent=company.fullName.replace(/&amp;/g,'&');
   const switchLabel=$('companySwitchLabel');
   if(switchLabel)switchLabel.textContent=company.key==='sankalp'?'Srijan':'Sankalp';
   const switchBtn=$('companySwitch');

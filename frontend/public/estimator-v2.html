@@ -1506,7 +1506,7 @@ function calculateGrandOnly(){
    :Math.min(cashInput,offerBeforeCash);
  return Math.max(0,offerBeforeCash-cashLess);
 }
-async function loadCatalog(){const itemsRes=await S.sb.from('estimate_v2_items').select('id,name,description,unit,measurement_type,default_length,default_width,default_height,default_quantity,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(itemsRes.error)throw itemsRes.error;const presetRes=await S.sb.from('estimate_v2_presets').select('id,item_id,name,rate,specification,measurement_type,unit,default_length,default_width,default_height,default_quantity,allow_measurement_edit,formula,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(presetRes.error)throw presetRes.error;const byItem={};(presetRes.data||[]).forEach(p=>{(byItem[p.item_id]||(byItem[p.item_id]=[])).push(p)});S.items=(itemsRes.data||[]).map(i=>({...i,presets:(byItem[i.id]||[]).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}))})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
+async function loadCatalog(){const itemsRes=await S.sb.from('estimate_v2_items').select('id,name,description,unit,measurement_type,default_length,default_width,default_height,default_quantity,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(itemsRes.error)throw itemsRes.error;const presetRes=await S.sb.from('estimate_v2_presets').select('id,item_id,name,rate,specification,measurement_type,unit,default_length,default_width,default_height,default_quantity,allow_measurement_edit,formula,active,sort_order,created_at,updated_at').eq('active',true).order('sort_order',{ascending:true});if(presetRes.error)throw presetRes.error;const byItem={};(presetRes.data||[]).forEach(p=>{(byItem[p.item_id]||(byItem[p.item_id]=[])).push(p)});S.items=(itemsRes.data||[]).map(i=>({...i,presets:(byItem[i.id]||[]).sort((a,b)=>{const ar=Number(a.rate)||0,br=Number(b.rate)||0;if(ar!==br)return ar-br;return String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'});})})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
 async function loadRoomTemplates(){const {data:rooms,error}=await S.sb.from('estimate_v2_rooms').select('id,name,remarks,sort_order,active').eq('active',true).order('sort_order',{ascending:true});if(error)throw error;S.roomTemplates=(rooms||[]).map(r=>({...r})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
 function toLocalDateTimeInput(iso){const d=iso?new Date(iso):new Date();if(Number.isNaN(d.getTime()))return'';const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());}
 function syncTermsValidity(){
@@ -1975,7 +1975,12 @@ async function saveCatalogItem(itemId){
   let savedId=itemId;
   if(String(itemId).startsWith('new-')){const {data,error}=await S.sb.from('estimate_v2_items').insert(payload).select().single();if(error)throw error;savedId=data.id;}
   else{const {error}=await S.sb.from('estimate_v2_items').update(payload).eq('id',itemId);if(error)throw error;}
-  for(const [pi,row] of Array.from(box.querySelectorAll('.presetrow[data-preset]')).entries()){
+  const presetRows=Array.from(box.querySelectorAll('.presetrow[data-preset]')).sort((a,b)=>{
+   const ar=Number(a.querySelector('.pr')?.value)||0,br=Number(b.querySelector('.pr')?.value)||0;
+   if(ar!==br)return ar-br;
+   return String(a.querySelector('.pn')?.value||'').localeCompare(String(b.querySelector('.pn')?.value||''),undefined,{numeric:true,sensitivity:'base'});
+  });
+  for(const [pi,row] of presetRows.entries()){
    const n=row.querySelector('.pn').value.trim();if(!n)continue;
    const pp={item_id:savedId,name:n,rate:Number(row.querySelector('.pr').value)||0,specification:row.querySelector('.ps').value,sort_order:(pi+1)*10,active:true,updated_at:new Date().toISOString()};
    const pid=row.dataset.preset;

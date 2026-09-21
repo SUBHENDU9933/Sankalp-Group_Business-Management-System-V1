@@ -280,9 +280,9 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 .estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:25px;padding:18px;border:1px solid var(--bd);border-radius:8px;background:#f8fafc;break-inside:avoid;min-width:0}
 .estimate-terms-panel{border:0;border-radius:0;padding:0;background:transparent;min-width:0}
 .estimate-terms-title{font-size:13px;font-weight:800;color:var(--p);padding-bottom:10px;border-bottom:1px solid #e2e8f0;letter-spacing:.2px}
-.estimate-terms-list,.estimate-project-list{margin:10px 0 0;padding-left:23px;font-size:12px;line-height:1.75;color:#1f2937}
-.estimate-terms-list li,.estimate-project-list li{padding:2px 0 4px}
-.estimate-project-list{list-style:disc}
+.estimate-terms-list,.estimate-project-list{margin:10px 0 0;padding-left:0;font-size:12px;line-height:1.75;color:#1f2937}
+.estimate-term-item{padding:2px 0 4px}
+.estimate-project-list{padding-left:23px;list-style:disc}
 @media(max-width:800px){.estimate-terms-section{grid-template-columns:1fr;gap:18px;padding:14px}}
 @media print{.estimate-terms-section{grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm;padding:5mm}.estimate-terms-list,.estimate-project-list{font-size:9.5px;line-height:1.55}}
 .project-breakdown{display:flex;flex-direction:column;gap:0;margin-top:4px}
@@ -1068,11 +1068,13 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   .estimate-terms-title{font-size:10.5px!important;padding-bottom:6px!important}
   .estimate-terms-list,.estimate-project-list{
     margin-top:7px!important;
-    padding-left:19px!important;
+    padding-left:0!important;
     font-size:10.2px!important;
     line-height:1.45!important;
   }
-  .estimate-terms-list li,.estimate-project-list li{padding:1px 0 2px!important}
+  .estimate-terms-list .estimate-term-item{padding:1px 0 2px!important}
+  .estimate-project-list{padding-left:19px!important}
+  .estimate-project-list li{padding:1px 0 2px!important}
 
   /* Closing section: readable minimums without changing the visual design. */
   .estimate-closing-wrap{
@@ -1266,20 +1268,20 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 <section class="estimate-terms-section">
   <div class="estimate-terms-panel">
     <div class="estimate-terms-title">▣ STANDARD TERMS &amp; CONDITIONS</div>
-    <ol class="estimate-terms-list">
-      <li><b>💳 Payment Terms:</b> 10% token advance at booking, 20% at agreement confirmation, remaining payment as per work progress.</li>
-      <li><b>📋 Scope of Work:</b> Electrical, civil, plumbing &amp; POP work are excluded unless specifically mentioned.</li>
-      <li><b>🎨 Design &amp; Material Changes:</b> Any design, size, finish or material change after final approval will be chargeable.</li>
-      <li><b>⏳ Project Timeline:</b> Estimated timeline starts after final design approval and advance payment.</li>
-      <li><b>🛡️ Warranty:</b> Warranty covers workmanship only; material warranty as per manufacturer policy.</li>
-      <li><b>🏠 Site Readiness:</b> Client must ensure site availability, electricity &amp; water supply during work execution.</li>
-      <li><b>📏 Measurement Variation:</b> Final billing may vary slightly based on actual site measurements.</li>
-      <li><b>🚚 Transportation &amp; Loading:</b> Transportation, loading/unloading charges are excluded unless specifically mentioned.</li>
-      <li><b>📦 Material Availability:</b> In case of market unavailability, equivalent material/brand may be used after client approval.</li>
-      <li><b>☁️ Delays Beyond Control:</b> Delays caused by weather, building restrictions, vendor issues or unforeseen conditions will not be considered contractor liability.</li>
-      <li><b>🧹 Cleaning &amp; Debris Removal:</b> Basic cleaning included; deep cleaning and external debris disposal are excluded unless mentioned.</li>
-      <li><b>🧾 Quotation Validity:</b> This quotation is valid for <span id="termsValidityDays">15</span> days and subject to material price fluctuation.</li>
-    </ol>
+    <div class="estimate-terms-list">
+      <div class="estimate-term-item"><b>💳 Payment Terms:</b> 10% token advance at booking, 20% at agreement confirmation, remaining payment as per work progress.</div>
+      <div class="estimate-term-item"><b>📋 Scope of Work:</b> Electrical, civil, plumbing &amp; POP work are excluded unless specifically mentioned.</div>
+      <div class="estimate-term-item"><b>🎨 Design &amp; Material Changes:</b> Any design, size, finish or material change after final approval will be chargeable.</div>
+      <div class="estimate-term-item"><b>⏳ Project Timeline:</b> Estimated timeline starts after final design approval and advance payment.</div>
+      <div class="estimate-term-item"><b>🛡️ Warranty:</b> Warranty covers workmanship only; material warranty as per manufacturer policy.</div>
+      <div class="estimate-term-item"><b>🏠 Site Readiness:</b> Client must ensure site availability, electricity &amp; water supply during work execution.</div>
+      <div class="estimate-term-item"><b>📏 Measurement Variation:</b> Final billing may vary slightly based on actual site measurements.</div>
+      <div class="estimate-term-item"><b>🚚 Transportation &amp; Loading:</b> Transportation, loading/unloading charges are excluded unless specifically mentioned.</div>
+      <div class="estimate-term-item"><b>📦 Material Availability:</b> In case of market unavailability, equivalent material/brand may be used after client approval.</div>
+      <div class="estimate-term-item"><b>☁️ Delays Beyond Control:</b> Delays caused by weather, building restrictions, vendor issues or unforeseen conditions will not be considered contractor liability.</div>
+      <div class="estimate-term-item"><b>🧹 Cleaning &amp; Debris Removal:</b> Basic cleaning included; deep cleaning and external debris disposal are excluded unless mentioned.</div>
+      <div class="estimate-term-item"><b>🧾 Quotation Validity:</b> This quotation is valid for <span id="termsValidityDays">15</span> days, up to <span id="termsValidUntil">—</span>, and subject to material price fluctuation.</div>
+    </div>
   </div>
   <div class="estimate-terms-panel">
     <div class="estimate-terms-title">▣ SPECIAL / PROJECT NOTES</div>
@@ -1342,14 +1344,14 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
   </div>
 
   <div class="estimate-signatures">
-    <div class="estimate-sign-block"><div class="estimate-sign-script">Subhendu Biswas</div><div class="estimate-signline"></div><div class="estimate-sign-title">Prepared By</div><div class="estimate-sign-meta">Founder &amp; Director</div></div>
+    <div class="estimate-sign-block"><div class="estimate-sign-script" id="estimatePreparedByName">—</div><div class="estimate-signline"></div><div class="estimate-sign-title">Prepared By</div><div class="estimate-sign-meta" id="estimatePreparedByCompany">Sankalp Interior Solution</div></div>
     <div class="estimate-sign-block"><div class="estimate-sign-script">&nbsp;</div><div class="estimate-signline"></div><div class="estimate-sign-title">Client Acceptance</div><div class="estimate-sign-meta">Client Name / Signature / Date</div></div>
     <div class="estimate-sign-block"><div class="estimate-sign-script">&nbsp;</div><div class="estimate-signline"></div><div class="estimate-sign-title" id="estimateFooterCompany">For Sankalp Interior Solution</div><div class="estimate-sign-meta">Authorised Signatory</div></div>
   </div>
 
   <div class="estimate-footer-main">
     <div class="estimate-footer-brand"><img id="estimateFooterLogo" class="estimate-footer-logo" src="https://www.sankalpinterior.com/uploads/upload_1.png" alt="Sankalp Interior Solution"><div class="estimate-footer-brand-text"><b id="estimateFooterBrandName">Sankalp Interior Solution</b>DESIGN · BUILD · TRANSFORM</div></div>
-    <div class="estimate-footer-contact"><b>Office:</b> GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br><b>Phone:</b> +91 9748297025 &nbsp; <b>WhatsApp:</b> 9748297025<br><b>Website:</b> www.sankalpdesign.com &nbsp; <b>Email:</b> info.sankalpgrp@gmail.com</div>
+    <div class="estimate-footer-contact" id="estimateFooterContact"></div>
     <div class="estimate-footer-tag">BEAUTIFUL SPACES<br>BETTER LIVING<small>INTERIORS · CONSTRUCTION · TURNKEY SOLUTIONS</small></div>
   </div>
   <div class="estimate-footer-services">INTERIORS &nbsp; | &nbsp; CONSTRUCTION &nbsp; | &nbsp; TURNKEY SOLUTIONS &nbsp; | &nbsp; RESIDENTIAL &nbsp; | &nbsp; COMMERCIAL &nbsp; | &nbsp; HOSPITALITY</div>
@@ -1384,7 +1386,7 @@ const COMPANY_PROFILES={
     titleHtml:'<span>Sankalp</span> <span class="orange">Interior Solution</span>',
     fullName:'Sankalp Interior Solution',
     logo:'https://www.sankalpinterior.com/uploads/upload_1.png',
-    phone:'+91 9748297025',email:'info.sankalpgrp@gmail.com',website:'www.sankalpdesign.com',
+    phone:'+91 9748297025',whatsapp:'9748297025',email:'info.sankalpgrp@gmail.com',website:'www.sankalpdesign.com',
     tagline:'Beautiful Spaces&nbsp;&nbsp;|&nbsp;&nbsp;Better Living',
     subtitle:'DESIGN&nbsp;&nbsp; | &nbsp;&nbsp;BUILD&nbsp;&nbsp; | &nbsp;&nbsp;TRANSFORM',
     ribbonLeft:'INTERIORS&nbsp;&nbsp; | &nbsp;&nbsp;CONSTRUCTION&nbsp;&nbsp; | &nbsp;&nbsp;TURNKEY SOLUTIONS',
@@ -1395,7 +1397,7 @@ const COMPANY_PROFILES={
     titleHtml:'<span>Srijan</span> <span class="orange">Interior &amp; Infra Solution</span>',
     fullName:'Srijan Interior &amp; Infra Solution',
     logo:'https://srijaninterior.com/srijan-interior-logo.png',
-    phone:'+91 98311 05984',email:'info.srijaninterior@gmail.com',website:'www.srijaninterior.com',
+    phone:'+91 98311 05984',whatsapp:'+91 98311 05984',email:'info.srijaninterior@gmail.com',website:'www.srijaninterior.com',
     tagline:'Not just interiors,&nbsp;&nbsp;we design your dreams.',
     subtitle:'INTERIOR DESIGN&nbsp;&nbsp; | &nbsp;&nbsp;CIVIL &amp; INFRA&nbsp;&nbsp; | &nbsp;&nbsp;CONSTRUCTION',
     ribbonLeft:'INTERIOR DESIGN&nbsp;&nbsp; | &nbsp;&nbsp;CIVIL &amp; INFRA&nbsp;&nbsp; | &nbsp;&nbsp;EXECUTION',
@@ -1419,13 +1421,28 @@ function applyCompanyBranding(key='sankalp'){
   $('estimateFooterCompany').textContent='For '+company.fullName.replace(/&amp;/g,'&');
   const footerLogo=$('estimateFooterLogo'); if(footerLogo){footerLogo.src=company.logo;footerLogo.alt=company.fullName.replace(/&amp;/g,'&');}
   const footerBrandName=$('estimateFooterBrandName'); if(footerBrandName)footerBrandName.textContent=company.fullName.replace(/&amp;/g,'&');
+  const footerContact=$('estimateFooterContact');
+  if(footerContact){
+    footerContact.innerHTML='<b>Office:</b> GB, Oishi Tower-II, Rabindra Pally, Jyangra, Baguiati, Kolkata – 700059<br>'+
+      '<b>Phone:</b> '+esc(company.phone)+' &nbsp; <b>WhatsApp:</b> '+esc(company.whatsapp||company.phone)+'<br>'+
+      '<b>Website:</b> '+esc(company.website)+' &nbsp; <b>Email:</b> '+esc(company.email);
+  }
   const switchLabel=$('companySwitchLabel');
   if(switchLabel)switchLabel.textContent=company.key==='sankalp'?'Srijan':'Sankalp';
   const switchBtn=$('companySwitch');
   if(switchBtn)switchBtn.title='Switch estimate company — currently '+company.fullName.replace(/&amp;/g,'&');
+  updatePreparedByFooter();
   document.title=(company.key==='sankalp'?'Sankalp':'Srijan')+' Interior Estimate System V2';
 }
-function switchCompany(){applyCompanyBranding(S.companyKey==='sankalp'?'srijan':'sankalp');renderGiftSelection(calculateGrandOnly());}
+function updatePreparedByFooter(){
+  const nameEl=$('estimatePreparedByName');
+  const companyEl=$('estimatePreparedByCompany');
+  const select=$('createdBy');
+  const selectedName=select?.selectedOptions?.[0]?.textContent?.trim()||'';
+  const company=COMPANY_PROFILES[S.companyKey]||COMPANY_PROFILES.sankalp;
+  if(nameEl)nameEl.textContent=selectedName||'—';
+  if(companyEl)companyEl.textContent=company.fullName.replace(/&amp;/g,'&');
+}function switchCompany(){applyCompanyBranding(S.companyKey==='sankalp'?'srijan':'sankalp');renderGiftSelection(calculateGrandOnly());}
 function formatFeetInches(value){const n=Number(value);if(!Number.isFinite(n)||n<=0)return '';let totalInches=Math.round(n*12);let feet=Math.floor(totalInches/12);let inches=totalInches%12;return String(feet)+'.'+String(inches).padStart(2,'0');}
 function parseFeetInches(value){const s=String(value??'').trim().toLowerCase();if(!s)return 0;const unitMatch=s.match(/^(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(\d+(?:\.\d+)?)?\s*(?:in|inch|inches|")?$/);if(unitMatch){const feet=Number(unitMatch[1])||0;const inches=unitMatch[2]==null||unitMatch[2]===''?0:Number(unitMatch[2]);if(inches<0||inches>=12)return null;return feet+inches/12;}const compact=s.replace(/\s+/g,'');const m=compact.match(/^(\d+)(?:\.(\d{1,2}))?$/);if(!m)return null;const feet=Number(m[1])||0;const inches=m[2]==null?0:Number(m[2]);if(inches>=12)return null;return feet+inches/12;}
 function feetInchesDisplay(value){const n=Number(value);if(!Number.isFinite(n)||n<=0)return '';return formatFeetInches(n);}
@@ -1440,7 +1457,7 @@ function setConnectionStatus(message,type='info'){
  n.style.color=type==='ok'?'#047857':type==='error'?'#991b1b':'#1e40af';
 }
 async function waitForAuth(){const {data,error}=await S.sb.auth.getUser();if(error)throw error;if(data?.user){S.user=data.user;S.authReady=true;return data.user;}throw new Error('No active Supabase login session. Please open V2 from the logged-in Estimates dashboard.');}
-async function waitForSupabaseClient(timeoutMs=15000){const started=Date.now();while(!(window.supabase&&window.supabase.createClient)){if(Date.now()-started>timeoutMs)throw new Error('Supabase library did not load. Please refresh the page or check browser network access.');await new Promise(r=>setTimeout(r,100));}return window.supabase;}async function init(){try{const defaultUrl='https://tbfzxmbvzpszjldupycy.supabase.co';const defaultKey='sb_publishable_lHpkefWymNBde8t8hESJ_A_8ENwAFBA';const u=params.get('u')||defaultUrl;const k=params.get('k')||defaultKey;const supabaseLib=await waitForSupabaseClient();S.sb=supabaseLib.createClient(u,k,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});if(!S.sb)throw new Error('Supabase client could not be initialized');setConnectionStatus('Checking secure login session…');await waitForAuth();setConnectionStatus('Authenticated. Loading Items and Presets…');await loadCatalog();await loadRoomTemplates();await loadGiftPresets();if(!S.items.length)throw new Error('Database connected but no active V2 Items were returned.');const presetCount=S.items.reduce((n,i)=>n+i.presets.length,0);if(!presetCount)throw new Error('Database connected but no active V2 Presets were returned.');await loadProfile();if(!S.estimateId){const draftKey='sankalp_v2_draft_started_'+(S.leadId||'new');const draftStarted=sessionStorage.getItem(draftKey)||new Date().toISOString();sessionStorage.setItem(draftKey,draftStarted);$('estDateTime').value=toLocalDateTimeInput(draftStarted);await ensureEstimateNo();}await loadEstimate();if(S.leadId)await loadLead(S.leadId);S.ready=true;setConnectionStatus('Connected ✓ · '+S.items.length+' Items · '+presetCount+' Presets loaded','ok');}catch(e){console.error('V2 initialization failed',e);S.ready=false;setConnectionStatus(e.message||'Database connection failed','error');alert('V2 cannot start: '+(e.message||'Database connection failed'));}}
+async function waitForSupabaseClient(timeoutMs=15000){const started=Date.now();while(!(window.supabase&&window.supabase.createClient)){if(Date.now()-started>timeoutMs)throw new Error('Supabase library did not load. Please refresh the page or check browser network access.');await new Promise(r=>setTimeout(r,100));}return window.supabase;}async function init(){try{const defaultUrl='https://tbfzxmbvzpszjldupycy.supabase.co';const defaultKey='sb_publishable_lHpkefWymNBde8t8hESJ_A_8ENwAFBA';const u=params.get('u')||defaultUrl;const k=params.get('k')||defaultKey;const supabaseLib=await waitForSupabaseClient();S.sb=supabaseLib.createClient(u,k,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});if(!S.sb)throw new Error('Supabase client could not be initialized');setConnectionStatus('Checking secure login session…');await waitForAuth();setConnectionStatus('Authenticated. Loading Items and Presets…');await loadCatalog();await loadRoomTemplates();await loadGiftPresets();if(!S.items.length)throw new Error('Database connected but no active V2 Items were returned.');const presetCount=S.items.reduce((n,i)=>n+i.presets.length,0);if(!presetCount)throw new Error('Database connected but no active V2 Presets were returned.');await loadProfile();updatePreparedByFooter();if(!S.estimateId){const draftKey='sankalp_v2_draft_started_'+(S.leadId||'new');const draftStarted=sessionStorage.getItem(draftKey)||new Date().toISOString();sessionStorage.setItem(draftKey,draftStarted);$('estDateTime').value=toLocalDateTimeInput(draftStarted);await ensureEstimateNo();}await loadEstimate();if(S.leadId)await loadLead(S.leadId);S.ready=true;setConnectionStatus('Connected ✓ · '+S.items.length+' Items · '+presetCount+' Presets loaded','ok');}catch(e){console.error('V2 initialization failed',e);S.ready=false;setConnectionStatus(e.message||'Database connection failed','error');alert('V2 cannot start: '+(e.message||'Database connection failed'));}}
 function updatePresetCloudSummary(message='Cloud catalog loaded'){
  const ic=document.getElementById('cloudItemCount'),pc=document.getElementById('cloudPresetCount'),rc=document.getElementById('cloudRoomCount'),msg=document.getElementById('presetCloudMessage');
  const presetCount=S.items.reduce((n,i)=>n+(i.presets?.length||0),0);
@@ -1473,10 +1490,22 @@ async function loadCatalog(){const itemsRes=await S.sb.from('estimate_v2_items')
 async function loadRoomTemplates(){const {data:rooms,error}=await S.sb.from('estimate_v2_rooms').select('id,name,remarks,sort_order,active').eq('active',true).order('sort_order',{ascending:true});if(error)throw error;S.roomTemplates=(rooms||[]).map(r=>({...r})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'}));updatePresetCloudSummary();}
 function toLocalDateTimeInput(iso){const d=iso?new Date(iso):new Date();if(Number.isNaN(d.getTime()))return'';const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());}
 function syncTermsValidity(){
+ const days=Number($('validityDays')?.value)||15;
  const el=$('termsValidityDays');
- if(el)el.textContent=$('validityDays')?.value||15;
+ if(el)el.textContent=days;
+ const dateEl=$('termsValidUntil');
+ if(dateEl)dateEl.textContent=$('validUntil')?.value||'—';
 }
-function updateValidUntil(){const src=$('estDateTime').value;if(!src){$('validUntil').value='';return}const d=new Date(src);const days=Number($('validityDays').value)||15;if(Number.isNaN(d.getTime()))return;d.setDate(d.getDate()+days);$('validUntil').value=d.toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function updateValidUntil(){
+ const src=$('estDateTime').value;
+ if(!src){$('validUntil').value='';syncTermsValidity();return}
+ const d=new Date(src);
+ const days=Number($('validityDays').value)||15;
+ if(Number.isNaN(d.getTime())){syncTermsValidity();return}
+ d.setDate(d.getDate()+days);
+ $('validUntil').value=d.toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+ syncTermsValidity();
+}
 function toggleVisitDate(){const yes=$('fieldVisitStatus').value==='YES';$('visitDateField').style.visibility=yes?'visible':'hidden';$('visitDateField').style.opacity=yes?'1':'0';$('visitDateField').style.pointerEvents=yes?'auto':'none';if(!yes)$('visitDate').value='';}
 async function profileName(id){if(!id)return null;const {data,error}=await S.sb.from('profiles').select('id,full_name,designation,role').eq('id',id).maybeSingle();if(error)throw error;return data||null;}
 async function setCreationByOptions(selectedId='',leadId=''){
@@ -1560,7 +1589,7 @@ function unlinkLead(){
  setLeadLinkedState(false);
 }
 
-async function loadEstimate(){if(!S.estimateId)return;const {data,error}=await S.sb.from('estimates_v2').select('*').eq('id',S.estimateId).maybeSingle();if(error)throw error;if(!data)return;const d=data.data||{};$('estNo').value=data.estimate_no||'';$('estDateTime').value=d.meta?.estimateDateTime||toLocalDateTimeInput(data.created_at);$('validityDays').value=String(d.meta?.validityDays||15);$('fieldVisitStatus').value=d.meta?.fieldVisitStatus||'NO';$('visitDate').value=d.meta?.visitDate||'';$('cliName').value=data.customer_name||d.meta?.name||'';$('cliPhone').value=data.phone||d.meta?.phone||'';$('cliWork').value=d.meta?.work||'';$('cliAddr').value=d.meta?.address||'';$('cliBudget').value=d.meta?.budget??'';$('notes').value=d.meta?.notes||'';$('offerDesignDiscount').value=d.meta?.specialOffer?.designDiscount??100;$('offerConsultancyDiscount').value=d.meta?.specialOffer?.consultancyDiscount??100;$('offerCashDiscount').value=d.meta?.specialOffer?.cashDiscount??0;$('offerCashDiscountType').value=d.meta?.specialOffer?.cashDiscountType||'percent';applyCompanyBranding(d.meta?.companyKey||'sankalp');await loadGiftSelectionForEstimate(d.meta?.gift);if(data.lead_id){S.leadId=data.lead_id;await loadLead(data.lead_id);}else if(!S.leadId){setLeadLinkedState(false);await setCreationByOptions(d.meta?.creationById||'',S.leadId);}else{await setCreationByOptions(d.meta?.creationById||'',S.leadId);}toggleVisitDate();updateValidUntil();S.rooms=Array.isArray(d.rooms)?d.rooms:[];S.rows=Array.isArray(d.rows)?d.rows:[];renderRows();calculate();}
+async function loadEstimate(){if(!S.estimateId)return;const {data,error}=await S.sb.from('estimates_v2').select('*').eq('id',S.estimateId).maybeSingle();if(error)throw error;if(!data)return;const d=data.data||{};$('estNo').value=data.estimate_no||'';$('estDateTime').value=d.meta?.estimateDateTime||toLocalDateTimeInput(data.created_at);$('validityDays').value=String(d.meta?.validityDays||15);$('fieldVisitStatus').value=d.meta?.fieldVisitStatus||'NO';$('visitDate').value=d.meta?.visitDate||'';$('cliName').value=data.customer_name||d.meta?.name||'';$('cliPhone').value=data.phone||d.meta?.phone||'';$('cliWork').value=d.meta?.work||'';$('cliAddr').value=d.meta?.address||'';$('cliBudget').value=d.meta?.budget??'';$('notes').value=d.meta?.notes||'';$('offerDesignDiscount').value=d.meta?.specialOffer?.designDiscount??100;$('offerConsultancyDiscount').value=d.meta?.specialOffer?.consultancyDiscount??100;$('offerCashDiscount').value=d.meta?.specialOffer?.cashDiscount??0;$('offerCashDiscountType').value=d.meta?.specialOffer?.cashDiscountType||'percent';applyCompanyBranding(d.meta?.companyKey||'sankalp');await loadGiftSelectionForEstimate(d.meta?.gift);if(data.lead_id){S.leadId=data.lead_id;await loadLead(data.lead_id);}else if(!S.leadId){setLeadLinkedState(false);await setCreationByOptions(d.meta?.creationById||'',S.leadId);updatePreparedByFooter();}else{await setCreationByOptions(d.meta?.creationById||'',S.leadId);updatePreparedByFooter();}toggleVisitDate();updateValidUntil();syncTermsValidity();updatePreparedByFooter();S.rooms=Array.isArray(d.rooms)?d.rooms:[];S.rows=Array.isArray(d.rows)?d.rows:[];renderRows();calculate();}
 async function ensureEstimateNo(){if($('estNo').value)return;const {data,error}=await S.sb.rpc('next_estimate_no');if(!error&&data)$('estNo').value=data;else $('estNo').value='EST-V2-'+Date.now();}
 function addRow(snapshot){const r={id:crypto.randomUUID(),itemId:snapshot?.itemId||'',presetId:snapshot?.presetId||'',roomId:snapshot?.roomId||'',length:snapshot?.length??'',width:snapshot?.width??'',height:snapshot?.height??'',area:snapshot?.area??0,quantity:snapshot?.quantity??1,rate:snapshot?.rate??0,specification:snapshot?.specification||'',measurementType:snapshot?.measurementType||'',unit:snapshot?.unit||'sqft',presetName:snapshot?.presetName||'',itemName:snapshot?.itemName||''};S.rows.push(r);renderRows();}
 function itemOptions(selected){return '<option value="">Select item…</option>'+S.items.map(i=>'<option value="'+i.id+'" '+(i.id===selected?'selected':'')+'>'+esc(i.name)+'</option>').join('');}
@@ -2009,7 +2038,9 @@ document.addEventListener('change',e=>{
 });
 
 document.addEventListener('input',e=>{if(e.target.id==='giftImageUrl')updateGiftImagePreview(e.target.value);if(e.target.matches('[data-room-remarks]')){const r=roomById(e.target.dataset.roomId);if(r)r.remarks=e.target.value;}});
-$('estDateTime').addEventListener('change',()=>{updateValidUntil();calculate();});$('validityDays').addEventListener('change',updateValidUntil);$('fieldVisitStatus').addEventListener('change',toggleVisitDate);
+$('estDateTime').addEventListener('change',()=>{updateValidUntil();calculate();});
+$('validityDays').addEventListener('change',()=>{updateValidUntil();syncTermsValidity();});
+$('createdBy').addEventListener('change',updatePreparedByFooter);$('fieldVisitStatus').addEventListener('change',toggleVisitDate);
 window.addEventListener('error',e=>{console.error('V2 page error',e.error||e.message);const n=document.querySelector('.notice');if(n)n.innerHTML='<b>V2 Page Error:</b> '+esc(e.message||'Unexpected browser error');});window.addEventListener('unhandledrejection',e=>{console.error('V2 promise error',e.reason);});init();
 </script>
 </body></html>

@@ -144,17 +144,14 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
 }
 @media(max-width:950px){.gift-premium .gift-promo-editor{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.gift-premium .gift-promo-editor{grid-template-columns:1fr}}
-.estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:25px;break-inside:avoid}
-.estimate-terms-panel{border:1px solid var(--bd);border-radius:8px;padding:18px;background:#f8fafc;min-width:0}
+.estimate-terms-section{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:25px;padding:18px;border:1px solid var(--bd);border-radius:8px;background:#f8fafc;break-inside:avoid;min-width:0}
+.estimate-terms-panel{border:0;border-radius:0;padding:0;background:transparent;min-width:0}
 .estimate-terms-title{font-size:13px;font-weight:800;color:var(--p);padding-bottom:10px;border-bottom:1px solid #e2e8f0;letter-spacing:.2px}
 .estimate-terms-list,.estimate-project-list{margin:10px 0 0;padding-left:23px;font-size:12px;line-height:1.75;color:#1f2937}
 .estimate-terms-list li,.estimate-project-list li{padding:2px 0 4px}
 .estimate-project-list{list-style:disc}
-.estimate-additional-notes{margin-top:12px;padding-top:12px;border-top:1px dashed #cbd5e1}
-.estimate-additional-note-input{display:block;width:100%;min-height:72px;margin-top:8px;padding:8px 0;border:0;background:transparent;resize:vertical;box-sizing:border-box;color:#334155;font:inherit;font-size:12px;line-height:1.5;outline:none}
-.estimate-additional-note-input::placeholder{color:#64748b}
-@media(max-width:800px){.estimate-terms-section{grid-template-columns:1fr}.estimate-terms-panel{padding:14px}}
-@media print{.estimate-terms-section{grid-template-columns:1fr 1fr;gap:10mm;margin-top:8mm}.estimate-terms-panel{padding:5mm}.estimate-terms-list,.estimate-project-list{font-size:9.5px;line-height:1.55}}
+@media(max-width:800px){.estimate-terms-section{grid-template-columns:1fr;gap:18px;padding:14px}}
+@media print{.estimate-terms-section{grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm;padding:5mm}.estimate-terms-list,.estimate-project-list{font-size:9.5px;line-height:1.55}}
 .project-breakdown{display:flex;flex-direction:column;gap:0;margin-top:4px}
 .project-breakdown-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed #dbe3ee;font-size:12px;color:#334155}
 .project-breakdown-row span{min-width:0}.project-breakdown-row b{white-space:nowrap;color:#0f3f78;font-size:12px}
@@ -957,10 +954,6 @@ header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px sol
       <li><b>🎨 Decorative &amp; Premium Finishes:</b> Decorative designs, CNC patterns, fluted panels, lighting styles and premium finishes may vary depending on final selection and site feasibility.</li>
       <li><b>📐 Actual Measurement Basis:</b> Final quantity and billing may slightly increase or decrease based on actual site measurements and executed work.</li>
     </ul>
-    <div class="estimate-additional-notes">
-      <div class="estimate-terms-title">✎ ADDITIONAL NOTES (OPTIONAL)</div>
-      <textarea id="notes" class="estimate-additional-note-input" placeholder="Click here to type specific ad-hoc notes..."></textarea>
-    </div>
   </div>
 </section>
 

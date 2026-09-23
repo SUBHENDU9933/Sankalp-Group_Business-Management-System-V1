@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeRole } from "@/utils/permissions";
+import { toast } from "sonner";
 
 const AuthContext = createContext(null);
 
@@ -14,6 +15,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       if (error) console.error("loadProfile error:", error);
+      // Deactivation is enforced at the Auth level (blocks future sign-ins),
+      // but an already-open session's access token stays valid until it
+      // expires — this catches that window and signs them out immediately.
+      if (data?.is_active === false) {
+        toast.error("Your account has been deactivated. Contact an administrator.");
+        await supabase.auth.signOut();
+        setProfile(null);
+        return;
+      }
       setProfile(data || null);
     } catch (e) {
       console.error("loadProfile exception:", e);

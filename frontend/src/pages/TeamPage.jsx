@@ -6,13 +6,13 @@ import { Chip } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchProfiles, updateProfileRole, adminSetUserPassword } from "@/services/profileService";
+import { fetchProfiles, updateProfileRole, adminSetUserPassword, updateUserActiveStatus } from "@/services/profileService";
 import { assignReToRm, fetchRmReAssignments, removeReFromRm } from "@/services/rmReService";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDate } from "@/utils/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { KeyRound, Eye, EyeOff } from "lucide-react";
+import { KeyRound, Eye, EyeOff, ShieldOff, ShieldCheck } from "lucide-react";
 
 export default function TeamPage() {
   const { user } = useAuth();
@@ -27,6 +27,8 @@ export default function TeamPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [statusUser, setStatusUser] = useState(null); // { profile, nextActive }
+  const [changingStatus, setChangingStatus] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -88,6 +90,18 @@ export default function TeamPage() {
 
   const roleLabel = { admin: "Admin", rm: "RM", re: "RE", manager: "RM", executive: "RE" };
 
+  const handleConfirmStatusChange = async () => {
+    if (!statusUser) return;
+    setChangingStatus(true);
+    try {
+      await updateUserActiveStatus(statusUser.profile.id, statusUser.nextActive);
+      toast.success(statusUser.nextActive ? `${statusUser.profile.full_name || statusUser.profile.email} reactivated — they can sign in again` : `${statusUser.profile.full_name || statusUser.profile.email} deactivated — they can no longer sign in`);
+      setStatusUser(null);
+      load();
+    } catch (e) { toast.error(e.message); }
+    finally { setChangingStatus(false); }
+  };
+
   return (
     <div data-testid="team-page">
       <PageHeader subtitle="Admin" title="Team Members" />
@@ -124,8 +138,8 @@ export default function TeamPage() {
 
         <div className="mt-6">
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading…</div> : <div className="bg-white border border-stone-200 overflow-x-auto">
-            <table className="w-full text-sm" data-testid="team-table"><thead className="bg-stone-50 border-b border-stone-200"><tr className="text-left"><th className="px-4 py-3 label-uppercase">Name</th><th className="px-4 py-3 label-uppercase">Email</th><th className="px-4 py-3 label-uppercase">Role</th><th className="px-4 py-3 label-uppercase">Joined</th><th className="px-4 py-3 label-uppercase">Security</th></tr></thead>
-              <tbody className="grid-divider-y">{profiles.map((p) => <tr key={p.id} className="hover:bg-stone-50" data-testid={`team-row-${p.id}`}><td className="px-4 py-3 font-medium">{p.full_name || "—"}{p.id === user?.id && <span className="ml-2 text-xs text-orange-600">(You)</span>}</td><td className="px-4 py-3 text-stone-700">{p.email}</td><td className="px-4 py-3"><Select value={p.role} onValueChange={(v) => handleRoleChange(p.id, v)} disabled={p.id === user?.id}><SelectTrigger className={cn("rounded-none w-[120px] border-stone-300 h-8", p.role === "admin" && "bg-orange-50 border-orange-300")} data-testid={`team-role-${p.id}`}><SelectValue>{roleLabel[p.role] || p.role}</SelectValue></SelectTrigger><SelectContent className="rounded-none"><SelectItem value="admin" className="rounded-none">Admin</SelectItem><SelectItem value="rm" className="rounded-none">Relationship Manager (RM)</SelectItem><SelectItem value="re" className="rounded-none">Relationship Executive (RE)</SelectItem></SelectContent></Select></td><td className="px-4 py-3 text-stone-600">{formatDate(p.created_at)}</td><td className="px-4 py-3"><Button variant="outline" className="rounded-none h-8" onClick={() => openPasswordDialog(p)} data-testid={`team-password-${p.id}`}><KeyRound className="w-3.5 h-3.5 mr-1.5" />Change Password</Button></td></tr>)}</tbody>
+            <table className="w-full text-sm" data-testid="team-table"><thead className="bg-stone-50 border-b border-stone-200"><tr className="text-left"><th className="px-4 py-3 label-uppercase">Name</th><th className="px-4 py-3 label-uppercase">Email</th><th className="px-4 py-3 label-uppercase">Role</th><th className="px-4 py-3 label-uppercase">Status</th><th className="px-4 py-3 label-uppercase">Joined</th><th className="px-4 py-3 label-uppercase">Security</th></tr></thead>
+              <tbody className="grid-divider-y">{profiles.map((p) => <tr key={p.id} className="hover:bg-stone-50" data-testid={`team-row-${p.id}`}><td className="px-4 py-3 font-medium">{p.full_name || "—"}{p.id === user?.id && <span className="ml-2 text-xs text-orange-600">(You)</span>}</td><td className="px-4 py-3 text-stone-700">{p.email}</td><td className="px-4 py-3"><Select value={p.role} onValueChange={(v) => handleRoleChange(p.id, v)} disabled={p.id === user?.id}><SelectTrigger className={cn("rounded-none w-[120px] border-stone-300 h-8", p.role === "admin" && "bg-orange-50 border-orange-300")} data-testid={`team-role-${p.id}`}><SelectValue>{roleLabel[p.role] || p.role}</SelectValue></SelectTrigger><SelectContent className="rounded-none"><SelectItem value="admin" className="rounded-none">Admin</SelectItem><SelectItem value="rm" className="rounded-none">Relationship Manager (RM)</SelectItem><SelectItem value="re" className="rounded-none">Relationship Executive (RE)</SelectItem></SelectContent></Select></td><td className="px-4 py-3">{p.is_active === false ? <Chip className="bg-rose-50 text-rose-700 border-rose-300">Inactive</Chip> : <Chip className="bg-emerald-50 text-emerald-700 border-emerald-300">Active</Chip>}</td><td className="px-4 py-3 text-stone-600">{formatDate(p.created_at)}</td><td className="px-4 py-3"><div className="flex items-center gap-1.5"><Button variant="outline" className="rounded-none h-8" onClick={() => openPasswordDialog(p)} data-testid={`team-password-${p.id}`}><KeyRound className="w-3.5 h-3.5 mr-1.5" />Change Password</Button>{p.id !== user?.id && (p.is_active === false ? <Button variant="outline" className="rounded-none h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => setStatusUser({ profile: p, nextActive: true })} data-testid={`team-activate-${p.id}`}><ShieldCheck className="w-3.5 h-3.5 mr-1.5" />Activate</Button> : <Button variant="outline" className="rounded-none h-8 border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => setStatusUser({ profile: p, nextActive: false })} data-testid={`team-deactivate-${p.id}`}><ShieldOff className="w-3.5 h-3.5 mr-1.5" />Deactivate</Button>)}</div></td></tr>)}</tbody>
             </table></div>}
           <div className="mt-4 text-xs text-stone-500">Roles: Admin has company-wide control. RM manages permitted team/business scope. RE works within assigned/co-assigned business scope. RM–RE relationships are managed above and enforced in business scope checks.</div>
         </div>
@@ -146,6 +160,29 @@ export default function TeamPage() {
           <DialogFooter>
             <Button variant="outline" className="rounded-none" onClick={() => setPasswordUser(null)} disabled={changingPassword}>Cancel</Button>
             <Button className="rounded-none bg-stone-900 hover:bg-stone-800 text-white" onClick={handleAdminPasswordChange} disabled={changingPassword}>{changingPassword ? "Changing…" : "Change Password"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statusUser} onOpenChange={(open) => !open && !changingStatus && setStatusUser(null)}>
+        <DialogContent className="rounded-none">
+          <DialogHeader>
+            <DialogTitle>{statusUser?.nextActive ? "Reactivate User" : "Deactivate User"}</DialogTitle>
+            <DialogDescription>
+              {statusUser?.nextActive
+                ? <>Allow <strong>{statusUser?.profile?.full_name || statusUser?.profile?.email}</strong> to sign in again. Their account, history, and assignments are unchanged.</>
+                : <>Block <strong>{statusUser?.profile?.full_name || statusUser?.profile?.email}</strong> from signing in. They will not be able to log in until reactivated. Their existing leads, projects, and history stay exactly as they are.</>}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-none" onClick={() => setStatusUser(null)} disabled={changingStatus}>Cancel</Button>
+            <Button
+              className={cn("rounded-none text-white", statusUser?.nextActive ? "bg-emerald-700 hover:bg-emerald-800" : "bg-rose-700 hover:bg-rose-800")}
+              onClick={handleConfirmStatusChange}
+              disabled={changingStatus}
+            >
+              {changingStatus ? "Saving…" : statusUser?.nextActive ? "Reactivate" : "Deactivate"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

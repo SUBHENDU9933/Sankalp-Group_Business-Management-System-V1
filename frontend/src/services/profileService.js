@@ -59,3 +59,13 @@ export const adminSetUserPassword = async (userId, newPassword) => {
   if (data?.error) throw new Error(data.error);
   return data;
 };
+
+/** Admin-only activate/deactivate for another team member. Also blocks their sign-in at the Auth level (admin-set-user-status Edge Function), not just a cosmetic flag. */
+export const updateUserActiveStatus = async (userId, isActive) => {
+  const { data, error } = await supabase.functions.invoke("admin-set-user-status", {
+    body: { user_id: userId, is_active: isActive },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+};

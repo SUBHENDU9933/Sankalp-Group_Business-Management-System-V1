@@ -382,6 +382,36 @@ loads:
 - **`.emergent/`** — platform metadata for the Emergent AI tool itself, not
   app config.
 
+## 8.5 Fixed incidents worth remembering the shape of
+
+- **2026-09-26 — "Convert to Customer" threw `new row violates row-level
+  security policy for table "customers"` for an admin (Subhendu).** The
+  `customers_insert` policy's logic was reasoned through exhaustively and
+  should have passed for an admin (every sub-condition individually verified
+  true); `audit_log` confirmed his other writes — leads, estimates,
+  vendor_payments — were succeeding minutes before and after, ruling out a
+  systemic `is_admin()` problem. The fix applied: (1) `notify pgrst, 'reload
+  schema'` to clear any stale PostgREST schema/plan cache — Postgres schema
+  changes (new columns, rewritten policies) don't always get picked up by
+  PostgREST's connection pool until told to reload, and this project had just
+  had several recent migrations (`is_active`, the RBAC hardening pass); (2)
+  hardened `customers_insert`'s `with_check` to put `is_admin()` as an
+  unconditional top-level `OR`, rather than nested inside the `assigned_to`
+  clause only — so an admin's insert never depends on the
+  created_by/linked_lead/assigned_to chain at all. **If any other insert/update
+  policy ever throws an RLS error for an action that looks like it should
+  obviously be allowed, check two things before assuming the policy logic is
+  wrong: (a) whether an admin's other recent writes are succeeding (rules out
+  systemic auth issues), and (b) whether a schema reload
+  (`notify pgrst, 'reload schema'`) resolves it** — that's a much cheaper first
+  move than rewriting policy logic that may already be correct.
+  Note for future debugging: attempting to reproduce RLS failures via raw SQL
+  in this environment (`SET LOCAL ROLE authenticated` + `set_config('request.jwt.claims', ...)`)
+  gave inconsistent, unreliable results — it does not reliably mirror how
+  PostgREST evaluates policies for a real request, and it produced several
+  false leads during this investigation. Prefer checking `audit_log` for real
+  corroborating evidence over simulating auth context via raw SQL.
+
 ## 9. Known gaps found during this audit (not yet fixed — flag before assuming they're fine)
 
 1. **Lead conversion via pipeline drag-and-drop / bulk status change skips

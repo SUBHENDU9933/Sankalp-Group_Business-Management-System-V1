@@ -8,7 +8,7 @@ when architecture (not just features) changes.
 
 - **GitHub:** https://github.com/SUBHENDU9933/Sankalp-Group_Business-Management-System-V1 (public repo, main branch, auto-deploys to Vercel on push)
 - **Live app:** app.sankalpinterior.com — Vercel project `prj_CreTRlmansfeLrhqBihBk72pWHWz`, team `team_M6PMW9LqAcXDgO7tVi0ZTADt`
-- **Database:** Supabase project `tbfzxmbvzpszjldupycy` — Postgres + Auth + Storage + pg_cron + Realtime
+- **Database:** Supabase project `tbfzxmbvzpszjldupycy` — Postgres + Auth + Storage + pg_cron + Realtime + `pg_net` (enabled 2026-09-26 for the incident in §8.5 — lets Postgres itself make outbound HTTP calls, e.g. to invoke an Edge Function for testing; not otherwise used by the app yet)
 - **Stack:** React (CRA + craco) + Tailwind + shadcn/ui (Radix) + Supabase JS client + jsPDF/html2canvas (PDF export) + recharts (lazy-loaded, Reports only)
 - **A second Supabase project exists for the marketing website** (sankalpinterior.com's own lead-capture form) — it webhooks INSERTs into this app's `sync-website-lead` Edge Function to auto-create leads here. Two separate Supabase projects, one data flow.
 
@@ -385,32 +385,71 @@ loads:
 ## 8.5 Fixed incidents worth remembering the shape of
 
 - **2026-09-26 — "Convert to Customer" threw `new row violates row-level
-  security policy for table "customers"` for an admin (Subhendu).** The
-  `customers_insert` policy's logic was reasoned through exhaustively and
-  should have passed for an admin (every sub-condition individually verified
-  true); `audit_log` confirmed his other writes — leads, estimates,
-  vendor_payments — were succeeding minutes before and after, ruling out a
-  systemic `is_admin()` problem. The fix applied: (1) `notify pgrst, 'reload
-  schema'` to clear any stale PostgREST schema/plan cache — Postgres schema
-  changes (new columns, rewritten policies) don't always get picked up by
-  PostgREST's connection pool until told to reload, and this project had just
-  had several recent migrations (`is_active`, the RBAC hardening pass); (2)
-  hardened `customers_insert`'s `with_check` to put `is_admin()` as an
-  unconditional top-level `OR`, rather than nested inside the `assigned_to`
-  clause only — so an admin's insert never depends on the
-  created_by/linked_lead/assigned_to chain at all. **If any other insert/update
-  policy ever throws an RLS error for an action that looks like it should
-  obviously be allowed, check two things before assuming the policy logic is
-  wrong: (a) whether an admin's other recent writes are succeeding (rules out
-  systemic auth issues), and (b) whether a schema reload
-  (`notify pgrst, 'reload schema'`) resolves it** — that's a much cheaper first
-  move than rewriting policy logic that may already be correct.
-  Note for future debugging: attempting to reproduce RLS failures via raw SQL
-  in this environment (`SET LOCAL ROLE authenticated` + `set_config('request.jwt.claims', ...)`)
-  gave inconsistent, unreliable results — it does not reliably mirror how
-  PostgREST evaluates policies for a real request, and it produced several
-  false leads during this investigation. Prefer checking `audit_log` for real
-  corroborating evidence over simulating auth context via raw SQL.
+  security policy for table "customers"` for an admin (Subhendu), and
+  persisted across two rounds of fixes before the real cause was found.**
+
+  **What it looked like:** every individual condition in `customers_insert`'s
+  `with_check` — `created_by = auth.uid()`, `can_access_lead(...)`,
+  `is_admin()` — verified true in isolation, and `audit_log` showed the same
+  admin successfully writing to leads/estimates/vendor_payments minutes
+  before and after. A first fix (schema reload + making `is_admin()` an
+  unconditional top-level `OR` in `customers_insert`) did NOT resolve it —
+  the error kept recurring on retry.
+
+  **How it was actually found:** raw-SQL RLS simulation in this environment
+  (`SET LOCAL ROLE authenticated` + `set_config('request.jwt.claims', ...)`)
+  gave inconsistent, unreliable results throughout this investigation and
+  should not be trusted — it does not reliably mirror how PostgREST evaluates
+  policies for a real request. The reliable technique that finally cracked
+  it: mint a **real, valid session** for the affected user from an Edge
+  Function via `adminClient.auth.admin.generateLink()` +
+  `anonClient.auth.verifyOtp()` (the same mechanism a magic-link login uses —
+  no password needed), then drive the exact `supabase-js` calls the frontend
+  makes against the real REST API using that session. Trigger the Edge
+  Function itself from SQL with the `pg_net` extension
+  (`net.http_get(url := '.../functions/v1/<fn>')`, response read back from
+  `net._http_response` after a short `pg_sleep`) — this works even when the
+  calling environment's own network can't reach `*.supabase.co` directly.
+  This let a **bare `.insert()` (no `.select()`)** be tested against a
+  **`.insert().select()`** (the pattern the app actually uses) side by side:
+  the bare insert succeeded (201, no error) while the one with `.select()`
+  failed identically to production. That isolated the real cause.
+
+  **The real cause:** `.insert().select()` makes PostgREST do
+  `INSERT ... RETURNING *`, and returning a row re-checks it against the
+  table's own **SELECT** policy (`customers_select`, whose logic lives in
+  `private.can_access_customer()`) — not just the INSERT policy's
+  `WITH CHECK`. `can_access_customer()` called `public.is_admin()` as a
+  **nested function call** from inside its own query. Empirically,
+  `is_admin()` called this way — nested inside another `SECURITY DEFINER`
+  function, itself evaluated as part of a DML statement's implicit
+  RETURNING/SELECT-policy re-check — unreliably returns false in this
+  environment, even though the exact same `is_admin()` call reliably returns
+  true as a plain RPC or in a top-level SELECT (confirmed directly: an RPC
+  call to `is_admin()` in the same real session, moments before the failing
+  insert, returned `true`). The fix: **inline the admin check** (a bare
+  `EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role =
+  'admin')`, no separate function call) as its own top-level `OR`, ahead of
+  the table-specific `EXISTS` — applied to `can_access_customer` and, since
+  the same nested pattern existed in **every other access-control helper**
+  (`can_access_lead`, `can_access_project`, `can_access_receipt`,
+  `can_access_agreement`, `can_access_digital_approval`, `can_access_estimate`,
+  `can_access_vendor`, `can_manage_re`, `can_create_estimate_for_lead`), all
+  of them were rewritten the same way pre-emptively — each of those governs a
+  table that could hit the identical bug the next time an admin inserts or
+  updates a row there with `.select()`. Verified with the real-session
+  technique on the full two-step conversion flow (customer insert + lead
+  update) end to end before considering it fixed.
+
+  **The general lesson:** if a table's own SELECT-policy helper calls
+  `is_admin()` (or any other SECURITY DEFINER helper) as a **nested call
+  inside a query**, rather than as a bare top-level `EXISTS`/condition, an
+  admin's INSERT or UPDATE **with `.select()`** on that table can fail RLS
+  even though the same admin's plain reads and RPC calls work fine. If this
+  surfaces again on a table not listed above, apply the same inlining fix
+  there. And when a "should obviously pass" RLS failure resists a plausible-
+  looking fix, verify with a **real session** (magic-link mint + `pg_net`
+  to invoke it) rather than continuing to reason from raw-SQL simulation.
 
 ## 9. Known gaps found during this audit (not yet fixed — flag before assuming they're fine)
 

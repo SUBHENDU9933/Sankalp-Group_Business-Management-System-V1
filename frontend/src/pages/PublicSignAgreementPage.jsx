@@ -232,11 +232,24 @@ export default function PublicSignAgreementPage() {
             {downloading ? "Preparing your PDF…" : "Download Signed Agreement (PDF)"}
           </button>
         </div>
+        {/* Visible preview only — scaled down to fit the phone screen. */}
         <div className="overflow-x-auto pb-8">
           <div style={{ transform: "scale(0.42)", transformOrigin: "top center", marginBottom: "-58%" }}>
-            <div ref={docRef}>
-              <AgreementDocumentPages agreement={agreement} resolvedClauses={clauses} md={md} />
-            </div>
+            <AgreementDocumentPages agreement={agreement} resolvedClauses={clauses} md={md} />
+          </div>
+        </div>
+
+        {/* PDF export source — full-size, unscaled, off-screen copy.
+            html2canvas cannot capture text correctly inside a CSS transform:scale()
+            ancestor (it lays text out at the scaled size but draws glyphs at full size,
+            so every line overlaps). The dashboard download works because it captures an
+            unscaled document; this gives the public link the same clean source. */}
+        <div
+          aria-hidden="true"
+          style={{ position: "fixed", left: "-10000px", top: 0, width: "210mm", pointerEvents: "none" }}
+        >
+          <div ref={docRef}>
+            <AgreementDocumentPages agreement={agreement} resolvedClauses={clauses} md={md} />
           </div>
         </div>
       </div>

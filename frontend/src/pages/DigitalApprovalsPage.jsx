@@ -11,6 +11,7 @@ import LocationMapTile from "@/components/shared/LocationMapTile";
 import { fetchApprovals, createApproval, updateApproval, softDeleteApproval, APPROVAL_STATUSES } from "@/services/digitalApprovalService";
 import { fetchCustomers } from "@/services/customerService";
 import { fetchProjects } from "@/services/projectService";
+import { fetchLeadOptions } from "@/services/leadService";
 import { uploadFile } from "@/services/attachmentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ export default function DigitalApprovalsPage() {
   const [activeView, setActiveView] = useState(null);   // row for detail sheet
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -51,6 +53,7 @@ export default function DigitalApprovalsPage() {
   useEffect(() => {
     fetchCustomers().then(setCustomers).catch(() => setCustomers([]));
     fetchProjects().then(setProjects).catch(() => setProjects([]));
+    fetchLeadOptions().then(setLeads).catch(() => setLeads([]));
   }, []);
 
   const filtered = useMemo(() => rows, [rows]);
@@ -112,7 +115,7 @@ export default function DigitalApprovalsPage() {
                         <div className="font-semibold text-stone-900 truncate">{r.subject}</div>
                         <div className="text-xs text-stone-500 mt-0.5">
                           {r.customer_name || r.customer?.name || "—"}
-                          {(r.project_name || r.project?.project_name) && (<> · <span>{r.project_name || r.project?.project_name}</span></>)}
+                          {(r.project_name || r.project?.project_name) && (<> · <span>{r.project_name || r.project?.project_name}{r.project_location ? `, ${r.project_location}` : ""}</span></>)}
                         </div>
                       </div>
                       <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase font-bold border", style.cls)}>
@@ -149,6 +152,7 @@ export default function DigitalApprovalsPage() {
           onOpenChange={(o) => { setOpenForm(o); if (!o) setEditingApproval(null); }}
           customers={customers}
           projects={projects}
+          leads={leads}
           userId={user?.id}
           editApproval={editingApproval}
           onCreated={(r) => { load(); setActiveView(r); }}
@@ -171,12 +175,34 @@ export default function DigitalApprovalsPage() {
 // ============================================================================
 // New Approval Dialog
 // ============================================================================
-function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, editApproval, onCreated, onUpdated }) {
+function NewApprovalDialog({ open, onOpenChange, customers, projects, leads = [], userId, editApproval, onCreated, onUpdated }) {
   const isEdit = !!editApproval;
   const [subject, setSubject] = useState(editApproval?.subject || "");
   const [description, setDescription] = useState(editApproval?.description || "");
   const [customerId, setCustomerId] = useState(editApproval?.customer_id || "");
   const [projectId, setProjectId] = useState(editApproval?.project_id || "");
+  // Link target: an existing Customer (with Project dropdown) or a Lead (with manual project details).
+  const [linkType, setLinkType] = useState(editApproval?.lead_id && !editApproval?.customer_id ? "lead" : "customer");
+  const [leadId, setLeadId] = useState(editApproval?.lead_id || "");
+  const [leadName, setLeadName] = useState(editApproval?.lead_id ? (editApproval?.customer_name || "") : "");
+  const [leadQuery, setLeadQuery] = useState("");
+  const [manualProjectName, setManualProjectName] = useState(editApproval?.lead_id ? (editApproval?.project_name || "") : "");
+  const [manualLocation, setManualLocation] = useState(editApproval?.project_location || "");
+  const selectedLead = leads.find((l) => l.id === leadId);
+  const leadMatches = useMemo(() => {
+    const q = leadQuery.trim().toLowerCase();
+    const list = q
+      ? leads.filter((l) => [l.name, l.phone, l.location, l.area].filter(Boolean).join(" ").toLowerCase().includes(q))
+      : leads;
+    return list.slice(0, 8);
+  }, [leads, leadQuery]);
+  const pickLead = (l) => {
+    setLeadId(l.id);
+    setLeadName(l.name || "");
+    setLeadQuery("");
+    setManualProjectName((prev) => prev || l.project_type || l.requirement || "");
+    setManualLocation((prev) => prev || l.location || l.area || "");
+  };
   const [photos, setPhotos] = useState(editApproval?.photo_urls || []);   // {url, name}
   const [files, setFiles] = useState(editApproval?.file_urls || []);     // {url, name}
   const [uploading, setUploading] = useState(false);
@@ -201,15 +227,31 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, ed
   const handleSubmit = async () => {
     if (!subject.trim()) { toast.error("Subject is required"); return; }
     setSaving(true);
+    const isLead = linkType === "lead";
+    if (isLead && !leadId) { toast.error("Please select a lead"); setSaving(false); return; }
     const cust = customers.find((c) => c.id === customerId);
     const proj = projects.find((p) => p.id === projectId);
+    const linkFields = isLead
+      ? {
+          lead_id: leadId,
+          customer_id: null,
+          customer_name: (selectedLead?.name || leadName || "").trim() || null,
+          project_id: null,
+          project_name: manualProjectName.trim() || null,
+          project_location: manualLocation.trim() || null,
+        }
+      : {
+          lead_id: null,
+          customer_id: customerId || null,
+          customer_name: cust?.name || null,
+          project_id: projectId || null,
+          project_name: proj?.project_name || null,
+          project_location: null,
+        };
     const payload = {
       subject: subject.trim(),
       description: description.trim() || null,
-      customer_id: customerId || null,
-      customer_name: cust?.name || null,
-      project_id: projectId || null,
-      project_name: proj?.project_name || null,
+      ...linkFields,
       photo_urls: photos.map((p) => ({ url: p.url, name: p.name })),
       file_urls: files.map((f) => ({ url: f.url, name: f.name, type: f.type })),
     };
@@ -243,6 +285,18 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, ed
             <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Description</label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="What are they approving? Include any material specs, colours, dimensions…" className="rounded-none border-stone-300 mt-1" data-testid="da-desc" />
           </div>
+          <div>
+            <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Link To</label>
+            <div className="mt-1 inline-flex border border-stone-300" role="tablist" data-testid="da-link-type">
+              {[["customer", "Customer"], ["lead", "Lead"]].map(([val, lbl]) => (
+                <button key={val} type="button" role="tab" aria-selected={linkType === val}
+                  onClick={() => setLinkType(val)}
+                  className={cn("px-4 py-1.5 text-xs font-medium tracking-wide", linkType === val ? "bg-stone-900 text-white" : "bg-white text-stone-600 hover:bg-stone-50")}
+                  data-testid={`da-link-${val}`}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          {linkType === "customer" ? (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Customer</label>
@@ -263,6 +317,47 @@ function NewApprovalDialog({ open, onOpenChange, customers, projects, userId, ed
               </Select>
             </div>
           </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Lead *</label>
+                {leadId ? (
+                  <div className="mt-1 flex items-center gap-2 border border-stone-300 px-3 py-2 text-sm bg-stone-50" data-testid="da-lead-selected">
+                    <User className="w-4 h-4 text-stone-400" />
+                    <span className="flex-1 truncate">{selectedLead?.name || leadName}{selectedLead?.phone ? ` · ${selectedLead.phone}` : ""}</span>
+                    <button type="button" onClick={() => { setLeadId(""); setLeadName(""); }} className="text-xs text-stone-500 underline">Change</button>
+                  </div>
+                ) : (
+                  <div className="mt-1">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Input value={leadQuery} onChange={(e) => setLeadQuery(e.target.value)} placeholder="Search lead by name, phone or location…" className="rounded-none border-stone-300 pl-9" data-testid="da-lead-search" />
+                    </div>
+                    <div className="border border-t-0 border-stone-300 max-h-48 overflow-y-auto">
+                      {leadMatches.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-stone-500">No active leads found</div>
+                      ) : leadMatches.map((l) => (
+                        <button key={l.id} type="button" onClick={() => pickLead(l)} className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 border-b border-stone-100 last:border-b-0" data-testid="da-lead-option">
+                          <span className="font-medium">{l.name}</span>
+                          <span className="text-stone-500">{l.phone ? ` · ${l.phone}` : ""}{l.location || l.area ? ` · ${l.location || l.area}` : ""}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Project Name</label>
+                  <Input value={manualProjectName} onChange={(e) => setManualProjectName(e.target.value)} placeholder="e.g. 2BHK Home Interior" className="rounded-none border-stone-300 mt-1" data-testid="da-manual-project" />
+                </div>
+                <div>
+                  <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Site Location</label>
+                  <Input value={manualLocation} onChange={(e) => setManualLocation(e.target.value)} placeholder="e.g. Baguiati, Kolkata" className="rounded-none border-stone-300 mt-1" data-testid="da-manual-location" />
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">Photos ({photos.length})</label>
@@ -331,7 +426,7 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete, onEdit })
     const title = `Approval Info : ${approval.subject}${approval.customer_name ? ` (${approval.customer_name})` : ""}`;
     const msg = encodeURIComponent(
       `*${title}*\n\n` +
-      (approval.project_name ? `Project: ${approval.project_name}\n` : "") +
+      (approval.project_name ? `Project: ${approval.project_name}${approval.project_location ? `, ${approval.project_location}` : ""}\n` : "") +
       (approval.description ? `\n${approval.description}\n` : "") +
       `\nPlease review & respond:\n${link}\n\n— Sankalp Group · Business Solutions`
     );
@@ -379,7 +474,7 @@ function ApprovalDetailSheet({ approval, open, onOpenChange, onDelete, onEdit })
             <div className="label-uppercase mb-2">Details</div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <Field label="Customer" value={approval.customer_name || approval.customer?.name} />
-              <Field label="Project" value={approval.project_name || approval.project?.project_name} />
+              <Field label="Project" value={[approval.project_name || approval.project?.project_name, approval.project_location].filter(Boolean).join(", ")} />
             </div>
             {approval.description && (
               <div className="mt-3">
@@ -561,7 +656,7 @@ function printApprovalRecord(approval) {
       <h3>Request Details</h3>
       <div class="grid">
         <div class="field"><label>Customer</label><span>${esc(approval.customer_name || approval.customer?.name || "—")}</span></div>
-        <div class="field"><label>Project</label><span>${esc(approval.project_name || approval.project?.project_name || "—")}</span></div>
+        <div class="field"><label>Project</label><span>${esc([approval.project_name || approval.project?.project_name, approval.project_location].filter(Boolean).join(", ") || "—")}</span></div>
         <div class="field"><label>Created By</label><span>${esc(approval.creator?.full_name || approval.creator?.email || "—")}</span></div>
         <div class="field"><label>Created At</label><span>${fmt(approval.created_at)}</span></div>
         <div class="field"><label>Expires At</label><span>${fmt(approval.expires_at)}</span></div>

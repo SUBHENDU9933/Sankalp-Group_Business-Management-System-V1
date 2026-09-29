@@ -233,3 +233,16 @@ export const convertLeadToCustomer = async (lead, userId) => {
   await supabase.from("receipts").update({ customer_id: customer.id }).eq("lead_id", lead.id).is("customer_id", null);
   return customer;
 };
+
+// Lightweight lead list for pickers (e.g. Digital Approvals). Active leads only —
+// lost and converted leads are hidden. Visibility is scoped by Supabase RLS.
+export const fetchLeadOptions = async () => {
+  const { data, error } = await supabase
+    .from("leads")
+    .select("id,name,phone,location,area,project_type,requirement,status")
+    .is("deleted_at", null)
+    .not("status", "in", "(lost,converted)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+};

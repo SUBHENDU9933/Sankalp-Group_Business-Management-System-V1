@@ -41,7 +41,7 @@ export const fetchApprovals = async ({ status, search } = {}) => {
   if (search) {
     const s = search.toLowerCase();
     rows = rows.filter((r) =>
-      [r.subject, r.description, r.customer_name, r.project_name, r.creator?.full_name, r.creator?.email]
+      [r.subject, r.description, r.customer_name, r.project_name, r.project_location, r.creator?.full_name, r.creator?.email]
         .filter(Boolean).join(" ").toLowerCase().includes(s)
     );
   }

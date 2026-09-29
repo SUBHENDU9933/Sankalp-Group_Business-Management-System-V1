@@ -67,7 +67,7 @@ function printApprovalEvidence(approval) {
       <h3>Request Details</h3>
       <div class="grid">
         <div class="field"><label>Customer</label><span>${esc(approval.customer_name || "—")}</span></div>
-        <div class="field"><label>Project</label><span>${esc(approval.project_name || "—")}</span></div>
+        <div class="field"><label>Project</label><span>${esc([approval.project_name, approval.project_location].filter(Boolean).join(", ") || "—")}</span></div>
         <div class="field"><label>Created At</label><span>${fmt(approval.created_at)}</span></div>
         <div class="field"><label>Expires At</label><span>${fmt(approval.expires_at)}</span></div>
         <div class="field"><label>Token</label><span class="mono">${esc(approval.token?.slice(0, 24))}…</span></div>
@@ -493,7 +493,7 @@ function ApprovalContent({ approval }) {
       <div className="text-xs text-stone-500 mt-1 flex items-center gap-3 flex-wrap">
         <span><Calendar className="w-3 h-3 inline mr-1" /> {new Date(approval.created_at).toLocaleDateString()}</span>
         {approval.customer_name && <span><User className="w-3 h-3 inline mr-1" /> {approval.customer_name}</span>}
-        {approval.project_name && <span>· {approval.project_name}</span>}
+        {approval.project_name && <span>· {approval.project_name}{approval.project_location ? `, ${approval.project_location}` : ""}</span>}
       </div>
       {approval.description && (
         <div className="mt-4 whitespace-pre-wrap text-stone-800 text-sm bg-stone-50 border border-stone-200 p-3">{approval.description}</div>

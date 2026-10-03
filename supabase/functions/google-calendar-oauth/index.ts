@@ -52,7 +52,7 @@ Deno.serve(async(req:Request)=>{
         let master=(calendars.items||[]).find((c:any)=>c.summary==="SANKALP BMS – MASTER MEETINGS");
         if(!master)master=await gfetch("/calendars",tokens.access_token,{method:"POST",body:JSON.stringify({summary:"SANKALP BMS – MASTER MEETINGS",description:"Central meeting calendar for Sankalp BMS",timeZone:"Asia/Kolkata"})});
         await admin.from("schedule_calendar_mappings").delete().is("user_id",null).eq("provider","google");
-        await admin.from("schedule_calendar_mappings").insert({user_id:null,calendar_email:master.id,calendar_id:master.id,provider:"google",enabled:true,is_primary:true});
+        await admin.from("schedule_calendar_mappings").insert({user_id:null,calendar_email:master.id,calendar_id:master.id,provider:"google",enabled:true,is_primary:true});\n        await admin.from("google_calendar_master").upsert({owner_user_id:st.user_id,calendar_id:master.id,calendar_email:master.id,enabled:true,updated_at:new Date().toISOString()},{onConflict:"calendar_id"});
       }
       return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://sankalp-group-business-management-system-v1.vercel.app"}/profile?google_calendar=connected`);
     }

@@ -3,6 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const scopes = [
+  "openid",
+  "email",
+  "profile",
   "https://www.googleapis.com/auth/calendar.freebusy",
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
@@ -39,13 +42,13 @@ Deno.serve(async(req:Request)=>{
       const clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),clientSecret=Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");if(!clientId||!clientSecret)throw new Error("Google OAuth client is not configured");
       const tokens=await googleToken({code,client_id:clientId,client_secret:clientSecret,redirect_uri:st.redirect_uri,grant_type:"authorization_code",code_verifier:st.code_verifier});
       if(!tokens.access_token)throw new Error("Google did not return an access token");
-      const profile=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:`Bearer ${tokens.access_token}`}}).then(r=>r.json());
+      const profileResponse=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:`Bearer ${tokens.access_token}`}}); if(!profileResponse.ok)throw new Error("Google account information could not be read. Please reconnect and approve the requested Google permissions."); const profile=await profileResponse.json();
       const refresh=tokens.refresh_token||null;
       const existing=await admin.from("google_calendar_connections").select("refresh_token_encrypted").eq("user_id",st.user_id).maybeSingle();
       const refreshEncrypted=refresh?await encrypt(refresh):(existing.data?.refresh_token_encrypted||null);
       if(!refreshEncrypted)throw new Error("Google did not return a refresh token. Reconnect with consent.");
       const expiresAt=new Date(Date.now()+Number(tokens.expires_in||3600)*1000).toISOString();
-      await admin.from("google_calendar_connections").upsert({user_id:st.user_id,google_user_id:profile.sub||null,google_email:profile.email,primary_calendar_id:"primary",access_token_encrypted:await encrypt(tokens.access_token),refresh_token_encrypted:refreshEncrypted,token_expires_at:expiresAt,scope:tokens.scope||scopes.join(" "),status:"connected",last_error:null,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"user_id"});
+      const {error:connectionError}=await admin.from("google_calendar_connections").upsert({user_id:st.user_id,google_user_id:profile.sub||null,google_email:profile.email,primary_calendar_id:"primary",access_token_encrypted:await encrypt(tokens.access_token),refresh_token_encrypted:refreshEncrypted,token_expires_at:expiresAt,scope:tokens.scope||scopes.join(" "),status:"connected",last_error:null,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"user_id"}); if(connectionError)throw new Error(`Google Calendar connection could not be saved: ${connectionError.message}`);
       const {data:me}=await admin.from("profiles").select("is_admin").eq("id",st.user_id).single();
       if(me?.is_admin){
         const calendars=await gfetch("/users/me/calendarList?maxResults=250",tokens.access_token);

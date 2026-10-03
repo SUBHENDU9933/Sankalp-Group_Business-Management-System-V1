@@ -23,6 +23,7 @@ import VerifyReceiptPage from "@/pages/VerifyReceiptPage";
 import TeamPage from "@/pages/TeamPage";
 import EstimatesPage from "@/pages/EstimatesPage";
 import ProfileSettingsPage from "@/pages/ProfileSettingsPage";
+import AdminCalendarSettingsPage from "@/pages/AdminCalendarSettingsPage";
 import VendorDetailPage from "@/pages/VendorDetailPage";
 import TrashPage from "@/pages/TrashPage";
 import AuditLogPage from "@/pages/AuditLogPage";
@@ -101,6 +102,7 @@ function App() {
             <Route path="/agreement-templates" element={<AdminOnly><AgreementTemplatesPage /></AdminOnly>} />
             <Route path="/audit-log" element={<AdminOnly><AuditLogPage /></AdminOnly>} />
             <Route path="/admin-notify" element={<SuperAdminOnly><AdminNotifyPage /></SuperAdminOnly>} />
+            <Route path="/admin/calendar-settings" element={<AdminOnly><AdminCalendarSettingsPage /></AdminOnly>} />
             <Route path="/reports" element={<PermissionRoute resource="reports"><Suspense fallback={<div className="p-16 text-center text-slate-400">Loading Reports…</div>}><ReportsPage /></Suspense></PermissionRoute>} />
             <Route path="/trash" element={<AdminOnly><TrashPage /></AdminOnly>} />
           </Route>

@@ -37,7 +37,7 @@ Deno.serve(async(req:Request)=>{
       const {data:st,error:se}=await admin.from("google_calendar_oauth_states").select("*").eq("state",state||"").maybeSingle();
       if(se||!st||new Date(st.expires_at)<new Date())return new Response("OAuth session expired. Please return to BMS and connect again.",{status:400});
       await admin.from("google_calendar_oauth_states").delete().eq("state",st.state);
-      if(error)return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://app.sankalpinterior.com"}/profile?google_calendar=error&reason=${encodeURIComponent(error)}`);
+      if(error)return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://app.sankalpinterior.com"}${st.redirect_path||"/profile"}?google_calendar=error&reason=${encodeURIComponent(error)}`);
       if(!code)return new Response("Google authorization code is missing.",{status:400});
       const clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),clientSecret=Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");if(!clientId||!clientSecret)throw new Error("Google OAuth client is not configured");
       const tokens=await googleToken({code,client_id:clientId,client_secret:clientSecret,redirect_uri:st.redirect_uri,grant_type:"authorization_code",code_verifier:st.code_verifier});

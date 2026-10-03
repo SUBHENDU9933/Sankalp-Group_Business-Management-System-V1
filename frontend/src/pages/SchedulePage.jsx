@@ -12,7 +12,7 @@ const localInput=(d=new Date())=>{const p=n=>String(n).padStart(2,"0");return `$
 const bounds=(d)=>{const s=new Date(d);s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+1);return{from:s.toISOString(),to:e.toISOString()}};
 const label=v=>String(v||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase());
 const localDate=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
-const slotIso=(date,h,m)=>new Date(`${date}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`).toISOString();
+const slotIso=(date,h,m)=>{const d=new Date(`${date}T00:00:00`);d.setHours(h,m,0,0);return d.toISOString()};
 const overlaps=(a,b,s,e)=>new Date(a).getTime()<new Date(e).getTime()&&new Date(b).getTime()>new Date(s).getTime();
 const fmtTime=iso=>new Date(iso).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
 

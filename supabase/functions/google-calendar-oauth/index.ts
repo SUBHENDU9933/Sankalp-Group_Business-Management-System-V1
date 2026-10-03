@@ -44,39 +44,59 @@ Deno.serve(async(req:Request)=>{
       if(!tokens.access_token)throw new Error("Google did not return an access token");
       const profileResponse=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:`Bearer ${tokens.access_token}`}}); if(!profileResponse.ok)throw new Error("Google account information could not be read. Please reconnect and approve the requested Google permissions."); const profile=await profileResponse.json();
       const refresh=tokens.refresh_token||null;
+      const expiresAt=new Date(Date.now()+Number(tokens.expires_in||3600)*1000).toISOString();
+      if(st.connection_type==="master"){
+        const {data:existing}=await admin.from("google_calendar_master_connections").select("refresh_token_encrypted").maybeSingle();
+        const refreshEncrypted=refresh?await encrypt(refresh):(existing?.refresh_token_encrypted||null);
+        if(!refreshEncrypted)throw new Error("Google did not return a refresh token. Reconnect with consent.");
+        const calendars=await gfetch("/users/me/calendarList?maxResults=250",tokens.access_token);
+        let master=(calendars.items||[]).find((x:any)=>x.summary==="SANKALP BMS – MASTER MEETINGS");
+        if(!master)master=await gfetch("/calendars",tokens.access_token,{method:"POST",body:JSON.stringify({summary:"SANKALP BMS – MASTER MEETINGS",description:"Central meeting calendar for Sankalp BMS",timeZone:"Asia/Kolkata"})});
+        const {data:mc,error:masterError}=await admin.from("google_calendar_master_connections").upsert({google_user_id:profile.sub||null,google_email:profile.email,calendar_id:master.id,calendar_email:profile.email,access_token_encrypted:await encrypt(tokens.access_token),refresh_token_encrypted:refreshEncrypted,token_expires_at:expiresAt,scope:tokens.scope||scopes.join(" "),status:"connected",last_error:null,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"google_email"}).select("id").single();
+        if(masterError)throw new Error(`Company Master Calendar could not be saved: ${masterError.message}`);
+        await admin.from("schedule_calendar_mappings").delete().is("user_id",null).eq("provider","google");
+        const {error:mappingError}=await admin.from("schedule_calendar_mappings").insert({user_id:null,calendar_email:profile.email,calendar_id:master.id,provider:"google",enabled:true,is_primary:true});
+        if(mappingError)throw new Error(`Master calendar mapping could not be saved: ${mappingError.message}`);
+        await admin.from("google_calendar_master").delete().eq("enabled",true);
+        const {error:legacyError}=await admin.from("google_calendar_master").insert({owner_user_id:st.user_id,master_connection_id:mc.id,calendar_id:master.id,calendar_email:profile.email,enabled:true});
+        if(legacyError)throw new Error(`Master calendar metadata could not be saved: ${legacyError.message}`);
+        return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://app.sankalpinterior.com"}/admin/calendar-settings?google_calendar=connected`);
+      }
       const existing=await admin.from("google_calendar_connections").select("refresh_token_encrypted").eq("user_id",st.user_id).maybeSingle();
       const refreshEncrypted=refresh?await encrypt(refresh):(existing.data?.refresh_token_encrypted||null);
       if(!refreshEncrypted)throw new Error("Google did not return a refresh token. Reconnect with consent.");
-      const expiresAt=new Date(Date.now()+Number(tokens.expires_in||3600)*1000).toISOString();
       const {error:connectionError}=await admin.from("google_calendar_connections").upsert({user_id:st.user_id,google_user_id:profile.sub||null,google_email:profile.email,primary_calendar_id:"primary",access_token_encrypted:await encrypt(tokens.access_token),refresh_token_encrypted:refreshEncrypted,token_expires_at:expiresAt,scope:tokens.scope||scopes.join(" "),status:"connected",last_error:null,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"user_id"}); if(connectionError)throw new Error(`Google Calendar connection could not be saved: ${connectionError.message}`);
-      const {data:me}=await admin.from("profiles").select("is_admin").eq("id",st.user_id).single();
-      if(me?.is_admin){
-        const calendars=await gfetch("/users/me/calendarList?maxResults=250",tokens.access_token);
-        let master=(calendars.items||[]).find((c:any)=>c.summary==="SANKALP BMS – MASTER MEETINGS");
-        if(!master)master=await gfetch("/calendars",tokens.access_token,{method:"POST",body:JSON.stringify({summary:"SANKALP BMS – MASTER MEETINGS",description:"Central meeting calendar for Sankalp BMS",timeZone:"Asia/Kolkata"})});
-        await admin.from("schedule_calendar_mappings").delete().is("user_id",null).eq("provider","google");
-        await admin.from("schedule_calendar_mappings").insert({user_id:null,calendar_email:master.id,calendar_id:master.id,provider:"google",enabled:true,is_primary:true});
-        await admin.from("google_calendar_master").upsert({owner_user_id:st.user_id,calendar_id:master.id,calendar_email:master.id,enabled:true,updated_at:new Date().toISOString()},{onConflict:"calendar_id"});
-      }
       return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://app.sankalpinterior.com"}/profile?google_calendar=connected`);
     }
     if(req.method!=="POST")return json({error:"Method not allowed"},405);
     const bearer=req.headers.get("Authorization")?.replace(/^Bearer\s+/i,"");if(!bearer)return json({error:"Authentication required"},401);
     const {data:u,error:ue}=await admin.auth.getUser(bearer);if(ue||!u.user)return json({error:"Invalid or expired session"},401);
-    const payload=await req.json().catch(()=>({})),action=String(payload.action||"start");
+    const payload=await req.json().catch(()=>({})),action=String(payload.action||"start"),connectionType=payload.connection_type==="master"?"master":"personal";
     if(action==="start"){
+      if(connectionType==="master"){
+        const {data:me}=await admin.from("profiles").select("is_admin").eq("id",u.user.id).single();
+        if(!me?.is_admin)return json({error:"Only admin can connect the Company Master Calendar"},403);
+      }
       const clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");if(!clientId)throw new Error("GOOGLE_OAUTH_CLIENT_ID is not configured");
       const redirect=redirectUri(),state=randomText(32),verifier=randomText(48),challenge=await sha256(verifier);
-      await admin.from("google_calendar_oauth_states").insert({state,user_id:u.user.id,code_verifier:verifier,redirect_uri:redirect,expires_at:new Date(Date.now()+10*60*1000).toISOString()});
+      await admin.from("google_calendar_oauth_states").insert({state,user_id:u.user.id,connection_type:connectionType,redirect_path:connectionType==="master"?"/admin/calendar-settings":"/profile",code_verifier:verifier,redirect_uri:redirect,expires_at:new Date(Date.now()+10*60*1000).toISOString()});
       const q=new URLSearchParams({client_id:clientId,redirect_uri:redirect,response_type:"code",scope:scopes.join(" "),access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"});
       return json({authorization_url:`https://accounts.google.com/o/oauth2/v2/auth?${q.toString()}`});
     }
     if(action==="status"){
       const {data:c}=await admin.from("google_calendar_connections").select("google_email,primary_calendar_id,status,scope,connected_at,last_synced_at,last_error").eq("user_id",u.user.id).maybeSingle();
-      const {data:master}=await admin.from("schedule_calendar_mappings").select("calendar_id,calendar_email").is("user_id",null).eq("provider","google").eq("enabled",true).maybeSingle();
-      return json({connected:Boolean(c?.status==="connected"),connection:c||null,master_calendar:master||null});
+      const {data:master}=await admin.from("google_calendar_master_connections").select("google_email,calendar_id,calendar_email,status,connected_at,last_synced_at,last_error").maybeSingle();
+      return json({connected:Boolean(c?.status==="connected"),connection:c||null,master_calendar:master||null,master_connected:Boolean(master?.status==="connected")});
     }
     if(action==="disconnect"){
+      if(connectionType==="master"){
+        const {data:me}=await admin.from("profiles").select("is_admin").eq("id",u.user.id).single();
+        if(!me?.is_admin)return json({error:"Only admin can disconnect the Company Master Calendar"},403);
+        await admin.from("google_calendar_master_connections").delete().neq("id","00000000-0000-0000-0000-000000000000");
+        await admin.from("schedule_calendar_mappings").delete().is("user_id",null).eq("provider","google");
+        await admin.from("google_calendar_master").delete().eq("enabled",true);
+        return json({success:true});
+      }
       await admin.from("google_calendar_connections").delete().eq("user_id",u.user.id);
       return json({success:true});
     }

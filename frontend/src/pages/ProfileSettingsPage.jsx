@@ -52,6 +52,40 @@ export default function ProfileSettingsPage() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGoogleCalendarStatus = async () => {
+      if (!user?.id) return;
+      setGoogleCalendarLoading(true);
+      try {
+        const status = await fetchGoogleCalendarConnection();
+        if (!cancelled) setGoogleCalendar(status || { connected: false });
+      } catch (e) {
+        if (!cancelled) {
+          setGoogleCalendar({ connected: false });
+          console.error("Google Calendar status check failed:", e);
+        }
+      } finally {
+        if (!cancelled) setGoogleCalendarLoading(false);
+      }
+    };
+
+    loadGoogleCalendarStatus();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_calendar") === "connected") {
+      params.delete("google_calendar");
+      const cleanQuery = params.toString();
+      const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : "") + window.location.hash;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const handleSave = async () => {
     setSaving(true);
     try {

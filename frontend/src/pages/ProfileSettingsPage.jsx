@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile, uploadSignature, changeOwnPassword } from "@/services/profileService";\nimport { fetchGoogleCalendarConnection, startGoogleCalendarOAuth, disconnectGoogleCalendar } from "@/services/scheduleService";
+import { updateProfile, uploadSignature, changeOwnPassword } from "@/services/profileService";
+import { fetchGoogleCalendarConnection, startGoogleCalendarOAuth, disconnectGoogleCalendar } from "@/services/scheduleService";
 import { exportAllToZip } from "@/services/exportService";
 import { Upload, Save, KeyRound, UserCircle2, Download, Archive, Eye, EyeOff, CalendarDays, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +25,9 @@ export default function ProfileSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
-  const [exporting, setExporting] = useState(false);\n  const [googleCalendar, setGoogleCalendar] = useState(null);\n  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [googleCalendar, setGoogleCalendar] = useState(null);
+  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false);
   const [exportProgress, setExportProgress] = useState(null);
   const fileRef = useRef(null);
 

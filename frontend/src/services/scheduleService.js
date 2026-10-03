@@ -1,0 +1,32 @@
+import { supabase } from "@/lib/supabase";
+import { uploadFile } from "@/services/attachmentService";
+
+export const fetchSchedules = async ({ from, to, status, ownerId } = {}) => {
+  let q = supabase.from("schedules").select("*, owner:profiles!schedules_owner_id_fkey(id,full_name,email), creator:profiles!schedules_created_by_fkey(id,full_name), next_owner:profiles!schedules_next_action_owner_id_fkey(id,full_name)").is("deleted_at", null).order("start_at", { ascending: true });
+  if (from) q=q.gte("start_at",from); if(to) q=q.lt("start_at",to); if(status) q=q.eq("status",status); if(ownerId) q=q.eq("owner_id",ownerId);
+  const {data,error}=await q; if(error) throw error; return data||[];
+};
+export const fetchScheduleById=async(id)=>{const {data,error}=await supabase.from("schedules").select("*, owner:profiles!schedules_owner_id_fkey(id,full_name,email), creator:profiles!schedules_created_by_fkey(id,full_name), next_owner:profiles!schedules_next_action_owner_id_fkey(id,full_name)").eq("id",id).single();if(error)throw error;return data;};
+export const fetchMeetingRule=async(meetingType,mode)=>{const {data,error}=await supabase.from("schedule_meeting_rules").select("*").eq("meeting_type",meetingType).eq("mode",mode).maybeSingle();if(error)throw error;return data||{participant_rule:{owner:true,manager:"none",director:false},default_duration_minutes:30,travel_buffer_minutes:0};};
+export const fetchCalendarStatus=async()=>{const {data,error}=await supabase.functions.invoke("google-calendar",{body:{action:"status"}});if(error)throw error;return data;};
+export const fetchGoogleCalendarConnection=async()=>{const {data,error}=await supabase.functions.invoke("google-calendar-oauth",{body:{action:"status"}});if(error)throw error;return data;};
+export const startGoogleCalendarOAuth=async()=>{const {data,error}=await supabase.functions.invoke("google-calendar-oauth",{body:{action:"start"}});if(error)throw error;if(!data?.authorization_url)throw new Error("Google authorization URL was not returned");window.location.assign(data.authorization_url);};
+export const disconnectGoogleCalendar=async()=>{const {data,error}=await supabase.functions.invoke("google-calendar-oauth",{body:{action:"disconnect"}});if(error)throw error;return data;};
+export const checkCalendarAvailability=async({start,end,userIds})=>{const {data,error}=await supabase.functions.invoke("google-calendar",{body:{action:"availability",start,end,user_ids:userIds}});if(error)throw error;return data;};
+export const syncScheduleToCalendar=async(scheduleId)=>{const {data,error}=await supabase.functions.invoke("google-calendar",{body:{action:"create_event",schedule_id:scheduleId}});if(error){const details=await error.context?.json?.().catch?.(()=>null);const e=new Error(details?.error||error.message||"Calendar sync failed");e.code=details?.code;e.details=details;throw e;}return data;};
+export const fetchCalendarMappings=async()=>{const {data,error}=await supabase.from("schedule_calendar_mappings").select("*, profile:profiles!schedule_calendar_mappings_user_id_fkey(id,full_name,email,role,is_admin)").order("user_id");if(error)throw error;return data||[];};
+export const upsertCalendarMapping=async(payload)=>{const {data,error}=await supabase.from("schedule_calendar_mappings").upsert(payload,{onConflict:"provider,calendar_id,user_id"}).select("*").single();if(error)throw error;return data;};
+export const createSchedule=async(payload,participantIds=[],requiredParticipantIds=[])=>{
+  const {data:authData,error:authError}=await supabase.auth.getUser(); if(authError||!authData?.user?.id)throw authError||new Error("Login session expired");
+  const createdBy=authData.user.id;
+  const {data,error}=await supabase.from("schedules").insert([{...payload,created_by:createdBy}]).select("*").single(); if(error)throw error;
+  const ids=[...new Set([payload.owner_id,...participantIds].filter(Boolean))];
+  if(ids.length){const requiredSet=new Set(requiredParticipantIds);const {error:e}=await supabase.from("schedule_participants").insert(ids.map(user_id=>({schedule_id:data.id,user_id,participant_role:user_id===payload.owner_id?"owner":"participant",is_required:requiredSet.has(user_id)||user_id===payload.owner_id,added_by:createdBy})));if(e)throw e;}
+  if(payload.lead_id)await supabase.from("lead_activities").insert([{lead_id:payload.lead_id,type:"schedule_created",content:`Schedule created: ${payload.title}`,created_by:createdBy,meta:{schedule_id:data.id,meeting_type:payload.meeting_type,mode:payload.mode}}]);
+  return fetchScheduleById(data.id);
+};
+export const updateSchedule=async(id,payload)=>{const {data,error}=await supabase.from("schedules").update(payload).eq("id",id).select("*").single();if(error)throw error;if(data.lead_id&&(payload.status||payload.feedback||payload.remarks||payload.next_action)){const {data:a}=await supabase.auth.getUser();await supabase.from("lead_activities").insert([{lead_id:data.lead_id,type:"schedule_update",content:payload.remarks||payload.feedback||`Schedule updated: ${data.title}`,created_by:a?.user?.id,meta:{schedule_id:id,status:data.status,feedback_tags:data.feedback_tags||[],next_action:data.next_action||null}}]);}return data;};
+export const completeSchedule=(id,payload={})=>updateSchedule(id,{...payload,status:"completed",completed_at:new Date().toISOString()});
+export const fetchScheduleFiles=async(scheduleId)=>{const {data,error}=await supabase.from("schedule_files").select("*").eq("schedule_id",scheduleId).is("deleted_at",null).order("uploaded_at",{ascending:false});if(error)throw error;return data||[];};
+export const uploadScheduleFile=async(scheduleId,leadId,file,{source="employee",category="other"}={})=>{const res=await uploadFile(file,`schedule-files/${scheduleId}`);const {data:a}=await supabase.auth.getUser();const {data,error}=await supabase.from("schedule_files").insert([{schedule_id:scheduleId,lead_id:leadId||null,file_name:res.name,file_type:res.type,file_size:res.size,source,category,storage_provider:"supabase",storage_path:res.path,file_url:res.url,uploaded_by:a?.user?.id}]).select("*").single();if(error)throw error;return data;};
+export const fetchScheduleStats=async()=>{const {data,error}=await supabase.from("schedules").select("id,status,start_at,next_action_date").is("deleted_at",null);if(error)throw error;return data||[];};

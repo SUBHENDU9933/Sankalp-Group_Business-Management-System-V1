@@ -10,6 +10,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import LeadsPage from "@/pages/LeadsPage";
+import SchedulePage from "@/pages/SchedulePage";
 import LeadSegmentPage from "@/pages/LeadSegmentPage";
 import CustomersPage from "@/pages/CustomersPage";
 import ReceiptsPage from "@/pages/ReceiptsPage";
@@ -86,6 +87,7 @@ function App() {
               <Route path="/leads/lost" element={<LeadSegmentPage segment="lost" />} />
               <Route path="/leads/legacy" element={<LeadsPage />} />
             </Route>
+            <Route element={<PermissionRoute resource="schedule" />}><Route path="/schedule" element={<SchedulePage />} /></Route>
             <Route element={<PermissionRoute resource="customers" />}><Route path="/customers" element={<CustomersPage />} /></Route>
             <Route element={<PermissionRoute resource="estimates" />}><Route path="/estimates" element={<EstimatesPage />} /><Route path="/estimate-v2" element={<Navigate to="/estimator-v2.html" replace />} /></Route>
             <Route element={<PermissionRoute resource="receipts" />}><Route path="/receipts" element={<ReceiptsPage />} /></Route>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Users, UserCheck, ReceiptText, Hammer, Truck, ShieldCheck, UsersRound, Calculator, FileCheck2, Trash2, Activity, Sun, Moon, FileSignature, Send, BarChart3, UserCircle, LogOut, ChevronDown, Archive } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, ReceiptText, Hammer, Truck, ShieldCheck, UsersRound, Calculator, FileCheck2, Trash2, Activity, Sun, Moon, FileSignature, Send, BarChart3, UserCircle, LogOut, ChevronDown, Archive, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/lib/brand";
 import NotificationBell from "@/components/layout/NotificationBell";
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/reports", label: "Reports", icon: BarChart3, testid: "nav-reports" },
   { to: "/leads", label: "Active Leads", icon: Users, testid: "nav-leads" },
   { to: "/leads/lost", label: "Lost Leads", icon: Archive, testid: "nav-lost-leads" },
+  { to: "/schedule", label: "Schedule", icon: CalendarDays, testid: "nav-schedule" },
   { to: "/estimates", label: "Estimates", icon: Calculator, testid: "nav-estimates" },
   { to: "/customers", label: "Customers", icon: UserCheck, testid: "nav-customers" },
   { to: "/projects", label: "Projects", icon: Hammer, testid: "nav-projects" },

@@ -1,0 +1,4 @@
+-- Schedule Module V1 (live SQL applied 2026-10-04)
+-- This file is the source-controlled record of the live schema addition.
+-- Core objects: schedules, schedule_participants, schedule_files.
+-- See current Supabase schema for the authoritative deployed state.

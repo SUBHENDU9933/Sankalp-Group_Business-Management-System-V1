@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile, uploadSignature, changeOwnPassword } from "@/services/profileService";
+import { updateProfile, uploadSignature, changeOwnPassword } from "@/services/profileService";\nimport { fetchGoogleCalendarConnection, startGoogleCalendarOAuth, disconnectGoogleCalendar } from "@/services/scheduleService";
 import { exportAllToZip } from "@/services/exportService";
-import { Upload, Save, KeyRound, UserCircle2, Download, Archive, Eye, EyeOff } from "lucide-react";
+import { Upload, Save, KeyRound, UserCircle2, Download, Archive, Eye, EyeOff, CalendarDays, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const inputCls = "rounded-none mt-1.5 border-stone-300 focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-0";
@@ -24,7 +24,7 @@ export default function ProfileSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState(false);\n  const [googleCalendar, setGoogleCalendar] = useState(null);\n  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false);
   const [exportProgress, setExportProgress] = useState(null);
   const fileRef = useRef(null);
 
@@ -146,6 +146,22 @@ export default function ProfileSettingsPage() {
             <Button onClick={() => fileRef.current?.click()} disabled={uploading} className="rounded-none w-full bg-orange-500 hover:bg-orange-600 text-white" data-testid="profile-signature-upload">
               <Upload className="w-4 h-4 mr-1.5" />{uploading ? "Uploading…" : signatureUrl ? "Replace Signature" : "Upload Signature"}
             </Button>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200 p-6 mt-6" data-testid="google-calendar-section">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="label-uppercase"><CalendarDays className="w-3 h-3 inline mr-1" />Google Calendar</div>
+            <span className={googleCalendar?.connected ? "text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1" : "text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1"}>{googleCalendar?.connected ? "Connected" : "Not Connected"}</span>
+          </div>
+          <p className="text-xs text-stone-500 mb-4">Connect your Google Calendar once. Sankalp BMS uses it for availability checks, meeting invitations and calendar reminders.</p>
+          {googleCalendar?.connection?.google_email && <div className="text-sm text-stone-700 mb-4"><b>{googleCalendar.connection.google_email}</b><span className="text-stone-400"> · Connected {googleCalendar.connection.connected_at ? new Date(googleCalendar.connection.connected_at).toLocaleDateString("en-IN") : ""}</span></div>}
+          {isAdmin && googleCalendar?.master_calendar && <div className="mb-4 p-3 bg-blue-50 border border-blue-100 text-xs text-blue-800"><b>Master Calendar:</b> {googleCalendar.master_calendar.calendar_email}</div>}
+          <div className="flex gap-2">
+            <Button onClick={async()=>{setGoogleCalendarLoading(true);try{await startGoogleCalendarOAuth();}catch(e){toast.error(e.message);setGoogleCalendarLoading(false)}}} disabled={googleCalendarLoading} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white">
+              <CalendarDays className="w-4 h-4 mr-1.5" />{googleCalendarLoading ? "Connecting…" : googleCalendar?.connected ? "Reconnect Google Calendar" : "Connect Google Calendar"}
+            </Button>
+            {googleCalendar?.connected && <Button onClick={async()=>{setGoogleCalendarLoading(true);try{await disconnectGoogleCalendar();setGoogleCalendar(null);toast.success("Google Calendar disconnected")}catch(e){toast.error(e.message)}finally{setGoogleCalendarLoading(false)}}} variant="outline" className="rounded-none"><RefreshCw className="w-4 h-4 mr-1.5" />Disconnect</Button>}
           </div>
         </div>
 

@@ -179,7 +179,10 @@ export default function SchedulePage() {
     const result = dateFiltered.filter(s => {
       const lead = leadMap.get(s.lead_id);
       const owner = s.owner?.full_name || "";
-      const participants = Array.isArray(s.participants) ? s.participants : [];\n      const participantNames = participants.map(p => p.profile?.full_name).filter(Boolean).join(" ");\n      const haystack = [s.title, s.location_address, s.location_landmark, owner, s.meeting_type, s.status, s.google_calendar_status, participantNames, lead?.name, lead?.phone, lead?.email, lead?.location, lead?.project_type].filter(Boolean).join(" ").toLowerCase();\n      const managerOk = !filters.manager || participants.some(p => p.user_id === filters.manager && (p.profile?.role === "rm" || p.participant_role === "manager"));
+      const participants = Array.isArray(s.participants) ? s.participants : [];
+      const participantNames = participants.map(p => p.profile?.full_name).filter(Boolean).join(" ");
+      const haystack = [s.title, s.location_address, s.location_landmark, owner, s.meeting_type, s.status, s.google_calendar_status, participantNames, lead?.name, lead?.phone, lead?.email, lead?.location, lead?.project_type].filter(Boolean).join(" ").toLowerCase();
+      const managerOk = !filters.manager || participants.some(p => p.user_id === filters.manager && (p.profile?.role === "rm" || p.participant_role === "manager"));
       const dateOk = (!filters.from || new Date(s.start_at) >= startDay(new Date(filters.from))) &&
         (!filters.to || new Date(s.start_at) < addDays(startDay(new Date(filters.to)), 1));
       return (!q || haystack.includes(q)) &&

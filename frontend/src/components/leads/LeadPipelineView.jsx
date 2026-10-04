@@ -9,7 +9,7 @@ import {
 import { LEAD_STATUSES, LEAD_PRIORITIES, formatDate, formatINR, isOverdue, isToday } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
-export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConvert }) {
+export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConvert, includeLost = false }) {
   const [draggingId, setDraggingId] = useState(null);
   const [overCol, setOverCol] = useState(null);
 
@@ -43,7 +43,7 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
       className="grid grid-cols-[repeat(10,minmax(150px,1fr))] gap-0 grid-divider-x border border-stone-200 bg-stone-200 overflow-x-auto"
       data-testid="leads-kanban"
     >
-      {LEAD_STATUSES.map((s) => {
+      {LEAD_STATUSES.filter((s) => includeLost || s.key !== "lost").map((s) => {
         const items = leads.filter((l) => l.status === s.key);
         const total = items.reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
         const isOver = overCol === s.key;

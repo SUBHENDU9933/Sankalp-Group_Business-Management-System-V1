@@ -125,6 +125,28 @@ export default function SchedulePage() {
   const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
   const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);\n  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
+  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
+
+  useEffect(() => {
+    if (showCreate && profile?.id) {
+      setForm(f => ({ ...f, owner_id: profile.id, manager_ids: [] }));
+      setTitleManual(false);
+    }
+  }, [showCreate, profile?.id]);
+
+  useEffect(() => {
+    if (!showCreate || titleManual) return;
+    const lead = leadMap.get(form.lead_id);
+    const customerName = lead?.name || "Customer";
+    const typeName = label(form.meeting_type);
+    const modeName = label(form.mode);
+    const chosen = slots.find(s => s.selected);
+    const when = chosen?.start
+      ? new Date(chosen.start).toLocaleString("en-IN", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+      : (form.date ? new Date(form.date + "T12:00:00").toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" }) : "Date");
+    const nextTitle = customerName + " — " + typeName + " · " + modeName + " · " + when;
+    if (form.title !== nextTitle) setForm(f => ({ ...f, title: nextTitle }));
+  }, [showCreate, titleManual, form.lead_id, form.meeting_type, form.mode, form.date, slots, leadMap]);
 
   useEffect(() => {
     if (showCreate && rule?.participant_rule?.director && !form.director_id && directors[0]) {

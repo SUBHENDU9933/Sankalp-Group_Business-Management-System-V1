@@ -70,7 +70,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
       await logLeadCallOutcome({ leadId: lead.id, outcome, userId: user.id });
       await reload();
       onCallOutcome?.(lead, outcome);
-      toast.success(outcome === "connected" ? "Call connected — lead moved to Contacted" : "Call not connected — lead moved to Not Contacted");
+      toast.success(outcome === "connected" ? "Call connected — contact history updated" : "Call not connected — attempt recorded; lead status preserved");
     } catch (e) { toast.error(e.message || "Failed to update call outcome"); }
     finally { setPosting(false); }
   };
@@ -211,7 +211,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                 <Button onClick={() => postNote("call")} disabled={posting || !note.trim()} variant="outline" className="rounded-none border-stone-300 h-8 text-xs tracking-widest uppercase font-semibold" data-testid="timeline-post-call"><Phone className="w-3.5 h-3.5 mr-1.5" />Log Call</Button>
               </div>
               <div className="mt-3 pt-3 border-t border-stone-200">
-                <div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-500 mb-2">Call outcome · updates lead status automatically</div>
+                <div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-500 mb-2">Call outcome · records the attempt</div>
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={() => { window.location.href = "tel:" + phoneClean; setTimeout(() => handleCallOutcome("connected"), 1200); }} disabled={posting} className="rounded-none bg-emerald-700 hover:bg-emerald-800 text-white h-8 text-xs font-semibold"><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Call Connected</Button>
                   <Button onClick={() => { window.location.href = "tel:" + phoneClean; setTimeout(() => handleCallOutcome("not_connected"), 1200); }} disabled={posting} variant="outline" className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs font-semibold"><XCircle className="w-3.5 h-3.5 mr-1.5" />Call Not Connected</Button>

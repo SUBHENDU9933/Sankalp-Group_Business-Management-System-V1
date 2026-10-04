@@ -20,7 +20,7 @@ function isActive(l) {
   return !["converted", "lost"].includes(l.status);
 }
 
-export default function LeadKpiStrip({ leads = [] }) {
+export default function LeadKpiStrip({ leads = [], selectedFilter = "all", onFilterChange }) {
   const stats = useMemo(() => {
     const today = startOfDay();
     const next3 = addDays(today, 3);
@@ -49,6 +49,16 @@ export default function LeadKpiStrip({ leads = [] }) {
     { key: "converted", label: "Converted This Month", value: stats.convertedThisMonth, icon: CheckCircle2, tone: "emerald", note: "Closed successfully" },
   ];
 
+  const filterActions = {
+    active: "all",
+    today: "today",
+    next3: "next3",
+    next7: "next7",
+    overdue: "overdue",
+    nofollowup: "nofollowup",
+    converted: "converted",
+  };
+
   const tones = {
     blue: "text-blue-700 bg-blue-50 border-blue-100",
     orange: "text-orange-700 bg-orange-50 border-orange-100",
@@ -71,16 +81,31 @@ export default function LeadKpiStrip({ leads = [] }) {
         </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
-        {cards.map(({ key, label, value, icon: Icon, tone, note }) => (
-          <div key={key} className={cn("bg-white border px-3.5 py-3.5 min-h-[104px] transition-colors hover:border-stone-300", key === "overdue" && value > 0 && "ring-1 ring-rose-100")} data-testid={`kpi-${key}`}>
+        {cards.map(({ key, label, value, icon: Icon, tone, note }) => {
+          const selected = selectedFilter === filterActions[key];
+          return (
+          <button
+            type="button"
+            key={key}
+            onClick={() => onFilterChange?.(filterActions[key])}
+            className={cn(
+              "bg-white border px-3.5 py-3.5 min-h-[104px] transition-all text-left w-full hover:border-stone-300 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-stone-300",
+              selected && "ring-2 ring-stone-900 border-stone-900",
+              key === "overdue" && value > 0 && !selected && "ring-1 ring-rose-100"
+            )}
+            data-testid={`kpi-${key}`}
+            aria-pressed={selected}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className={cn("w-8 h-8 flex items-center justify-center border", tones[tone])}><Icon className="w-4 h-4" /></div>
               <div className={cn("font-display text-2xl font-bold tabular-nums", tones[tone].split(" ")[0])}>{value}</div>
             </div>
             <div className="mt-2 text-[10px] tracking-[0.11em] uppercase font-bold text-stone-600 leading-tight">{label}</div>
             <div className="text-[10px] text-stone-400 mt-1 truncate">{note}</div>
-          </div>
-        ))}
+            {selected && <div className="mt-1 text-[9px] tracking-wider uppercase font-semibold text-stone-500">Selected view</div>}
+          </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -52,7 +52,12 @@ async function backfillPersonalCalendar(admin:any,userId:string){
     if(!s.google_calendar_event_id){await admin.from("schedule_calendar_sync_items").upsert({schedule_id:s.id,user_id:userId,provider:"google",calendar_type:"personal",sync_status:"pending",last_error:"Waiting for Company Master Calendar event",last_source:"oauth_backfill",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"});pending++;continue;}
     try{
       const event=await gfetch("/calendars/"+encodeURIComponent(master.calendarId)+"/events/"+encodeURIComponent(s.google_calendar_event_id),master.token);
-      const attendees=[...(event.attendees||[]).map((a:any)=>({email:a.email})),{email:(await admin.from("profiles").select("email").eq("id",userId).single()).data?.email}].filter((a:any)=>a.email);
+      const {data:connection}=await admin.from("google_calendar_connections").select("google_email").eq("user_id",userId).single();
+      const {data:profile}=await admin.from("profiles").select("email").eq("id",userId).single();
+      const connectedEmail=String(connection?.google_email||"").trim();
+      const profileEmail=String(profile?.email||"").trim().toLowerCase();
+      if(!connectedEmail)throw new Error("Connected Google Calendar email is missing");
+      const attendees=[...(event.attendees||[]).filter((a:any)=>String(a.email||"").toLowerCase()!==profileEmail||String(a.email||"").toLowerCase()===connectedEmail.toLowerCase()).map((a:any)=>({email:a.email})),{email:connectedEmail}].filter((a:any)=>a.email);
       const merged=[...new Map(attendees.map((a:any)=>[String(a.email).toLowerCase(),a])).values()];
       await gfetch("/calendars/"+encodeURIComponent(master.calendarId)+"/events/"+encodeURIComponent(s.google_calendar_event_id)+"?sendUpdates=all",master.token,{method:"PATCH",body:JSON.stringify({attendees:merged})});
       await admin.from("schedule_calendar_sync_items").upsert({schedule_id:s.id,user_id:userId,provider:"google",calendar_type:"personal",google_event_id:s.google_calendar_event_id,sync_status:"synced",last_synced_at:new Date().toISOString(),last_error:null,last_source:"oauth_backfill",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"});

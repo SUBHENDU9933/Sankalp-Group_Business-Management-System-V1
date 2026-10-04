@@ -71,7 +71,8 @@ export default function SchedulePage() {
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false);
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
-  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);\n  const [titleManual, setTitleManual] = useState(false);
+  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
+  const [titleManual, setTitleManual] = useState(false);
   const [dateTab, setDateTab] = useState("today"), [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState("list"), [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState("date_asc");
@@ -123,7 +124,7 @@ export default function SchedulePage() {
   }, [showCreate, form.meeting_type, form.mode]);
 
   const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
-  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);\n  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
+  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
   const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
 
@@ -262,7 +263,11 @@ export default function SchedulePage() {
     if (form.mode === "physical" && !form.location_address.trim()) return toast.error("Physical schedule needs a site/location");
     setSyncing(true);
     try {
-      if (form.lead_id && form.customer_email.trim()) {\n        const lead = leadMap.get(form.lead_id);\n        if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });\n      }\n      const created = await createSchedule({
+      if (form.lead_id && form.customer_email.trim()) {
+        const lead = leadMap.get(form.lead_id);
+        if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });
+      }
+      const created = await createSchedule({
         lead_id: form.lead_id || null, title: form.title, meeting_type: form.meeting_type, mode: form.mode,
         status: "scheduled", priority: form.priority, start_at: chosen.start, end_at: chosen.end, timezone: "Asia/Kolkata",
         location_address: form.mode === "physical" ? form.location_address : null,

@@ -22,7 +22,6 @@ export default function SchedulePage(){
  const [form,setForm]=useState({lead_id:"",title:"",meeting_type:"follow_up",mode:"digital",status:"scheduled",priority:"normal",date:localDate(),location_address:"",meeting_link:"",description:"",owner_id:"",manager_id:"",director_id:"",customer_email:""});
  const load=async()=>{setLoading(true);try{const n=new Date();const b=view==="today"?bounds(n):{from:new Date(n.getFullYear(),n.getMonth(),n.getDate()).toISOString(),to:new Date(n.getFullYear(),n.getMonth(),n.getDate()+7).toISOString()};const [s,l,p,cal]=await Promise.all([fetchSchedules(b),fetchLeadOptions(),fetchProfiles(),fetchCalendarStatus()]);setRows(s);setLeads(l);setTeam(p);setCalendar(cal)}catch(e){toast.error(e.message||"Could not load schedules")}finally{setLoading(false)}};
  useEffect(()=>{load()},[view]);
- useEffect(()=>{const timer=setInterval(()=>{load().catch(()=>{});syncPendingCalendar().catch(()=>{});},60000);return()=>clearInterval(timer)},[view]);
  useEffect(()=>{if(showCreate)fetchMeetingRule(form.meeting_type,form.mode).then(setRule).catch(e=>toast.error(e.message))},[showCreate,form.meeting_type,form.mode]);
  const managers=useMemo(()=>team.filter(p=>p.role==="rm"&&p.is_active!==false),[team]);
  const directors=useMemo(()=>team.filter(p=>(p.is_admin===true||p.role==="admin")&&p.is_active!==false),[team]);

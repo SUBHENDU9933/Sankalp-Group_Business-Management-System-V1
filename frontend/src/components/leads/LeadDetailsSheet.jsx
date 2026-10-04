@@ -11,21 +11,26 @@ import {
   CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History, Calculator,
   CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle,
 } from "lucide-react";
-import { LEAD_PRIORITIES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
+import { LEAD_PRIORITIES, LEAD_STATUSES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity, logLeadCallOutcome } from "@/services/leadActivityService";
 import { buildEstimatorUrl } from "@/services/estimateService";
+import { updateLead, updateLeadStatus } from "@/services/leadService";
 import AssigneeManager from "@/components/leads/AssigneeManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome }) {
+export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome, onLeadUpdated }) {
   const { user } = useAuth();
   const [tab, setTab] = useState("overview");
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
   const [posting, setPosting] = useState(false);
+  const [quickStatusOpen, setQuickStatusOpen] = useState(false);
+  const [quickFollowupOpen, setQuickFollowupOpen] = useState(false);
+  const [followupDate, setFollowupDate] = useState(lead?.next_followup_date || "");
+  const [followupNote, setFollowupNote] = useState(lead?.reminder_note || "");
 
   useEffect(() => {
     if (!open || !lead?.id) return;
@@ -63,6 +68,35 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   };
 
   const followups = activities.filter((a) => a.type === "followup");
+
+  const quickUpdate = async (payload, message) => {
+    setPosting(true);
+    try {
+      const updated = await updateLead(lead.id, payload);
+      onLeadUpdated?.(updated);
+      toast.success(message);
+      setQuickStatusOpen(false); setQuickFollowupOpen(false);
+      await reload();
+    } catch (e) { toast.error(e.message || "Update failed"); }
+    finally { setPosting(false); }
+  };
+
+  const handleQuickStatus = async (status) => {
+    if (status === lead.status) return setQuickStatusOpen(false);
+    setPosting(true);
+    try {
+      const updated = await updateLeadStatus(lead.id, status, user.id);
+      onLeadUpdated?.(updated);
+      toast.success("Lead status updated");
+      setQuickStatusOpen(false);
+      await reload();
+    } catch (e) { toast.error(e.message || "Status update failed"); }
+    finally { setPosting(false); }
+  };
+
+  const openSchedule = () => {
+    window.location.href = "/schedule?lead_id=" + encodeURIComponent(lead.id);
+  };
 
   const handleCallOutcome = async (outcome) => {
     setPosting(true);
@@ -126,6 +160,35 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <Button onClick={() => { setQuickStatusOpen(v => !v); setQuickFollowupOpen(false); }} variant="outline" className="rounded-none border-blue-300 text-blue-700 hover:bg-blue-50 h-9 text-xs tracking-widest uppercase font-semibold"><History className="w-3.5 h-3.5 mr-1.5" />Status</Button>
+              {quickStatusOpen && (
+                <div className="absolute z-50 top-10 left-0 w-64 bg-white border border-stone-200 shadow-xl p-2">
+                  <div className="label-uppercase px-2 py-1.5">Move lead stage</div>
+                  {LEAD_STATUSES.filter(s => s.key !== "lost").map(s => (
+                    <button key={s.key} disabled={posting} onClick={() => handleQuickStatus(s.key)} className={cn("w-full text-left px-2.5 py-2 text-xs font-semibold hover:bg-stone-50 flex items-center justify-between", lead.status === s.key && "bg-blue-50 text-blue-700")}>
+                      <span>{s.label}</span>{lead.status === s.key && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                  <button disabled={posting} onClick={() => handleQuickStatus("lost")} className="w-full text-left px-2.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Mark Lost</button>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <Button onClick={() => { setQuickFollowupOpen(v => !v); setQuickStatusOpen(false); setFollowupDate(lead.next_followup_date || ""); setFollowupNote(lead.reminder_note || ""); }} variant="outline" className="rounded-none border-orange-300 text-orange-700 hover:bg-orange-50 h-9 text-xs tracking-widest uppercase font-semibold"><CalendarClock className="w-3.5 h-3.5 mr-1.5" />Follow-up</Button>
+              {quickFollowupOpen && (
+                <div className="absolute z-50 top-10 left-0 w-80 bg-white border border-stone-200 shadow-xl p-3">
+                  <div className="label-uppercase mb-2">Quick Follow-up</div>
+                  <input type="date" value={followupDate || ""} onChange={e => setFollowupDate(e.target.value)} className="w-full h-9 border border-stone-300 px-2 text-sm" />
+                  <input value={followupNote} onChange={e => setFollowupNote(e.target.value)} placeholder="Reminder / next action..." className="w-full h-9 border border-stone-300 px-2 text-sm mt-2" />
+                  <div className="flex gap-2 mt-2">
+                    <Button disabled={posting || !followupDate} onClick={() => quickUpdate({ next_followup_date: followupDate, reminder_note: followupNote || null }, "Follow-up scheduled")} className="rounded-none bg-orange-500 hover:bg-orange-600 text-white h-8 text-xs font-semibold">Save Follow-up</Button>
+                    {lead.next_followup_date && <Button disabled={posting} onClick={() => quickUpdate({ next_followup_date: null, reminder_note: null }, "Follow-up cleared")} variant="outline" className="rounded-none h-8 text-xs">Clear</Button>}
+                  </div>
+                </div>
+              )}
+            </div>
+            <Button onClick={openSchedule} variant="outline" className="rounded-none border-violet-300 text-violet-700 hover:bg-violet-50 h-9 text-xs tracking-widest uppercase font-semibold"><CalendarDays className="w-3.5 h-3.5 mr-1.5" />Meeting</Button>
             <a href={`tel:${phoneClean}`} className="inline-flex items-center gap-1.5 px-3 h-9 bg-stone-900 hover:bg-stone-800 text-white text-xs tracking-widest uppercase font-semibold" data-testid="details-call"><Phone className="w-3.5 h-3.5" /> Call</a>
             <a href={`https://wa.me/${phoneClean}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs tracking-widest uppercase font-semibold" data-testid="details-whatsapp"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>
             <Button onClick={() => onEdit(lead)} disabled={lead.is_locked} variant="outline" className="rounded-none border-stone-300 h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-edit"><Pencil className="w-3.5 h-3.5 mr-1.5" />Edit</Button>

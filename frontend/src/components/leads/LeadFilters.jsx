@@ -8,7 +8,7 @@ import { LEAD_STATUSES, LEAD_SOURCES } from "@/utils/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-export default function LeadFilters({ search, onSearchChange, status, onStatusChange, rm, onRmChange, source, onSourceChange, tag, onTagChange, fromDate, onFromDateChange, toDate, onToDateChange, view, onViewChange, rmOptions = [], isAdmin = false, onClear }) {
+export default function LeadFilters({ search, onSearchChange, status, onStatusChange, rm, onRmChange, source, onSourceChange, tag, onTagChange, fromDate, onFromDateChange, toDate, onToDateChange, view, onViewChange, rmOptions = [], isAdmin = false, onClear, isLost = false }) {
   const { user, role } = useAuth();
   const normalizedRole = String(role || "").trim().toLowerCase();
   const isRm = normalizedRole === "rm" || normalizedRole === "manager";
@@ -52,11 +52,11 @@ export default function LeadFilters({ search, onSearchChange, status, onStatusCh
           {hasFilters && <Button variant="ghost" size="sm" onClick={onClear} className="rounded-none text-xs text-stone-500 hover:text-stone-900 h-7" data-testid="leads-clear-filters"><X className="w-3 h-3 mr-1" /> Clear</Button>}
         </div>
         <div className="px-4 py-3 flex items-center">
-          <Tabs value={view} onValueChange={onViewChange}><TabsList className="rounded-none bg-stone-100 p-0 h-9 border border-stone-300"><TabsTrigger value="table" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-3" data-testid="view-table"><TableIcon className="w-4 h-4 mr-1" />Table</TabsTrigger><TabsTrigger value="kanban" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-3" data-testid="view-kanban"><KanbanSquare className="w-4 h-4 mr-1" />Pipeline</TabsTrigger></TabsList></Tabs>
+          {isLost ? <div className="h-9 flex items-center px-3 text-[11px] tracking-[0.12em] uppercase font-semibold text-rose-700 bg-rose-50 border border-rose-200">Lost Leads · Table View</div> : <Tabs value={view} onValueChange={onViewChange}><TabsList className="rounded-none bg-stone-100 p-0 h-9 border border-stone-300"><TabsTrigger value="table" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-3" data-testid="view-table"><TableIcon className="w-4 h-4 mr-1" />Table</TabsTrigger><TabsTrigger value="kanban" className="rounded-none data-[state=active]:bg-stone-900 data-[state=active]:text-white px-3" data-testid="view-kanban"><KanbanSquare className="w-4 h-4 mr-1" />Pipeline</TabsTrigger></TabsList></Tabs>}
         </div>
       </div>
       <div className="border-t border-stone-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-0 grid-divider-x">
-        <FilterCell label="Status"><Select value={status} onValueChange={onStatusChange}><SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-status-filter"><SelectValue /></SelectTrigger><SelectContent className="rounded-none"><SelectItem value="all" className="rounded-none">All Statuses</SelectItem>{LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key} className="rounded-none">{s.label}</SelectItem>)}</SelectContent></Select></FilterCell>
+        <FilterCell label="Status">{isLost ? <div className="h-9 flex items-center text-sm font-medium text-rose-700">Lost</div> : <Select value={status} onValueChange={onStatusChange}><SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-status-filter"><SelectValue /></SelectTrigger><SelectContent className="rounded-none"><SelectItem value="all" className="rounded-none">All Statuses</SelectItem>{LEAD_STATUSES.filter((s) => s.key !== "lost").map((s) => <SelectItem key={s.key} value={s.key} className="rounded-none">{s.label}</SelectItem>)}</SelectContent></Select>}</FilterCell>
         {canUseUserWiseFilter && <FilterCell label="User Wise Filter"><Select value={rm} onValueChange={onRmChange}><SelectTrigger className="rounded-none border-0 shadow-none focus:ring-0 h-9 px-0 bg-transparent" data-testid="leads-user-wise-filter"><SelectValue /></SelectTrigger><SelectContent className="rounded-none">
           <SelectItem value="all" className="rounded-none">ALL LEADS</SelectItem>
           <SelectItem value="unassigned" className="rounded-none">ALL UN ASSIGNED</SelectItem>

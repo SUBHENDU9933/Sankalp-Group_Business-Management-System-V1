@@ -216,7 +216,7 @@ export default function LeadsPage() {
       </PageBody>
       <LeadFormDialog open={formOpen} onOpenChange={setFormOpen} lead={editLead} onSaved={load} />
       <LeadImportDialog open={importOpen} onOpenChange={setImportOpen} rmOptions={profiles} onImported={load} />
-      <LeadDetailsSheet open={detailsOpen} onOpenChange={setDetailsOpen} lead={activeLead} onEdit={openEdit} onConvert={handleConvert} profiles={profiles} onAssigneesChanged={load} />
+      <LeadDetailsSheet open={detailsOpen} onOpenChange={setDetailsOpen} lead={activeLead} onEdit={openEdit} onConvert={handleConvert} profiles={profiles} onAssigneesChanged={load} onLeadUpdated={(updated) => { setActiveLead(updated); load(); }} />
     </div>
   );
 }

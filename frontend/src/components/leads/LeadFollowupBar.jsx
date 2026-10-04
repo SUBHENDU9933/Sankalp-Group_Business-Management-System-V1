@@ -12,19 +12,20 @@ const ITEMS = [
 export default function LeadFollowupBar({ leads = [], value = "all", onChange }) {
   const start = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-  const active = (l) => l.next_followup_date && !["converted", "lost"].includes(l.status);
+  const active = (l) => !["converted", "lost"].includes(l.status);
   const count = (key) => {
     const today = start();
     const next3 = addDays(today, 3);
     const next7 = addDays(today, 7);
     return leads.filter(l => {
       if (!active(l)) return false;
+      if (key === "nofollowup") return !l.next_followup_date;
+      if (!l.next_followup_date) return false;
       const d = new Date(l.next_followup_date);
       if (key === "today") return d.toDateString() === today.toDateString();
       if (key === "next3") return d >= today && d < next3;
       if (key === "next7") return d >= today && d < next7;
       if (key === "overdue") return d < today;
-      if (key === "nofollowup") return !l.next_followup_date;
       return false;
     }).length;
   };

@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import LeadFormDialog from "@/components/leads/LeadFormDialog";
 import LeadKpiStrip from "@/components/leads/LeadKpiStrip";
+import LeadFollowupBar from "@/components/leads/LeadFollowupBar";
 import LeadFilters from "@/components/leads/LeadFilters";
 import LeadTableView from "@/components/leads/LeadTableView";
 import LeadPipelineView from "@/components/leads/LeadPipelineView";
@@ -33,6 +34,7 @@ export default function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
+  const [followupFilter, setFollowupFilter] = useState("all");
   const [toDate, setToDate] = useState("");
   const [view, setView] = useState("table");
   const [formOpen, setFormOpen] = useState(false);
@@ -50,6 +52,8 @@ export default function LeadsPage() {
   });
   const toggleAll = (checked, list) => setSelected(() => (checked ? new Set(list.map((l) => l.id)) : new Set()));
   const clearSelection = () => setSelected(new Set());
+
+  const clearAllFilters = () => { setSearch(""); setStatusFilter("all"); setRmFilter("all"); setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate(""); setFollowupFilter("all"); };
 
   const load = async () => {
     setLoading(true);
@@ -113,8 +117,23 @@ export default function LeadsPage() {
       const hay = [l.name, l.phone, l.phone_secondary, l.location, l.area, l.pincode].filter(Boolean).join(" ").toLowerCase();
       if (!hay.includes(s)) return false;
     }
+
+    // Follow-up smart views are applied on top of the existing lead filters.
+    // They never change the underlying lead status.
+    if (followupFilter !== "all") {
+      if (!l.next_followup_date || ["converted", "lost"].includes(l.status)) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next3 = new Date(today); next3.setDate(next3.getDate() + 3);
+      const next7 = new Date(today); next7.setDate(next7.getDate() + 7);
+      const d = new Date(l.next_followup_date);
+      if (followupFilter === "today" && d.toDateString() !== today.toDateString()) return false;
+      if (followupFilter === "next3" && !(d >= today && d < next3)) return false;
+      if (followupFilter === "next7" && !(d >= today && d < next7)) return false;
+      if (followupFilter === "overdue" && !(d < today)) return false;
+    }
     return true;
-  }), [leads, search, statusFilter, rmFilter, sourceFilter, tagFilter, fromDate, toDate]);
+  }), [leads, search, statusFilter, rmFilter, sourceFilter, tagFilter, fromDate, toDate, followupFilter]);
 
   const handleStatusChange = async (lead, status) => {
     if (!can("leads", "edit")) { toast.error("You do not have permission to edit leads"); return; }
@@ -206,7 +225,9 @@ export default function LeadsPage() {
       <PageBody>
         <LeadKpiStrip leads={filtered} />
         <div className="mt-4"><LeadBulkActionBar selectedCount={selected.size} totalCount={filtered.length} onClear={clearSelection} onSelectAll={() => toggleAll(true, filtered)} isAdmin={isAdmin} rmOptions={profiles} onBulkStatus={handleBulkStatus} onBulkPriority={handleBulkPriority} onBulkAssign={handleBulkAssign} onBulkAddCoAssignee={handleBulkAddCoAssignee} onBulkDeleteRequest={handleBulkDeleteRequest} onExportSelected={handleExportSelected} /></div>
-        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} onClear={clearFilters} /></div>
+        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} followupFilter={followupFilter} onFollowupFilterChange={setFollowupFilter} onClear={clearFilters} />
+      <div className="mb-4"><LeadFollowupBar leads={leads} value={followupFilter} onChange={setFollowupFilter} /></div>
+</div>
         <div className="mt-5">
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading leads…</div>
             : filtered.length === 0 ? <div className="bg-white border border-stone-200 p-12 text-center" data-testid="leads-empty"><div className="font-display text-xl font-bold tracking-tight text-stone-900">No leads found</div><p className="text-sm text-stone-500 mt-2">{leads.length === 0 ? "Add your first lead to start tracking enquiries." : "Try clearing filters or changing the search query."}</p>{leads.length === 0 && canCreate && <Button onClick={() => setFormOpen(true)} className="mt-4 rounded-none bg-stone-900 hover:bg-stone-800 text-white"><Plus className="w-4 h-4" />Create Lead</Button>}</div>

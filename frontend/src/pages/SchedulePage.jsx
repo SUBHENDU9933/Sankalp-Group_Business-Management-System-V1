@@ -30,10 +30,10 @@ const DATE_TABS = [
 
 const localDate = (d = new Date()) => {
   const p = n => String(n).padStart(2, "0");
-  return \`\${d.getFullYear()}-\${p(d.getMonth() + 1)}-\${p(d.getDate())}\`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
-const localInput = (d = new Date()) => \`\${localDate(d)}T\${String(d.getHours()).padStart(2, "0")}:\${String(d.getMinutes()).padStart(2, "0")}\`;
-const slotIso = (date, h, m) => { const d = new Date(\`\${date}T00:00:00\`); d.setHours(h, m, 0, 0); return d.toISOString(); };
+const localInput = (d = new Date()) => `${localDate(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const slotIso = (date, h, m) => { const d = new Date(`${date}T00:00:00`); d.setHours(h, m, 0, 0); return d.toISOString(); };
 const label = v => String(v || "").replaceAll("_", " ").replace(/\\b\\w/g, m => m.toUpperCase());
 const fmtTime = iso => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 const fmtDate = iso => new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -56,11 +56,11 @@ const statusMeta = {
 
 function StatusBadge({ status }) {
   const m = statusMeta[status] || { label: label(status), cls: "bg-slate-50 text-slate-600 border-slate-200", dot: "bg-slate-400" };
-  return <span className={\`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold \${m.cls}\`}><span className={\`w-1.5 h-1.5 rounded-full \${m.dot}\`} />{m.label}</span>;
+  return <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${m.cls}`}><span className={`w-1.5 h-1.5 rounded-full ${m.dot}`} />{m.label}</span>;
 }
 
 function ModeBadge({ mode }) {
-  return <span className={\`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide \${mode === "physical" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"}\`}>
+  return <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${mode === "physical" ? "bg-blue-50 text-blue-700" : "bg-violet-50 text-violet-700"}`}>
     {mode === "physical" ? <MapPin className="w-3 h-3" /> : <Video className="w-3 h-3" />}{mode}
   </span>;
 }
@@ -257,7 +257,7 @@ export default function SchedulePage() {
     try {
       const result = await syncPendingCalendar(); await load();
       const synced = Number(result?.synced || 0), failed = Number(result?.failed || 0);
-      toast.success(failed ? \`Refresh complete • \${synced} synced • \${failed} failed\` : \`Refresh & Sync complete • \${synced} calendar sync\${synced === 1 ? "" : "s"}\`);
+      toast.success(failed ? `Refresh complete • ${synced} synced • ${failed} failed` : `Refresh & Sync complete • ${synced} calendar sync${synced === 1 ? "" : "s"}`);
     } catch (e) { toast.error(e.message || "Refresh & Sync failed"); }
     finally { setSyncing(false); }
   };
@@ -302,7 +302,7 @@ export default function SchedulePage() {
           <p className="text-sm text-slate-500 mt-1">Meetings, availability, feedback and next actions — in one place.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={manualRefreshSync} disabled={syncing} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700 disabled:opacity-60 shadow-sm flex items-center gap-2 text-sm font-semibold"><RefreshCw className={\`w-4 h-4 \${syncing ? "animate-spin" : ""}\`} /> <span className="hidden sm:inline">Refresh & Sync</span></button>
+          <button onClick={manualRefreshSync} disabled={syncing} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700 disabled:opacity-60 shadow-sm flex items-center gap-2 text-sm font-semibold"><RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} /> <span className="hidden sm:inline">Refresh & Sync</span></button>
           <button onClick={() => setShowCreate(true)} className="h-10 px-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold shadow-lg shadow-blue-700/20 flex items-center gap-2 text-sm"><Plus className="w-4 h-4" />New Schedule</button>
         </div>
       </div>
@@ -311,7 +311,7 @@ export default function SchedulePage() {
         <div className="flex overflow-x-auto">
           {DATE_TABS.map(([key, name]) => {
             const count = key === "today" ? stats.today : key === "scheduled" ? rows.filter(s => new Date(s.start_at) >= new Date() && !["completed","cancelled","customer_cancelled","no_show"].includes(s.status)).length : key === "next3" ? rows.filter(s => new Date(s.start_at) >= startDay(new Date()) && new Date(s.start_at) < addDays(startDay(new Date()),3)).length : key === "next7" ? rows.filter(s => new Date(s.start_at) >= startDay(new Date()) && new Date(s.start_at) < addDays(startDay(new Date()),7)).length : key === "previous" ? rows.filter(s => new Date(s.start_at) < startDay(new Date())).length : rows.length;
-            return <button key={key} onClick={() => setDateTab(key)} className={\`min-w-[110px] flex-1 px-4 py-3.5 border-r last:border-r-0 text-left transition-colors \${dateTab === key ? "bg-blue-700 text-white" : "hover:bg-slate-50 dark:hover:bg-slate-800"}\`}><div className="text-xs font-bold">{name}</div><div className={\`text-[11px] mt-0.5 \${dateTab === key ? "text-blue-100" : "text-slate-400"}\`}>{count} meetings</div></button>;
+            return <button key={key} onClick={() => setDateTab(key)} className={`min-w-[110px] flex-1 px-4 py-3.5 border-r last:border-r-0 text-left transition-colors ${dateTab === key ? "bg-blue-700 text-white" : "hover:bg-slate-50 dark:hover:bg-slate-800"}`}><div className="text-xs font-bold">{name}</div><div className={`text-[11px] mt-0.5 ${dateTab === key ? "text-blue-100" : "text-slate-400"}`}>{count} meetings</div></button>;
           })}
         </div>
       </div>
@@ -321,7 +321,7 @@ export default function SchedulePage() {
           ["Today", stats.today, CalendarDays, "blue"], ["Upcoming", stats.upcoming, Clock3, "orange"], ["Overdue", stats.overdue, AlertCircle, "rose"],
           ["Completed", stats.completed, CheckCircle2, "emerald"], ["Outcome Pending", stats.outcome, MessageSquareText, "violet"], ["Follow-up Due", stats.followup, Target, "amber"]
         ].map(([name, value, Icon, tone]) => <button key={name} onClick={() => name === "Outcome Pending" ? setFilters(f => ({ ...f, status: "completed" })) : name === "Completed" ? setFilters(f => ({ ...f, status: "completed" })) : null} className="text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-          <div className="flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{name}</span><span className={\`w-8 h-8 rounded-xl grid place-items-center bg-\${tone}-50 text-\${tone}-600\`}><Icon className="w-4 h-4" /></span></div>
+          <div className="flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{name}</span><span className={`w-8 h-8 rounded-xl grid place-items-center bg-${tone}-50 text-${tone}-600`}><Icon className="w-4 h-4" /></span></div>
           <div className="text-2xl font-display font-bold text-slate-900 dark:text-white mt-2">{value}</div>
         </button>)}
       </div>
@@ -334,11 +334,11 @@ export default function SchedulePage() {
                 <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search customer, lead, phone, meeting, owner, location..." className="w-full h-10 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none text-sm" />
               </div>
-              <button onClick={() => setFilterOpen(v => !v)} className={\`h-10 px-4 rounded-xl border flex items-center gap-2 text-sm font-semibold \${filterOpen || Object.values(filters).some(Boolean) ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700"}\`}><SlidersHorizontal className="w-4 h-4" />Filters <span className="text-[10px] rounded-full px-1.5 py-0.5 bg-slate-100">{Object.values(filters).filter(Boolean).length}</span></button>
+              <button onClick={() => setFilterOpen(v => !v)} className={`h-10 px-4 rounded-xl border flex items-center gap-2 text-sm font-semibold ${filterOpen || Object.values(filters).some(Boolean) ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700"}`}><SlidersHorizontal className="w-4 h-4" />Filters <span className="text-[10px] rounded-full px-1.5 py-0.5 bg-slate-100">{Object.values(filters).filter(Boolean).length}</span></button>
               <select value={sort} onChange={e => setSort(e.target.value)} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white"><option value="date_asc">Sort: Earliest</option><option value="date_desc">Sort: Latest</option><option value="priority">Sort: Priority</option><option value="customer">Sort: Customer</option></select>
               <div className="flex h-10 p-1 rounded-xl bg-slate-100">
-                <button onClick={() => setViewMode("list")} className={\`px-3 rounded-lg text-xs font-bold \${viewMode === "list" ? "bg-white shadow-sm text-blue-700" : "text-slate-500"}\`}>List</button>
-                <button onClick={() => setViewMode("timeline")} className={\`px-3 rounded-lg text-xs font-bold \${viewMode === "timeline" ? "bg-white shadow-sm text-blue-700" : "text-slate-500"}\`}>Timeline</button>
+                <button onClick={() => setViewMode("list")} className={`px-3 rounded-lg text-xs font-bold ${viewMode === "list" ? "bg-white shadow-sm text-blue-700" : "text-slate-500"}`}>List</button>
+                <button onClick={() => setViewMode("timeline")} className={`px-3 rounded-lg text-xs font-bold ${viewMode === "timeline" ? "bg-white shadow-sm text-blue-700" : "text-slate-500"}`}>Timeline</button>
               </div>
             </div>
             {filterOpen && <div className="border-t border-slate-100 p-4 bg-slate-50/60 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -367,7 +367,7 @@ export default function SchedulePage() {
             <div className="p-4 flex items-center justify-between"><div><div className="font-display font-bold text-slate-900">October {new Date().getFullYear()}</div><div className="text-[11px] text-slate-400 mt-0.5">Meeting activity</div></div><div className="flex gap-1"><button className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronLeft className="w-4 h-4" /></button><button className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronRight className="w-4 h-4" /></button></div></div>
             <div className="px-3 pb-3 grid grid-cols-7 gap-1 text-center">
               {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 py-1">{d}</div>)}
-              {calendarDays.map(x => <button key={x.key} onClick={() => { setDateTab("all"); setFilters(f => ({ ...f, from: x.key, to: x.key })); }} className={\`relative h-8 rounded-lg text-xs \${x.key === localDate() ? "bg-blue-700 text-white font-bold" : "hover:bg-blue-50 text-slate-600"}\`}>{x.d.getDate()}{x.count > 0 && <span className={\`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full \${x.key === localDate() ? "bg-white" : "bg-orange-500"}\`} />}</button>)}
+              {calendarDays.map(x => <button key={x.key} onClick={() => { setDateTab("all"); setFilters(f => ({ ...f, from: x.key, to: x.key })); }} className={`relative h-8 rounded-lg text-xs ${x.key === localDate() ? "bg-blue-700 text-white font-bold" : "hover:bg-blue-50 text-slate-600"}`}>{x.d.getDate()}{x.count > 0 && <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${x.key === localDate() ? "bg-white" : "bg-orange-500"}`} />}</button>)}
             </div>
           </div>
 
@@ -381,8 +381,8 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          <div className={\`rounded-2xl border p-4 \${attention.length ? "bg-rose-50/70 border-rose-100" : "bg-emerald-50/70 border-emerald-100"}\`}>
-            <div className="flex items-center justify-between"><div className="font-bold text-slate-900">Needs Attention</div><span className={\`text-xs font-bold \${attention.length ? "text-rose-600" : "text-emerald-600"}\`}>{attention.reduce((a,b)=>a+b.count,0)}</span></div>
+          <div className={`rounded-2xl border p-4 ${attention.length ? "bg-rose-50/70 border-rose-100" : "bg-emerald-50/70 border-emerald-100"}`}>
+            <div className="flex items-center justify-between"><div className="font-bold text-slate-900">Needs Attention</div><span className={`text-xs font-bold ${attention.length ? "text-rose-600" : "text-emerald-600"}`}>{attention.reduce((a,b)=>a+b.count,0)}</span></div>
             {attention.length ? <div className="mt-3 space-y-2">{attention.map(a => <button key={a.label} onClick={() => a.label.includes("outcome") ? setFilters(f=>({...f,status:"completed"})) : null} className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-white text-left"><span className="flex items-center gap-2 text-xs font-semibold text-slate-700"><a.icon className="w-4 h-4 text-rose-500" />{a.label}</span><span className="font-bold text-rose-600">{a.count}</span></button>)}</div> : <div className="mt-3 text-xs text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Everything looks under control.</div>}
           </div>
 
@@ -410,7 +410,7 @@ function ScheduleRow({ s, lead, onOpen }) {
   const isToday = sameDay(s.start_at, new Date());
   return <button onClick={() => onOpen(s)} className="w-full text-left p-4 lg:px-5 hover:bg-blue-50/40 transition-colors grid lg:grid-cols-[130px_minmax(250px,1fr)_190px_150px_130px] gap-3 lg:gap-4 items-center">
     <div><div className="text-sm font-bold text-slate-900">{fmtTime(s.start_at)}</div><div className="text-[11px] text-slate-400 mt-0.5">{isToday ? "Today" : fmtDate(s.start_at)}</div></div>
-    <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><span className="font-bold text-sm text-slate-900 truncate">{customer}</span>{s.priority && s.priority !== "normal" && <span className={\`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase \${s.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-orange-100 text-orange-700"}\`}>{s.priority}</span>}</div><div className="text-xs text-slate-500 mt-1 truncate">{s.title}{lead?.project_type ? \` · \${lead.project_type}\` : ""}</div><div className="flex flex-wrap gap-1.5 mt-2"><span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">{label(s.meeting_type)}</span>{s.location_address && <span className="text-[10px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{s.location_address}</span>}</div></div>
+    <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><span className="font-bold text-sm text-slate-900 truncate">{customer}</span>{s.priority && s.priority !== "normal" && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${s.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-orange-100 text-orange-700"}`}>{s.priority}</span>}</div><div className="text-xs text-slate-500 mt-1 truncate">{s.title}{lead?.project_type ? ` · ${lead.project_type}` : ""}</div><div className="flex flex-wrap gap-1.5 mt-2"><span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">{label(s.meeting_type)}</span>{s.location_address && <span className="text-[10px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{s.location_address}</span>}</div></div>
     <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 grid place-items-center text-xs font-bold">{owner.slice(0,1).toUpperCase()}</span><div className="min-w-0"><div className="text-xs font-bold text-slate-700 truncate">{owner}</div><div className="text-[10px] text-slate-400">Meeting owner</div></div></div>
     <div><ModeBadge mode={s.mode} /></div>
     <div className="flex items-center justify-between gap-2"><StatusBadge status={s.status} /><MoreVertical className="w-4 h-4 text-slate-300" /></div>

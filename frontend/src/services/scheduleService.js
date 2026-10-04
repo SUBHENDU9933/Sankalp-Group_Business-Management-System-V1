@@ -23,6 +23,17 @@ export const createSchedule=async(payload,participantIds=[],requiredParticipantI
   const {data,error}=await supabase.from("schedules").insert([{...payload,created_by:createdBy}]).select("*").single(); if(error)throw error;
   const ids=[...new Set([payload.owner_id,...participantIds].filter(Boolean))];
   if(ids.length){const requiredSet=new Set(requiredParticipantIds);const {error:e}=await supabase.from("schedule_participants").insert(ids.map(user_id=>({schedule_id:data.id,user_id,participant_role:user_id===payload.owner_id?"owner":"participant",is_required:requiredSet.has(user_id)||user_id===payload.owner_id,added_by:createdBy})));if(e)throw e;}
+
+  // A real meeting/visit schedule moves an engaged lead into the
+  // "Meeting / Visit Scheduled" stage. Follow-up/phone/WhatsApp schedules
+  // do not change the sales lifecycle.
+  const meetingStages = ["site_visit","customer_home","office_meeting","measurement_visit","project_review","material_discussion","video_meeting","design_presentation"];
+  if (payload.lead_id && meetingStages.includes(payload.meeting_type)) {
+    const { data:lead } = await supabase.from("leads").select("id,status").eq("id",payload.lead_id).maybeSingle();
+    if (lead && ["contacted","site_visit"].includes(lead.status)) {
+      await supabase.from("leads").update({status:"floor_plan_site_info"}).eq("id",lead.id);
+    }
+  }
   return fetchScheduleById(data.id);
 };
 export const updateSchedule=async(id,payload)=>{
@@ -33,7 +44,18 @@ export const updateSchedule=async(id,payload)=>{
   if(error)throw error;
   return data;
 };
-export const completeSchedule=(id,payload={})=>updateSchedule(id,{...payload,status:"completed",completed_at:new Date().toISOString()});
+export const completeSchedule=async(id,payload={})=>{
+  const schedule=await fetchScheduleById(id);
+  const result=await updateSchedule(id,{...payload,status:"completed",completed_at:new Date().toISOString()});
+  const meetingStages=["site_visit","customer_home","office_meeting","measurement_visit","project_review","material_discussion","video_meeting","design_presentation"];
+  if(schedule.lead_id && meetingStages.includes(schedule.meeting_type)){
+    const {data:lead}=await supabase.from("leads").select("id,status").eq("id",schedule.lead_id).maybeSingle();
+    if(lead && ["floor_plan_site_info","site_visit"].includes(lead.status)){
+      await supabase.from("leads").update({status:"estimate_to_be_created"}).eq("id",lead.id);
+    }
+  }
+  return result;
+};
 export const fetchScheduleFiles=async(scheduleId)=>{const {data,error}=await supabase.from("schedule_files").select("*").eq("schedule_id",scheduleId).is("deleted_at",null).order("uploaded_at",{ascending:false});if(error)throw error;return data||[];};
 export const uploadScheduleFile=async(scheduleId,leadId,file,{source="employee",category="other"}={})=>{const res=await uploadFile(file,`schedule-files/${scheduleId}`);const {data:a}=await supabase.auth.getUser();const {data,error}=await supabase.from("schedule_files").insert([{schedule_id:scheduleId,lead_id:leadId||null,file_name:res.name,file_type:res.type,file_size:res.size,source,category,storage_provider:"supabase",storage_path:res.path,file_url:res.url,uploaded_by:a?.user?.id}]).select("*").single();if(error)throw error;return data;};
 export const fetchScheduleStats=async()=>{const {data,error}=await supabase.from("schedules").select("id,status,start_at,next_action_date").is("deleted_at",null);if(error)throw error;return data||[];};

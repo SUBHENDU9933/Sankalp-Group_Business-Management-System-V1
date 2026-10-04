@@ -23,10 +23,16 @@ export const createSchedule=async(payload,participantIds=[],requiredParticipantI
   const {data,error}=await supabase.from("schedules").insert([{...payload,created_by:createdBy}]).select("*").single(); if(error)throw error;
   const ids=[...new Set([payload.owner_id,...participantIds].filter(Boolean))];
   if(ids.length){const requiredSet=new Set(requiredParticipantIds);const {error:e}=await supabase.from("schedule_participants").insert(ids.map(user_id=>({schedule_id:data.id,user_id,participant_role:user_id===payload.owner_id?"owner":"participant",is_required:requiredSet.has(user_id)||user_id===payload.owner_id,added_by:createdBy})));if(e)throw e;}
-  if(payload.lead_id)await supabase.from("lead_activities").insert([{lead_id:payload.lead_id,type:"schedule_created",content:`Schedule created: ${payload.title}`,created_by:createdBy,meta:{schedule_id:data.id,meeting_type:payload.meeting_type,mode:payload.mode}}]);
   return fetchScheduleById(data.id);
 };
-export const updateSchedule=async(id,payload)=>{const {data,error}=await supabase.from("schedules").update(payload).eq("id",id).select("*").single();if(error)throw error;if(data.lead_id&&(payload.status||payload.feedback||payload.remarks||payload.next_action)){const {data:a}=await supabase.auth.getUser();await supabase.from("lead_activities").insert([{lead_id:data.lead_id,type:"schedule_update",content:payload.remarks||payload.feedback||`Schedule updated: ${data.title}`,created_by:a?.user?.id,meta:{schedule_id:id,status:data.status,feedback_tags:data.feedback_tags||[],next_action:data.next_action||null}}]);}return data;};
+export const updateSchedule=async(id,payload)=>{
+  const {data:authData}=await supabase.auth.getUser();
+  const safePayload={...payload};
+  if(authData?.user?.id) safePayload.updated_by=authData.user.id;
+  const {data,error}=await supabase.from("schedules").update(safePayload).eq("id",id).select("*").single();
+  if(error)throw error;
+  return data;
+};
 export const completeSchedule=(id,payload={})=>updateSchedule(id,{...payload,status:"completed",completed_at:new Date().toISOString()});
 export const fetchScheduleFiles=async(scheduleId)=>{const {data,error}=await supabase.from("schedule_files").select("*").eq("schedule_id",scheduleId).is("deleted_at",null).order("uploaded_at",{ascending:false});if(error)throw error;return data||[];};
 export const uploadScheduleFile=async(scheduleId,leadId,file,{source="employee",category="other"}={})=>{const res=await uploadFile(file,`schedule-files/${scheduleId}`);const {data:a}=await supabase.auth.getUser();const {data,error}=await supabase.from("schedule_files").insert([{schedule_id:scheduleId,lead_id:leadId||null,file_name:res.name,file_type:res.type,file_size:res.size,source,category,storage_provider:"supabase",storage_path:res.path,file_url:res.url,uploaded_by:a?.user?.id}]).select("*").single();if(error)throw error;return data;};

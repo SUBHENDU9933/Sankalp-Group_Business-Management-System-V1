@@ -10,8 +10,9 @@ const attachAssignees = async (rows) => {
     const batch = ids.slice(i, i + BATCH_SIZE);
     const { data, error } = await supabase
       .from("lead_assignees")
-      .select("lead_id,user_id,added_at,profile:profiles!lead_assignees_user_id_fkey(id,full_name,email)")
-      .in("lead_id", batch);
+      .select("lead_id,user_id,added_at,removed_at,profile:profiles!lead_assignees_user_id_fkey(id,full_name,email)")
+      .in("lead_id", batch)
+      .is("removed_at", null);
     if (error) throw error;
     for (const item of data || []) {
       const list = byLead.get(item.lead_id) || [];
@@ -24,7 +25,7 @@ const attachAssignees = async (rows) => {
 
 const fetchAssignedLeadIds = async (userId) => {
   if (!userId) return [];
-  const { data, error } = await supabase.from("lead_assignees").select("lead_id").eq("user_id", userId);
+  const { data, error } = await supabase.from("lead_assignees").select("lead_id").eq("user_id", userId).is("removed_at", null);
   if (error) throw error;
   return (data || []).map((row) => row.lead_id).filter(Boolean);
 };
@@ -48,7 +49,7 @@ export const fetchLeadSegment = async ({
 
   let query = supabase
     .from("leads")
-    .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email)", { count: "exact" })
+    .select("*, assigned_profile:profiles!leads_assigned_to_fkey(id,full_name,email), creator:profiles!leads_created_by_fkey(id,full_name,email), lost_profile:profiles!leads_lost_by_fkey(id,full_name,email)", { count: "exact" })
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -126,5 +127,13 @@ export const reviveLostLead = async (leadId, userId, nextStatus = "contacted") =
     }]);
     if (activityError) throw activityError;
   }
+  return data;
+};
+
+
+export const claimLostLead = async (leadId) => {
+  if (!leadId) throw new Error("Lead ID is required");
+  const { data, error } = await supabase.rpc("claim_lost_lead", { p_lead_id: leadId });
+  if (error) throw error;
   return data;
 };

@@ -47,6 +47,31 @@ Deno.serve(async(req:Request)=>{
   const admin=adminClient(),{data:u,error:ue}=await admin.auth.getUser(bearer);if(ue||!u.user)return json({error:"Invalid or expired session"},401);
   const payload=await req.json().catch(()=>({})),action=String(payload.action||"status");
   if(action==="status"){const {data:c}=await admin.from("google_calendar_connections").select("google_email,status,connected_at,last_synced_at,last_error").eq("user_id",u.user.id).maybeSingle();const {data:m}=await admin.from("google_calendar_master_connections").select("google_email,calendar_id,calendar_email,status,connected_at,last_synced_at,last_error").maybeSingle();return json({configured:c?.status==="connected",employee_connection:c||null,master_calendar_configured:Boolean(m?.status==="connected"),master_calendar:m?{calendar_id:m.calendar_id,calendar_email:m.calendar_email,google_email:m.google_email,status:m.status,connected_at:m.connected_at,last_error:m.last_error}:null})}
+  if(action==="sync_pending"){
+    const {data:pending,error:pe}=await admin.from("schedule_calendar_sync_items").select("id,schedule_id,user_id,google_event_id").eq("user_id",u.user.id).in("sync_status",["pending","failed"]).order("updated_at",{ascending:true}).limit(100);
+    if(pe)throw pe;
+    const master=await masterInfo(admin);
+    const {data:profile}=await admin.from("profiles").select("email").eq("id",u.user.id).single();
+    let synced=0,failed=0;
+    for(const item of pending||[]){
+      try{
+        if(!item.google_event_id){failed++;continue;}
+        const event=await gfetch("/calendars/"+encodeURIComponent(master.calendar_id)+"/events/"+encodeURIComponent(item.google_event_id),master.token);
+        const existing=[...(event.attendees||[])].map((a:any)=>String(a.email||"").toLowerCase()).filter(Boolean);
+        const email=String(profile?.email||"").toLowerCase();
+        if(!email){failed++;continue;}
+        if(!existing.includes(email)){
+          await gfetch("/calendars/"+encodeURIComponent(master.calendar_id)+"/events/"+encodeURIComponent(item.google_event_id)+"?sendUpdates=all",master.token,{method:"PATCH",body:JSON.stringify({attendees:[...(event.attendees||[]),{email:profile.email}]})});
+        }
+        await admin.from("schedule_calendar_sync_items").update({sync_status:"synced",last_synced_at:new Date().toISOString(),last_error:null,last_source:"manual_or_auto_sync",updated_at:new Date().toISOString()}).eq("id",item.id);
+        synced++;
+      }catch(e){
+        await admin.from("schedule_calendar_sync_items").update({sync_status:"failed",last_error:e instanceof Error?e.message:"Calendar sync failed",last_source:"manual_or_auto_sync",updated_at:new Date().toISOString()}).eq("id",item.id);
+        failed++;
+      }
+    }
+    return json({success:true,synced,failed,pending:(pending||[]).length-synced-failed});
+  }
   if(action==="availability"){const start=String(payload.start||""),end=String(payload.end||""),ids=[...new Set((payload.user_ids||[]).filter(Boolean))];if(!start||!end||!ids.length)return json({error:"start, end and user_ids are required"},400);const calendars=await connectedUserCalendars(admin,ids);const master=await masterInfo(admin);const all=[{...master,user_id:null},...calendars.filter((x:any)=>x.connected!==false)];const busy:any[]=[];for(const c of all){const fb=await freeBusy(c,start,end);for(const b of fb.calendars?.[c.calendar_id]?.busy||[])busy.push({...b,user_id:c.user_id,calendar_email:c.calendar_email})}return json({configured:true,available:busy.length===0,calendars:all.map(c=>({user_id:c.user_id,calendar_id:c.calendar_id,calendar_email:c.calendar_email})),unconnected_user_ids:calendars.filter((x:any)=>x.connected===false).map((x:any)=>x.user_id),busy})}
   if(action==="create_event"){
    const scheduleId=String(payload.schedule_id||"");if(!scheduleId)return json({error:"schedule_id is required"},400);

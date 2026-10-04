@@ -218,6 +218,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
             rmOptions={profiles}
             isAdmin={isAdmin}
             onClear={handleClearFilters}
+            isLost={isLost}
           />
           <div className="mt-2 flex items-center justify-between text-xs text-stone-500">
             <div>{total.toLocaleString("en-IN")} {isLost ? "lost" : "active"} leads{hasFilters ? " matching filters" : ""}</div>
@@ -231,7 +232,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
         <div className="mt-5">
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading {isLost ? "lost" : "active"} leads…</div>
             : leads.length === 0 ? <div className="bg-white border border-stone-200 p-12 text-center text-stone-500">No {isLost ? "lost" : "active"} leads found.</div>
-            : view === "table" ? <LeadTableView
+            : (isLost || view === "table") ? <LeadTableView
                 leads={leads} onOpen={openDetails} onEdit={openEdit} onStatusChange={handleStatusChange}
                 onConvert={handleConvert} onRequestDelete={handleRequestDelete} onCancelDelete={handleCancelDelete}
                 selected={selected} onToggleSelect={toggleSelect} onToggleAll={toggleAll}

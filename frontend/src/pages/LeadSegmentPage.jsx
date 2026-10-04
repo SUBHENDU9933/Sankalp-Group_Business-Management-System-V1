@@ -260,7 +260,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
       )}
 
       <LeadFormDialog open={formOpen} onOpenChange={setFormOpen} lead={editLead} onSaved={load} />
-      <LeadDetailsSheet open={detailsOpen} onOpenChange={setDetailsOpen} lead={activeLead} onEdit={openEdit} onConvert={handleConvert} profiles={profiles} onAssigneesChanged={load} />
+      <LeadDetailsSheet open={detailsOpen} onOpenChange={setDetailsOpen} lead={activeLead} onEdit={openEdit} onConvert={handleConvert} profiles={profiles} onCallOutcome={() => load()} onAssigneesChanged={load} />
     </div>
   );
 }

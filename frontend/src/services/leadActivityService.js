@@ -44,18 +44,22 @@ export const logLeadCallOutcome = async ({ leadId, outcome, userId, note }) => {
 
   const attemptNumber = (previousCalls || 0) + 1;
   const currentStatus = lead.status;
-  const firstContactPromotion =
-    outcome === "connected" && ["new", "not_contacted"].includes(currentStatus);
-  const resultingStatus = firstContactPromotion ? "contacted" : currentStatus;
+  const isFirstCall = attemptNumber === 1;
+  const firstCallStatus = outcome === "connected" ? "contacted" : "not_contacted";
+  const shouldSetFirstCallStatus = isFirstCall && ["new", "not_contacted", "contacted"].includes(currentStatus);
+  const resultingStatus = shouldSetFirstCallStatus ? firstCallStatus : currentStatus;
 
-  if (firstContactPromotion) {
+  if (shouldSetFirstCallStatus) {
+    const statusPayload = { status: firstCallStatus };
+    if (outcome === "connected") statusPayload.last_contact_date = new Date().toISOString().slice(0, 10);
     const { error: statusError } = await supabase
       .from("leads")
-      .update({ status: "contacted", last_contact_date: new Date().toISOString().slice(0, 10) })
+      .update(statusPayload)
       .eq("id", leadId);
     if (statusError) throw statusError;
   } else if (outcome === "connected") {
-    // Preserve the existing pipeline stage, but refresh the last successful contact date.
+    // Preserve the existing lifecycle stage on every follow-up call, but refresh
+    // the last successful contact date.
     const { error: contactError } = await supabase
       .from("leads")
       .update({ last_contact_date: new Date().toISOString().slice(0, 10) })

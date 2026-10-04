@@ -90,7 +90,7 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
                   onOpen={() => onOpen(l)}
                   onStatusChange={onStatusChange}
                   onConvert={onConvert}
-                  currentStatus={s.key}
+                  currentStatus={l.status}
                 />
               ))}
               {items.length === 0 && (

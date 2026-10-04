@@ -1,1 +1,0 @@
-alter table public.leads\n  add column if not exists email text;\n\nalter table public.schedules\n  add column if not exists location_map_url text,\n  add column if not exists location_landmark text;\n

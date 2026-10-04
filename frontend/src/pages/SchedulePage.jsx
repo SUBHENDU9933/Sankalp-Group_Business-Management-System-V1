@@ -385,7 +385,31 @@ export default function SchedulePage() {
                 <button onClick={() => setViewMode("timeline")} className={`px-3 rounded-lg text-xs font-bold ${viewMode === "timeline" ? "bg-white shadow-sm text-blue-700" : "text-slate-500"}`}>Timeline</button>
               </div>
             </div>
-            {filterOpen && <div className="border-t border-slate-100 p-4 bg-slate-50/60 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {Object.values(filters).some(Boolean) && <div className="px-4 pb-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Active filters</span>
+              {Object.entries(filters).filter(([,v]) => v).map(([key,value]) => {
+                const names = { owner:"Owner", assignedBy:"Assigned By", manager:"Manager", status:"Status", type:"Meeting Type", mode:"Mode", priority:"Priority", lead:"Lead / Customer", calendar:"Calendar", from:"From", to:"To" };
+                const collections = { owner:team, assignedBy:team, manager:managers, lead:leads };
+                const item = collections[key]?.find(x => x.id === value);
+                const display = item ? (item.full_name || item.name) : (key === "calendar" ? label(value) : value);
+                return <button key={key} onClick={() => setFilters(x => ({...x,[key]:""}))} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold hover:bg-blue-100">{names[key] || key}: {display}<X className="w-3 h-3" /></button>;
+              })}
+              <button onClick={() => { setQuery(""); resetFilters(); }} className="text-[11px] font-bold text-rose-600 hover:underline ml-1">Clear all</button>
+            </div>}
+            {filterOpen && <div className="border-t border-slate-100 p-4 bg-slate-50/60">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-xs font-bold text-slate-500 py-2">Quick date:</span>
+                {[["today","Today"],["tomorrow","Tomorrow"],["next3","Next 3 Days"],["next7","Next 7 Days"],["month","This Month"],["previous","Previous"]].map(([k,n]) => <button key={k} onClick={() => {
+                  const d = new Date(); const start = startDay(d);
+                  if (k==="today") setFilters(x=>({...x,from:localDate(),to:localDate()}));
+                  else if(k==="tomorrow"){ const t=addDays(start,1); setFilters(x=>({...x,from:localDate(t),to:localDate(t)})); }
+                  else if(k==="next3") setFilters(x=>({...x,from:localDate(start),to:localDate(addDays(start,2))}));
+                  else if(k==="next7") setFilters(x=>({...x,from:localDate(start),to:localDate(addDays(start,6))}));
+                  else if(k==="month"){ const end=new Date(d.getFullYear(),d.getMonth()+1,0); setFilters(x=>({...x,from:localDate(new Date(d.getFullYear(),d.getMonth(),1)),to:localDate(end)})); }
+                  else setDateTab("previous");
+                }} className="px-3 py-1.5 rounded-lg border bg-white text-[11px] font-bold text-slate-600 hover:border-blue-300 hover:text-blue-700">{n}</button>)}
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 ["Owner", "owner", team.filter(p => p.is_active !== false), "id", "full_name"],
                 ["Assigned By", "assignedBy", team.filter(p => p.is_active !== false), "id", "full_name"],
@@ -399,8 +423,8 @@ export default function SchedulePage() {
               ].map(([name, key, options, valueKey, labelKey]) => <label key={key} className="text-xs font-bold text-slate-500">{name}<select value={filters[key]} onChange={e => setFilters(f => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"><option value="">All {name}s</option>{options.map(o => <option key={o[valueKey]} value={o[valueKey]}>{o[labelKey]}</option>)}</select></label>)}
               <label className="text-xs font-bold text-slate-500">From<input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm" /></label>
               <label className="text-xs font-bold text-slate-500">To<input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm" /></label>
-              <button onClick={resetFilters} className="h-10 self-end rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:text-blue-700 flex items-center justify-center gap-2"><RotateCcw className="w-4 h-4" />Clear Filters</button>
-            </div>}
+              <button onClick={() => { setQuery(""); resetFilters(); }} className="h-10 self-end rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:text-blue-700 flex items-center justify-center gap-2"><RotateCcw className="w-4 h-4" />Clear All Filters</button>
+            </div></div>}
           </div>
 
           {loading ? <div className="bg-white border rounded-2xl p-16 text-center"><RefreshCw className="w-7 h-7 mx-auto text-blue-600 animate-spin" /><div className="font-bold text-slate-700 mt-3">Loading schedules…</div><p className="text-sm text-slate-400 mt-1">Fetching meetings and customer details.</p></div> :

@@ -106,6 +106,15 @@ export default function SchedulePage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Lead Details -> "Meeting" opens the existing planner with that lead preselected.
+  useEffect(() => {
+    const leadId = new URLSearchParams(window.location.search).get("lead_id");
+    if (!leadId || !leads.some(l => l.id === leadId)) return;
+    setForm(f => ({ ...f, lead_id: leadId, meeting_type: "customer_home", mode: "physical" }));
+    setShowCreate(true);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [leads]);
   useEffect(() => {
     const saved = sessionStorage.getItem("sankalp_schedule_filters");
     if (saved) {

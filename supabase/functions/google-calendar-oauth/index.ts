@@ -26,6 +26,44 @@ async function googleToken(body:Record<string,string>){
   const d=await r.json();if(!r.ok)throw new Error(d?.error_description||d?.error||"Google token exchange failed");return d;
 }
 async function gfetch(path:string,token:string,init:RequestInit={}){const r=await fetch(`https://www.googleapis.com/calendar/v3${path}`,{...init,headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json",...(init.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||"Google Calendar request failed");return d;}
+async function masterAccessToken(admin:any){
+  const {data:m,error}=await admin.from("google_calendar_master_connections").select("*").eq("status","connected").maybeSingle();
+  if(error||!m?.refresh_token_encrypted)return null;
+  if(m.access_token_encrypted&&m.token_expires_at&&new Date(m.token_expires_at).getTime()>Date.now()+120000)return {token:await decrypt(m.access_token_encrypted),calendarId:m.calendar_id};
+  const refresh=await decrypt(m.refresh_token_encrypted),clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),clientSecret=Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");if(!clientId||!clientSecret)return null;
+  const r=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refresh,grant_type:"refresh_token"})});
+  const d=await r.json();if(!r.ok)return null;
+  await admin.from("google_calendar_master_connections").update({access_token_encrypted:await encrypt(d.access_token),token_expires_at:new Date(Date.now()+Number(d.expires_in||3600)*1000).toISOString(),status:"connected",last_error:null,last_synced_at:new Date().toISOString()}).eq("id",m.id);
+  return {token:d.access_token,calendarId:m.calendar_id};
+}
+async function backfillPersonalCalendar(admin:any,userId:string){
+  const master=await masterAccessToken(admin);if(!master)return {synced:0,pending:0,skipped:0};
+  const now=new Date(Date.now()-24*60*60*1000).toISOString();
+  const [{data:owned},{data:links}]=await Promise.all([
+    admin.from("schedules").select("id,google_calendar_event_id,start_at,status").eq("owner_id",userId).gte("start_at",now).is("deleted_at",null),
+    admin.from("schedule_participants").select("schedule_id").eq("user_id",userId).eq("is_required",true)
+  ]);
+  const ids=[...new Set([...(owned||[]).map((x:any)=>x.id),...(links||[]).map((x:any)=>x.schedule_id)])];
+  if(!ids.length)return {synced:0,pending:0,skipped:0};
+  const {data:schedules}=await admin.from("schedules").select("id,google_calendar_event_id,start_at,status").in("id",ids).gte("start_at",now).is("deleted_at",null);
+  let synced=0,pending=0,skipped=0;
+  for(const s of schedules||[]){
+    if(["completed","customer_cancelled","cancelled"].includes(String(s.status))){skipped++;continue;}
+    if(!s.google_calendar_event_id){await admin.from("schedule_calendar_sync_items").upsert({schedule_id:s.id,user_id:userId,provider:"google",calendar_type:"personal",sync_status:"pending",last_error:"Waiting for Company Master Calendar event",last_source:"oauth_backfill",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"});pending++;continue;}
+    try{
+      const event=await gfetch("/calendars/"+encodeURIComponent(master.calendarId)+"/events/"+encodeURIComponent(s.google_calendar_event_id),master.token);
+      const attendees=[...(event.attendees||[]).map((a:any)=>({email:a.email})),{email:(await admin.from("profiles").select("email").eq("id",userId).single()).data?.email}].filter((a:any)=>a.email);
+      const merged=[...new Map(attendees.map((a:any)=>[String(a.email).toLowerCase(),a])).values()];
+      await gfetch("/calendars/"+encodeURIComponent(master.calendarId)+"/events/"+encodeURIComponent(s.google_calendar_event_id)+"?sendUpdates=all",master.token,{method:"PATCH",body:JSON.stringify({attendees:merged})});
+      await admin.from("schedule_calendar_sync_items").upsert({schedule_id:s.id,user_id:userId,provider:"google",calendar_type:"personal",google_event_id:s.google_calendar_event_id,sync_status:"synced",last_synced_at:new Date().toISOString(),last_error:null,last_source:"oauth_backfill",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"});
+      synced++;
+    }catch(e){
+      await admin.from("schedule_calendar_sync_items").upsert({schedule_id:s.id,user_id:userId,provider:"google",calendar_type:"personal",google_event_id:s.google_calendar_event_id,sync_status:"failed",last_error:e instanceof Error?e.message:"Backfill failed",last_source:"oauth_backfill",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"});
+    }
+  }
+  return {synced,pending,skipped};
+}
+
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
@@ -67,6 +105,8 @@ Deno.serve(async(req:Request)=>{
       const refreshEncrypted=refresh?await encrypt(refresh):(existing.data?.refresh_token_encrypted||null);
       if(!refreshEncrypted)throw new Error("Google did not return a refresh token. Reconnect with consent.");
       const {error:connectionError}=await admin.from("google_calendar_connections").upsert({user_id:st.user_id,google_user_id:profile.sub||null,google_email:profile.email,primary_calendar_id:"primary",access_token_encrypted:await encrypt(tokens.access_token),refresh_token_encrypted:refreshEncrypted,token_expires_at:expiresAt,scope:tokens.scope||scopes.join(" "),status:"connected",last_error:null,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"user_id"}); if(connectionError)throw new Error(`Google Calendar connection could not be saved: ${connectionError.message}`);
+      const backfill=await backfillPersonalCalendar(admin,st.user_id);
+      console.log("Google Calendar personal backfill",st.user_id,backfill);
       return Response.redirect(`${Deno.env.get("APP_PUBLIC_URL")||"https://app.sankalpinterior.com"}/profile?google_calendar=connected`);
     }
     if(req.method!=="POST")return json({error:"Method not allowed"},405);

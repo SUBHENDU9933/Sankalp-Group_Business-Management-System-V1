@@ -38,11 +38,13 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
     const id = e.dataTransfer.getData("text/plain");
     const lead = leads.find((l) => l.id === id);
     setDraggingId(null); setOverCol(null);
-    if (!lead || lead.status === statusKey) return;
-    if (statusKey === "converted") {
+    if (!lead) return;
+    const targetStatus = statusKey === "new_uncontacted" ? "new" : statusKey;
+    if (lead.status === targetStatus || (statusKey === "new_uncontacted" && ["new", "not_contacted"].includes(lead.status))) return;
+    if (targetStatus === "converted") {
       onConvert(lead);
     } else {
-      onStatusChange(lead, statusKey);
+      onStatusChange(lead, targetStatus);
     }
   };
 

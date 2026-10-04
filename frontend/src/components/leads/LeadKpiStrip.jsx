@@ -1,71 +1,87 @@
 import { useMemo } from "react";
 import {
-  Users, PhoneCall, MapPin, FileText, CheckCircle2, XCircle, TrendingUp, IndianRupee,
+  Users, CalendarClock, Clock3, AlertTriangle, CheckCircle2, UserRoundX,
 } from "lucide-react";
-import { formatINR } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
-const KPI_DEFS = [
-  { key: "total", label: "Total Leads", icon: Users, accent: "text-stone-900", ring: "ring-stone-200" },
-  { key: "contacted", label: "Contacted", icon: PhoneCall, accent: "text-blue-700", ring: "ring-blue-100" },
-  { key: "site_visit", label: "Site Visits", icon: MapPin, accent: "text-indigo-700", ring: "ring-indigo-100" },
-  { key: "quotation_given", label: "Estimate Given", icon: FileText, accent: "text-amber-700", ring: "ring-amber-100" },
-  { key: "converted", label: "Converted", icon: CheckCircle2, accent: "text-emerald-700", ring: "ring-emerald-100" },
-  { key: "lost", label: "Lost", icon: XCircle, accent: "text-rose-700", ring: "ring-rose-100" },
-  { key: "conversion", label: "Conversion %", icon: TrendingUp, accent: "text-orange-700", ring: "ring-orange-100" },
-  { key: "revenue", label: "Expected Revenue", icon: IndianRupee, accent: "text-stone-900", ring: "ring-stone-200" },
-];
+function startOfDay(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
 
-export default function LeadKpiStrip({ leads }) {
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function isActive(l) {
+  return !["converted", "lost"].includes(l.status);
+}
+
+export default function LeadKpiStrip({ leads = [] }) {
   const stats = useMemo(() => {
-    const total = leads.length;
-    const counts = leads.reduce((acc, l) => {
-      acc[l.status] = (acc[l.status] || 0) + 1;
-      return acc;
-    }, {});
-    const converted = counts.converted || 0;
-    const conversion = total ? Math.round((converted / total) * 100) : 0;
-    const expected = leads
-      .filter((l) => !["lost"].includes(l.status))
-      .reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
-    return {
-      total,
-      contacted: counts.contacted || 0,
-      site_visit: counts.site_visit || 0,
-      quotation_given: counts.quotation_given || 0,
-      converted,
-      lost: counts.lost || 0,
-      conversion,
-      revenue: expected,
-    };
+    const today = startOfDay();
+    const next3 = addDays(today, 3);
+    const next7 = addDays(today, 7);
+    const active = leads.filter(isActive);
+    const todayCount = active.filter(l => l.next_followup_date && new Date(l.next_followup_date).toDateString() === today.toDateString()).length;
+    const next3Count = active.filter(l => l.next_followup_date && new Date(l.next_followup_date) >= today && new Date(l.next_followup_date) < next3).length;
+    const next7Count = active.filter(l => l.next_followup_date && new Date(l.next_followup_date) >= today && new Date(l.next_followup_date) < next7).length;
+    const overdue = active.filter(l => l.next_followup_date && new Date(l.next_followup_date) < today).length;
+    const noFollowup = active.filter(l => !l.next_followup_date).length;
+    const convertedThisMonth = leads.filter(l => {
+      if (l.status !== "converted" || !l.updated_at) return false;
+      const d = new Date(l.updated_at);
+      return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
+    }).length;
+    return { active: active.length, todayCount, next3Count, next7Count, overdue, noFollowup, convertedThisMonth };
   }, [leads]);
 
-  const valueFor = (k) => {
-    if (k === "conversion") return `${stats.conversion}%`;
-    if (k === "revenue") return formatINR(stats.revenue);
-    return stats[k] ?? 0;
+  const cards = [
+    { key: "active", label: "Active Leads", value: stats.active, icon: Users, tone: "blue", note: "All active & ongoing" },
+    { key: "today", label: "Today's Follow-ups", value: stats.todayCount, icon: CalendarClock, tone: "orange", note: "Action required today" },
+    { key: "next3", label: "Next 3 Days", value: stats.next3Count, icon: Clock3, tone: "blue", note: "Follow-ups due soon" },
+    { key: "next7", label: "Next 7 Days", value: stats.next7Count, icon: Clock3, tone: "violet", note: "Stay in touch" },
+    { key: "overdue", label: "Overdue Follow-ups", value: stats.overdue, icon: AlertTriangle, tone: "rose", note: "Immediate attention" },
+    { key: "nofollowup", label: "No Follow-up", value: stats.noFollowup, icon: UserRoundX, tone: "stone", note: "Set next action" },
+    { key: "converted", label: "Converted This Month", value: stats.convertedThisMonth, icon: CheckCircle2, tone: "emerald", note: "Closed successfully" },
+  ];
+
+  const tones = {
+    blue: "text-blue-700 bg-blue-50 border-blue-100",
+    orange: "text-orange-700 bg-orange-50 border-orange-100",
+    violet: "text-violet-700 bg-violet-50 border-violet-100",
+    rose: "text-rose-700 bg-rose-50 border-rose-100",
+    stone: "text-stone-700 bg-stone-50 border-stone-200",
+    emerald: "text-emerald-700 bg-emerald-50 border-emerald-100",
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" data-testid="leads-kpi-strip">
-      {KPI_DEFS.map(({ key, label, icon: Icon, accent, ring }) => (
-        <div
-          key={key}
-          className={cn(
-            "bg-white border border-stone-200 px-3 py-3 flex items-start gap-2.5 hover:border-stone-300 transition-colors ring-1",
-            ring,
-          )}
-          data-testid={`kpi-${key}`}
-        >
-          <div className={cn("w-8 h-8 flex items-center justify-center bg-stone-50 border border-stone-200", accent)}>
-            <Icon className="w-4 h-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-500 truncate">{label}</div>
-            <div className={cn("font-display text-xl leading-tight tabular-nums truncate", accent)}>{valueFor(key)}</div>
-          </div>
+    <div className="space-y-3" data-testid="leads-kpi-strip">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <div className="text-[10px] tracking-[0.18em] uppercase font-semibold text-stone-500">Lead Operations</div>
+          <div className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">Active Leads</div>
+          <div className="text-xs text-stone-500 mt-0.5">Your live pipeline and follow-up workload at a glance.</div>
         </div>
-      ))}
+        <div className="hidden md:flex items-center gap-2 text-[10px] tracking-[0.12em] uppercase text-stone-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Live data
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+        {cards.map(({ key, label, value, icon: Icon, tone, note }) => (
+          <div key={key} className={cn("bg-white border px-3.5 py-3.5 min-h-[104px] transition-colors hover:border-stone-300", key === "overdue" && value > 0 && "ring-1 ring-rose-100")} data-testid={`kpi-${key}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className={cn("w-8 h-8 flex items-center justify-center border", tones[tone])}><Icon className="w-4 h-4" /></div>
+              <div className={cn("font-display text-2xl font-bold tabular-nums", tones[tone].split(" ")[0])}>{value}</div>
+            </div>
+            <div className="mt-2 text-[10px] tracking-[0.11em] uppercase font-bold text-stone-600 leading-tight">{label}</div>
+            <div className="text-[10px] text-stone-400 mt-1 truncate">{note}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

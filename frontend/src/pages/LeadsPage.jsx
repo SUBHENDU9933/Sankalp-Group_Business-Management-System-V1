@@ -206,7 +206,7 @@ export default function LeadsPage() {
     if (!can("leads", "edit")) { toast.error("You do not have permission to edit leads"); return; }
     setEditLead(lead); setFormOpen(true); setDetailsOpen(false);
   };
-  const clearFilters = () => { setSearch(""); setStatusFilter("all"); setRmFilter("all"); setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate(""); };
+  const clearFilters = () => { setSearch(""); setStatusFilter("all"); setRmFilter("all"); setSourceFilter("all"); setTagFilter("all"); setFromDate(""); setToDate(""); setFollowupFilter("all"); };
   const canCreate = can("leads", "create");
   const canView = can("leads", "view");
 

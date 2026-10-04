@@ -217,7 +217,6 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                   <Button onClick={() => { window.location.href = "tel:" + phoneClean; setTimeout(() => handleCallOutcome("not_connected"), 1200); }} disabled={posting} variant="outline" className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs font-semibold"><XCircle className="w-3.5 h-3.5 mr-1.5" />Call Not Connected</Button>
                 </div>
               </div>
-              </div>
             </div>
             <div className="space-y-0 border border-stone-200 bg-white">
               {loading ? (

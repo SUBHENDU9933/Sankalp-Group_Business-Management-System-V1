@@ -6,7 +6,7 @@ export const StatusBadge = ({ status, className }) => {
   return (
     <span
       className={cn(
-        "inline-block px-2 py-1 text-[10px] tracking-[0.15em] uppercase font-semibold border",
+        "inline-block px-1.5 py-1 text-[9px] tracking-[0.1em] whitespace-nowrap uppercase font-semibold border",
         s.color,
         className
       )}

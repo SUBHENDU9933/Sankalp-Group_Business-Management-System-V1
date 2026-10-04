@@ -25,6 +25,8 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
     e.dataTransfer.dropEffect = "move";
     if (overCol !== key) setOverCol(key);
   };
+  const visibleStatuses = LEAD_STATUSES.filter((s) => includeLost || s.key !== "lost");
+
   const onDrop = (e, statusKey) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
@@ -40,7 +42,7 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
 
   return (
     <div
-      className="grid grid-cols-[repeat(10,minmax(150px,1fr))] gap-0 grid-divider-x border border-stone-200 bg-stone-200 overflow-x-auto"
+      className="grid gap-0 grid-divider-x border border-stone-200 bg-stone-200 overflow-x-auto" style={{ gridTemplateColumns: `repeat(${visibleStatuses.length}, minmax(150px, 1fr))` }}
       data-testid="leads-kanban"
     >
       {visibleStatuses.map((s) => {

@@ -31,12 +31,8 @@ export default function LeadKpiStrip({ leads = [], selectedFilter = "all", onFil
     const next7Count = active.filter(l => l.next_followup_date && new Date(l.next_followup_date) >= today && new Date(l.next_followup_date) < next7).length;
     const overdue = active.filter(l => l.next_followup_date && new Date(l.next_followup_date) < today).length;
     const noFollowup = active.filter(l => !l.next_followup_date).length;
-    const convertedThisMonth = leads.filter(l => {
-      if (l.status !== "converted" || !l.updated_at) return false;
-      const d = new Date(l.updated_at);
-      return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
-    }).length;
-    return { active: active.length, todayCount, next3Count, next7Count, overdue, noFollowup, convertedThisMonth };
+    const totalConverted = leads.filter(l => l.status === "converted").length;
+    return { active: active.length, todayCount, next3Count, next7Count, overdue, noFollowup, totalConverted };
   }, [leads]);
 
   const cards = [
@@ -46,7 +42,7 @@ export default function LeadKpiStrip({ leads = [], selectedFilter = "all", onFil
     { key: "next7", label: "Next 7 Days", value: stats.next7Count, icon: Clock3, tone: "violet", note: "Stay in touch" },
     { key: "overdue", label: "Overdue Follow-ups", value: stats.overdue, icon: AlertTriangle, tone: "rose", note: "Immediate attention" },
     { key: "nofollowup", label: "No Follow-up", value: stats.noFollowup, icon: UserRoundX, tone: "stone", note: "Set next action" },
-    { key: "converted", label: "Converted This Month", value: stats.convertedThisMonth, icon: CheckCircle2, tone: "emerald", note: "Closed successfully" },
+    { key: "converted", label: "Converted Leads", value: stats.totalConverted, icon: CheckCircle2, tone: "emerald", note: "Total converted successfully" },
   ];
 
   const filterActions = {

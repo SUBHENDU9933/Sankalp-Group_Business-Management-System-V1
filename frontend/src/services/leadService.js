@@ -230,7 +230,7 @@ export const convertLeadToCustomer = async (lead, userId) => {
 export const fetchLeadOptions = async () => {
   const { data, error } = await supabase
     .from("leads")
-    .select("id,name,phone,location,area,project_type,requirement,status")
+    .select("id,name,phone,email,location,area,project_type,requirement,status")
     .is("deleted_at", null)
     .not("status", "in", "(lost,converted)")
     .order("created_at", { ascending: false });

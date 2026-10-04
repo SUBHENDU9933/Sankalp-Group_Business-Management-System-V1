@@ -184,6 +184,9 @@ export default function SchedulePage() {
         (!filters.to || new Date(s.start_at) < addDays(startDay(new Date(filters.to)), 1));
       return (!q || haystack.includes(q)) &&
         (!filters.owner || s.owner_id === filters.owner) &&
+        (!filters.assignedBy || s.assigned_by === filters.assignedBy) &&
+        managerOk &&
+        (!filters.calendar || (s.google_calendar_status || "not_synced") === filters.calendar) &&
         (!filters.status || s.status === filters.status) &&
         (!filters.type || s.meeting_type === filters.type) &&
         (!filters.mode || s.mode === filters.mode) &&

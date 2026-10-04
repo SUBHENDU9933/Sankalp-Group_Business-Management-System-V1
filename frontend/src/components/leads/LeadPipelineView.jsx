@@ -25,7 +25,13 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
     e.dataTransfer.dropEffect = "move";
     if (overCol !== key) setOverCol(key);
   };
-  const visibleStatuses = LEAD_STATUSES.filter((s) => includeLost || s.key !== "lost");
+  // Business pipeline groups the two initial contact states into one stage.
+  // The underlying DB statuses remain distinct so call outcomes and reporting
+  // can still tell NEW from NOT CONTACTED.
+  const visibleStatuses = [
+    { key: "new_uncontacted", keys: ["new", "not_contacted"], label: "New / Uncontacted", color: "bg-stone-100 text-stone-900 border-stone-300", dot: "bg-stone-500" },
+    ...LEAD_STATUSES.filter((s) => !["new", "not_contacted", "lost"].includes(s.key)),
+  ];
 
   const onDrop = (e, statusKey) => {
     e.preventDefault();
@@ -46,7 +52,7 @@ export default function LeadPipelineView({ leads, onOpen, onStatusChange, onConv
       data-testid="leads-kanban"
     >
       {visibleStatuses.map((s) => {
-        const items = leads.filter((l) => l.status === s.key);
+        const items = leads.filter((l) => s.keys ? s.keys.includes(l.status) : l.status === s.key);
         const total = items.reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
         const isOver = overCol === s.key;
         return (

@@ -55,7 +55,7 @@ const save=async()=>{
   setSaving(true);
   try{
     const created=await createSchedule({lead_id:form.lead_id||null,title:form.title,meeting_type:form.meeting_type,mode:form.mode,status:"scheduled",priority:form.priority,start_at:chosen.start,end_at:chosen.end,timezone:"Asia/Kolkata",location_address:form.mode==="physical"?form.location_address:null,meeting_link:form.mode==="digital"?form.meeting_link||null:null,description:form.description||null,owner_id:form.owner_id,assigned_by:profile?.id||null,customer_email:form.customer_email||null},chosen.participantIds,chosen.participantIds);
-    if(calendar?.configured&&calendar?.master_calendar_configured){await syncScheduleToCalendar(created.id);toast.success("Schedule created and synced to Google Calendar")}else toast.success("Schedule created; Google Calendar connection is pending");
+    if(calendar?.master_calendar_configured){await syncScheduleToCalendar(created.id);toast.success("Schedule created; Company Master Calendar synced. Personal calendars will sync when connected.")}else toast.success("Schedule created; Company Master Calendar connection is pending");
     setShowCreate(false);setSlots([]);load();
   }catch(e){toast.error(e.code==="SLOT_CONFLICT"?"That slot was just booked. Please select another slot.":e.message||"Could not create schedule")}finally{setSaving(false)}
 };

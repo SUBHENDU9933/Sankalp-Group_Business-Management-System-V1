@@ -77,7 +77,7 @@ export default function SchedulePage() {
   const [viewMode, setViewMode] = useState("list"), [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState("date_asc");
   const [filters, setFilters] = useState({
-    owner: "", status: "", type: "", mode: "", priority: "", lead: "", from: "", to: ""
+    owner: "", assignedBy: "", manager: "", status: "", type: "", mode: "", priority: "", lead: "", calendar: "", from: "", to: ""
   });
   const [form, setForm] = useState({
     lead_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
@@ -157,7 +157,7 @@ export default function SchedulePage() {
     }
   }, [showCreate, rule, directors]);
 
-  const resetFilters = () => setFilters({ owner: "", status: "", type: "", mode: "", priority: "", lead: "", from: "", to: "" });
+  const resetFilters = () => setFilters({ owner: "", assignedBy: "", manager: "", status: "", type: "", mode: "", priority: "", lead: "", calendar: "", from: "", to: "" });
 
   const dateFiltered = useMemo(() => {
     const today = startDay(new Date());
@@ -179,7 +179,7 @@ export default function SchedulePage() {
     const result = dateFiltered.filter(s => {
       const lead = leadMap.get(s.lead_id);
       const owner = s.owner?.full_name || "";
-      const haystack = [s.title, s.location_address, owner, s.meeting_type, s.status, lead?.name, lead?.phone, lead?.location, lead?.project_type].filter(Boolean).join(" ").toLowerCase();
+      const participants = Array.isArray(s.participants) ? s.participants : [];\n      const participantNames = participants.map(p => p.profile?.full_name).filter(Boolean).join(" ");\n      const haystack = [s.title, s.location_address, s.location_landmark, owner, s.meeting_type, s.status, s.google_calendar_status, participantNames, lead?.name, lead?.phone, lead?.email, lead?.location, lead?.project_type].filter(Boolean).join(" ").toLowerCase();\n      const managerOk = !filters.manager || participants.some(p => p.user_id === filters.manager && (p.profile?.role === "rm" || p.participant_role === "manager"));
       const dateOk = (!filters.from || new Date(s.start_at) >= startDay(new Date(filters.from))) &&
         (!filters.to || new Date(s.start_at) < addDays(startDay(new Date(filters.to)), 1));
       return (!q || haystack.includes(q)) &&
@@ -382,11 +382,14 @@ export default function SchedulePage() {
             {filterOpen && <div className="border-t border-slate-100 p-4 bg-slate-50/60 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 ["Owner", "owner", team.filter(p => p.is_active !== false), "id", "full_name"],
+                ["Assigned By", "assignedBy", team.filter(p => p.is_active !== false), "id", "full_name"],
+                ["Manager", "manager", managers, "id", "full_name"],
                 ["Status", "status", Object.keys(statusMeta).map(k => ({ id: k, full_name: statusMeta[k].label })), "id", "full_name"],
                 ["Meeting Type", "type", TYPES.map(([id, full_name]) => ({ id, full_name })), "id", "full_name"],
                 ["Mode", "mode", [{ id: "physical", full_name: "Physical" }, { id: "digital", full_name: "Digital" }], "id", "full_name"],
                 ["Priority", "priority", ["urgent","high","normal","low"].map(id => ({ id, full_name: label(id) })), "id", "full_name"],
-                ["Lead / Customer", "lead", leads, "id", "name"]
+                ["Lead / Customer", "lead", leads, "id", "name"],
+                ["Calendar", "calendar", [{id:"synced",full_name:"Synced"},{id:"pending",full_name:"Pending"},{id:"failed",full_name:"Failed"},{id:"not_synced",full_name:"Not Synced"}], "id", "full_name"]
               ].map(([name, key, options, valueKey, labelKey]) => <label key={key} className="text-xs font-bold text-slate-500">{name}<select value={filters[key]} onChange={e => setFilters(f => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"><option value="">All {name}s</option>{options.map(o => <option key={o[valueKey]} value={o[valueKey]}>{o[labelKey]}</option>)}</select></label>)}
               <label className="text-xs font-bold text-slate-500">From<input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm" /></label>
               <label className="text-xs font-bold text-slate-500">To<input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm" /></label>

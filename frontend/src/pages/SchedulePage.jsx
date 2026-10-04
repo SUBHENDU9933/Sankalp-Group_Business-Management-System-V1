@@ -431,7 +431,7 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} canAssignMultipleManagers={canAssignMultipleManagers} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} />}
     </section>
   );
@@ -450,7 +450,7 @@ function ScheduleRow({ s, lead, onOpen }) {
   </button>;
 }
 
-function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads }) {
+function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, canAssignMultipleManagers, setTitleManual }) {
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="text-[10px] uppercase tracking-[0.18em] text-orange-600 font-bold">New Activity</div><h2 className="text-xl font-display font-bold mt-1">Create Schedule</h2><p className="text-xs text-slate-500 mt-1">Choose the team, check availability and confirm the meeting.</p></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500" /></button></div><div className="p-5 grid md:grid-cols-2 gap-4">
     <LeadPicker leads={leads} selectedId={form.lead_id} onSelect={lead=>setForm({...form,lead_id:lead?.id||"",customer_email:lead?.email||""})} />
     <label className="text-xs font-bold text-slate-600">Meeting Owner<select value={form.owner_id} onChange={e=>{setForm({...form,owner_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{team.filter(p=>p.is_active!==false).map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>

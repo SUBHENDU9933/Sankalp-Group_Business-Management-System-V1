@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadPaymentTotals } from "@/services/leadPaymentService";
-import { fetchLeadSegment, reviveLostLead } from "@/services/leadSegmentService";
+import { fetchLeadSegment, reviveLostLead, claimLostLead } from "@/services/leadSegmentService";
 import { updateLeadStatus, requestDelete, cancelDeleteRequest, convertLeadToCustomer, bulkUpdateLeads, bulkAddCoAssignee } from "@/services/leadService";
 import { exportLeadsCSV } from "@/utils/leadCsv";
 import LeadFilters from "@/components/leads/LeadFilters";
@@ -80,6 +80,10 @@ export default function LeadSegmentPage({ segment = "active" }) {
 
   const openDetails = (lead) => { setActiveLead(lead); setDetailsOpen(true); };
   const openEdit = (lead) => {
+    if (lead?.status === "lost" && !lead?.assigned_to) {
+      toast.info("Claim this lost lead first to work on it");
+      return;
+    }
     if (!can("leads", "edit")) { toast.error("You do not have permission to edit leads"); return; }
     setEditLead(lead); setFormOpen(true); setDetailsOpen(false);
   };
@@ -147,6 +151,16 @@ export default function LeadSegmentPage({ segment = "active" }) {
     if (!rows.length) return;
     exportLeadsCSV(rows, `leads-selected-${new Date().toISOString().slice(0, 10)}.csv`);
     toast.success(`Exported ${rows.length} leads`);
+  };
+
+  const handleClaimLostLead = async (lead) => {
+    if (!isLost || lead?.status !== "lost" || lead?.assigned_to) return;
+    if (!window.confirm("Claim this lost lead for yourself? It will leave the Company Lost Pool and become visible through your normal team ownership hierarchy.")) return;
+    try {
+      await claimLostLead(lead.id);
+      toast.success("Lost lead claimed successfully");
+      load();
+    } catch (e) { toast.error(e.message || "Unable to claim lost lead"); }
   };
 
   const reviveSelected = async () => {
@@ -236,7 +250,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
                 leads={leads} onOpen={openDetails} onEdit={openEdit} onStatusChange={handleStatusChange}
                 onConvert={handleConvert} onRequestDelete={handleRequestDelete} onCancelDelete={handleCancelDelete}
                 selected={selected} onToggleSelect={toggleSelect} onToggleAll={toggleAll}
-                profiles={profiles} onAssigneesChanged={load}
+                profiles={profiles} onAssigneesChanged={load} isLost={isLost} onClaimLostLead={handleClaimLostLead}
               />
             : <LeadPipelineView leads={leads} onOpen={openDetails} onStatusChange={handleStatusChange} onConvert={handleConvert} />}
         </div>

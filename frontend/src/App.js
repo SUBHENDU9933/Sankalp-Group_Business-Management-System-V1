@@ -84,7 +84,7 @@ function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfileSettingsPage />} />
             <Route element={<PermissionRoute resource="leads" />}>
-              <Route path="/leads" element={<LeadSegmentPage segment="active" />} />
+              <Route path="/leads" element={<LeadsPage />} />
               <Route path="/leads/lost" element={<LeadSegmentPage segment="lost" />} />
               <Route path="/leads/legacy" element={<LeadsPage />} />
             </Route>

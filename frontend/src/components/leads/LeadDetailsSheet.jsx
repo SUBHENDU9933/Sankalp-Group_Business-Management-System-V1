@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Phone, MessageCircle, Mail, Pencil, ArrowRightCircle, MapPin, IndianRupee,
   CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History, Calculator,
+  CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle,
 } from "lucide-react";
 import { LEAD_PRIORITIES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity } from "@/services/leadActivityService";
@@ -277,20 +278,19 @@ function Field({ label, value, icon, mono, full }) {
 }
 
 function ActivityRow({ a }) {
-  const Icon = a.type === "call" ? Phone : a.type === "status_change" ? History : a.type === "followup" ? CalendarClock : NotebookPen;
-  const tone = a.type === "call" ? "text-emerald-700 bg-emerald-50" : a.type === "status_change" ? "text-blue-700 bg-blue-50" : a.type === "followup" ? "text-orange-700 bg-orange-50" : "text-stone-700 bg-stone-50";
+  const meta = a.meta || {};
+  const labels = { call: "Call Logged", note: "Note Added", status_change: "Lead Status Changed", followup: "Follow-up", schedule_created: "Meeting Scheduled", schedule_rescheduled: "Meeting Rescheduled", schedule_status_changed: "Meeting Status Changed", schedule_feedback_updated: "Meeting Feedback Updated", schedule_followup_updated: "Meeting Follow-up Updated", schedule_updated: "Meeting Updated", schedule_file_added: "Meeting File Added" };
+  const Icon = a.type === "call" ? Phone : a.type === "status_change" ? History : a.type === "followup" ? CalendarClock : a.type === "schedule_created" ? CalendarDays : a.type === "schedule_rescheduled" ? RefreshCw : a.type === "schedule_status_changed" ? CheckCircle2 : a.type === "schedule_feedback_updated" ? MessageSquareText : a.type === "schedule_followup_updated" ? CalendarClock : a.type === "schedule_file_added" ? Paperclip : a.type === "schedule_updated" ? RefreshCw : NotebookPen;
+  const tone = a.type === "call" ? "text-emerald-700 bg-emerald-50" : a.type === "status_change" ? "text-blue-700 bg-blue-50" : a.type === "followup" ? "text-orange-700 bg-orange-50" : a.type === "schedule_created" ? "text-blue-700 bg-blue-50" : a.type === "schedule_rescheduled" ? "text-orange-700 bg-orange-50" : a.type === "schedule_status_changed" ? "text-emerald-700 bg-emerald-50" : a.type === "schedule_feedback_updated" ? "text-violet-700 bg-violet-50" : a.type === "schedule_followup_updated" ? "text-amber-700 bg-amber-50" : a.type === "schedule_file_added" ? "text-sky-700 bg-sky-50" : "text-stone-700 bg-stone-50";
+  const actor = a.creator?.full_name || a.creator?.email;
   return (
-    <div className="px-4 py-3 border-b border-stone-100 last:border-0 flex items-start gap-3">
-      <div className={cn("w-7 h-7 flex items-center justify-center border border-stone-200 shrink-0", tone)}>
-        <Icon className="w-3.5 h-3.5" />
-      </div>
+    <div className="px-4 py-3 border-b border-stone-100 last:border-0 flex items-start gap-3 hover:bg-stone-50/70 transition-colors">
+      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border border-stone-200 shrink-0", tone)}><Icon className="w-3.5 h-3.5" /></div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="text-[10px] tracking-[0.15em] uppercase font-semibold text-stone-500">{a.type.replace("_"," ")}</div>
-          <div className="text-xs text-stone-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(a.created_at)}</div>
-        </div>
+        <div className="flex items-center gap-2 flex-wrap"><div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-600">{labels[a.type] || a.type.replace(/_/g, " ")}</div><div className="text-xs text-stone-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(a.created_at)}</div></div>
         {a.content && <div className="text-sm text-stone-900 mt-1 whitespace-pre-wrap">{a.content}</div>}
-        {a.creator && <div className="text-xs text-stone-500 mt-1">by {a.creator.full_name || a.creator.email}</div>}
+        {a.type.startsWith("schedule_") && meta.meeting_type && <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] text-stone-500"><span>{String(meta.meeting_type).replace(/_/g, " ")}</span>{meta.mode && <span>· {meta.mode}</span>}{meta.status && <span>· {String(meta.status).replace(/_/g, " ")}</span>}</div>}
+        {actor && <div className="text-xs text-stone-500 mt-1 inline-flex items-center gap-1"><UserRound className="w-3 h-3" />{actor}</div>}
       </div>
     </div>
   );

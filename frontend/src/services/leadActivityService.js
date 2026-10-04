@@ -22,18 +22,70 @@ export const addLeadActivity = async ({ leadId, type, content, meta, userId }) =
 
 
 export const logLeadCallOutcome = async ({ leadId, outcome, userId, note }) => {
-  if (!leadId || !["connected","not_connected"].includes(outcome)) throw new Error("Invalid call outcome");
-  const status = outcome === "connected" ? "contacted" : "not_contacted";
-  const payload = { status };
-  if (outcome === "connected") payload.last_contact_date = new Date().toISOString().slice(0, 10);
-  const { error: statusError } = await supabase.from("leads").update(payload).eq("id", leadId);
-  if (statusError) throw statusError;
+  if (!leadId || !["connected", "not_connected"].includes(outcome)) {
+    throw new Error("Invalid call outcome");
+  }
+
+  // Call outcome is communication history, not the lead's lifecycle status.
+  // A failed follow-up call must never move an already-contacted lead backwards.
+  const { data: lead, error: leadError } = await supabase
+    .from("leads")
+    .select("id,status")
+    .eq("id", leadId)
+    .single();
+  if (leadError) throw leadError;
+
+  const { count: previousCalls, error: countError } = await supabase
+    .from("lead_activities")
+    .select("id", { count: "exact", head: true })
+    .eq("lead_id", leadId)
+    .eq("type", "call");
+  if (countError) throw countError;
+
+  const attemptNumber = (previousCalls || 0) + 1;
+  const currentStatus = lead.status;
+  const firstContactPromotion =
+    outcome === "connected" && ["new", "not_contacted"].includes(currentStatus);
+  const resultingStatus = firstContactPromotion ? "contacted" : currentStatus;
+
+  if (firstContactPromotion) {
+    const { error: statusError } = await supabase
+      .from("leads")
+      .update({ status: "contacted", last_contact_date: new Date().toISOString().slice(0, 10) })
+      .eq("id", leadId);
+    if (statusError) throw statusError;
+  } else if (outcome === "connected") {
+    // Preserve the existing pipeline stage, but refresh the last successful contact date.
+    const { error: contactError } = await supabase
+      .from("leads")
+      .update({ last_contact_date: new Date().toISOString().slice(0, 10) })
+      .eq("id", leadId);
+    if (contactError) throw contactError;
+  }
+
+  const outcomeLabel = outcome === "connected" ? "Connected" : "Not Connected";
   const content = note?.trim()
-    ? "Call " + (outcome === "connected" ? "connected" : "not connected") + " — " + note.trim()
-    : "Call " + (outcome === "connected" ? "connected" : "not connected");
-  const { data, error } = await supabase.from("lead_activities")
-    .insert([{ lead_id: leadId, type: "call", content, meta: { outcome, resulting_status: status }, created_by: userId }])
-    .select("*").single();
+    ? `Call Attempt #${attemptNumber} — ${outcomeLabel} — ${note.trim()}`
+    : `Call Attempt #${attemptNumber} — ${outcomeLabel}`;
+
+  const { data, error } = await supabase
+    .from("lead_activities")
+    .insert([{
+      lead_id: leadId,
+      type: "call",
+      content,
+      meta: {
+        outcome,
+        attempt_number: attemptNumber,
+        previous_status: currentStatus,
+        resulting_status: resultingStatus,
+        status_changed: firstContactPromotion,
+        first_successful_contact: firstContactPromotion,
+      },
+      created_by: userId,
+    }])
+    .select("*")
+    .single();
   if (error) throw error;
   return data;
 };

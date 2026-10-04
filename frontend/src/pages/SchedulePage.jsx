@@ -69,7 +69,7 @@ export default function SchedulePage() {
   const { profile, role, isAdmin } = useAuth();
   const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [team, setTeam] = useState([]);
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
   const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
   const [titleManual, setTitleManual] = useState(false);
@@ -87,6 +87,7 @@ export default function SchedulePage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const today = startDay(new Date());
       const from = addDays(today, -30).toISOString();
@@ -99,6 +100,7 @@ export default function SchedulePage() {
       ]);
       setRows(s || []); setLeads(l || []); setTeam(p || []); setCalendar(cal);
     } catch (e) {
+      setLoadError(e.message || "Could not load schedules");
       toast.error(e.message || "Could not load schedules");
     } finally { setLoading(false); }
   };
@@ -271,6 +273,8 @@ export default function SchedulePage() {
         lead_id: form.lead_id || null, title: form.title, meeting_type: form.meeting_type, mode: form.mode,
         status: "scheduled", priority: form.priority, start_at: chosen.start, end_at: chosen.end, timezone: "Asia/Kolkata",
         location_address: form.mode === "physical" ? form.location_address : null,
+        location_map_url: form.mode === "physical" ? form.location_map_url || null : null,
+        location_landmark: form.mode === "physical" ? form.location_landmark || null : null,
         meeting_link: form.mode === "digital" ? form.meeting_link || null : null,
         description: form.description || null, owner_id: form.owner_id, assigned_by: profile?.id || null,
         customer_email: form.customer_email || null
@@ -314,8 +318,9 @@ export default function SchedulePage() {
     } catch (e) { toast.error(e.message || "Upload failed"); }
   };
 
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const calendarDays = useMemo(() => {
-    const first = startDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const first = startDay(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1));
     const offset = first.getDay();
     const out = [];
     for (let i = 0; i < 42; i++) {
@@ -324,7 +329,7 @@ export default function SchedulePage() {
       out.push({ d, key, count: rows.filter(s => dayKey(s.start_at) === key).length });
     }
     return out;
-  }, [rows]);
+  }, [rows, calendarMonth]);
 
   return (
     <section className="p-4 lg:p-7 max-w-[1600px] mx-auto">
@@ -389,15 +394,16 @@ export default function SchedulePage() {
             </div>}
           </div>
 
-          {loading ? <div className="bg-white border rounded-2xl p-16 text-center text-slate-400">Loading schedules…</div> :
-          filtered.length === 0 ? <div className="bg-white border rounded-2xl p-16 text-center"><CalendarDays className="w-10 h-10 mx-auto text-slate-300" /><div className="font-bold text-slate-700 mt-3">No meetings found</div><p className="text-sm text-slate-400 mt-1">Try another date range or clear your filters.</p><button onClick={resetFilters} className="mt-4 px-4 py-2 rounded-xl bg-blue-700 text-white text-sm font-bold">Clear filters</button></div> :
+          {loading ? <div className="bg-white border rounded-2xl p-16 text-center"><RefreshCw className="w-7 h-7 mx-auto text-blue-600 animate-spin" /><div className="font-bold text-slate-700 mt-3">Loading schedules…</div><p className="text-sm text-slate-400 mt-1">Fetching meetings and customer details.</p></div> :
+          loadError ? <div className="bg-white border border-rose-200 rounded-2xl p-16 text-center"><AlertCircle className="w-10 h-10 mx-auto text-rose-400" /><div className="font-bold text-slate-700 mt-3">Couldn’t load schedules</div><p className="text-sm text-slate-400 mt-1">{loadError}</p><button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-blue-700 text-white text-sm font-bold">Try Again</button></div> :
+          filtered.length === 0 ? <div className="bg-white border rounded-2xl p-16 text-center"><CalendarDays className="w-10 h-10 mx-auto text-slate-300" /><div className="font-bold text-slate-700 mt-3">No meetings found</div><p className="text-sm text-slate-400 mt-1">{query || Object.values(filters).some(Boolean) ? "Try another search, date range, or clear your filters." : "There are no meetings in this view yet."}</p>{(query || Object.values(filters).some(Boolean)) && <button onClick={() => { setQuery(""); resetFilters(); }} className="mt-4 px-4 py-2 rounded-xl bg-blue-700 text-white text-sm font-bold">Clear Search & Filters</button>}</div> :
           viewMode === "timeline" ? <div className="space-y-4">{days.map(([date, items]) => <div key={date} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"><div className="px-5 py-3 bg-slate-50 border-b flex items-center justify-between"><div className="font-bold text-slate-900">{new Date(date + "T00:00:00").toLocaleDateString("en-IN",{weekday:"long",day:"2-digit",month:"long"})}</div><span className="text-xs font-bold text-slate-400">{items.length} meetings</span></div><div className="p-4 space-y-2">{items.map(s => <ScheduleRow key={s.id} s={s} lead={leadMap.get(s.lead_id)} onOpen={open} />)}</div></div>)}</div> :
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div className="hidden lg:grid grid-cols-[130px_minmax(250px,1fr)_190px_150px_130px] gap-4 px-5 py-3 bg-slate-50/80 border-b text-[10px] uppercase tracking-wider font-bold text-slate-400"><div>Date & Time</div><div>Meeting / Customer</div><div>Owner</div><div>Mode</div><div>Status</div></div><div className="divide-y">{filtered.map(s => <ScheduleRow key={s.id} s={s} lead={leadMap.get(s.lead_id)} onOpen={open} />)}</div></div>}
         </div>
 
         <aside className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 flex items-center justify-between"><div><div className="font-display font-bold text-slate-900">October {new Date().getFullYear()}</div><div className="text-[11px] text-slate-400 mt-0.5">Meeting activity</div></div><div className="flex gap-1"><button className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronLeft className="w-4 h-4" /></button><button className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronRight className="w-4 h-4" /></button></div></div>
+            <div className="p-4 flex items-center justify-between"><div><div className="font-display font-bold text-slate-900">{calendarMonth.toLocaleDateString("en-IN",{month:"long",year:"numeric"})}</div><div className="text-[11px] text-slate-400 mt-0.5">Meeting activity</div></div><div className="flex gap-1"><button onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronLeft className="w-4 h-4" /></button><button onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronRight className="w-7 h-7 rounded-lg border grid place-items-center"><ChevronRight className="w-4 h-4" /></button></div></div>
             <div className="px-3 pb-3 grid grid-cols-7 gap-1 text-center">
               {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 py-1">{d}</div>)}
               {calendarDays.map(x => <button key={x.key} onClick={() => { setDateTab("all"); setFilters(f => ({ ...f, from: x.key, to: x.key })); }} className={`relative h-8 rounded-lg text-xs ${x.key === localDate() ? "bg-blue-700 text-white font-bold" : "hover:bg-blue-50 text-slate-600"}`}>{x.d.getDate()}{x.count > 0 && <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${x.key === localDate() ? "bg-white" : "bg-orange-500"}`} />}</button>)}

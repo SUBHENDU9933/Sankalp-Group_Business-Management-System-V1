@@ -46,10 +46,12 @@ export const logLeadCallOutcome = async ({ leadId, outcome, userId, note }) => {
   const currentStatus = lead.status;
   const isFirstCall = attemptNumber === 1;
   const firstCallStatus = outcome === "connected" ? "contacted" : "not_contacted";
-  const shouldSetFirstCallStatus = isFirstCall && ["new", "not_contacted", "contacted"].includes(currentStatus);
-  const resultingStatus = shouldSetFirstCallStatus ? firstCallStatus : currentStatus;
+  const shouldPromoteToContacted = outcome === "connected" && ["new", "not_contacted"].includes(currentStatus);
+  const shouldSetFirstCallStatus = isFirstCall && currentStatus === "new";
+  const shouldChangeStatus = shouldSetFirstCallStatus || shouldPromoteToContacted;
+  const resultingStatus = shouldChangeStatus ? firstCallStatus : currentStatus;
 
-  if (shouldSetFirstCallStatus) {
+  if (shouldChangeStatus) {
     const statusPayload = { status: firstCallStatus };
     if (outcome === "connected") statusPayload.last_contact_date = new Date().toISOString().slice(0, 10);
     const { error: statusError } = await supabase
@@ -83,8 +85,8 @@ export const logLeadCallOutcome = async ({ leadId, outcome, userId, note }) => {
         attempt_number: attemptNumber,
         previous_status: currentStatus,
         resulting_status: resultingStatus,
-        status_changed: firstContactPromotion,
-        first_successful_contact: firstContactPromotion,
+        status_changed: shouldChangeStatus,
+        first_successful_contact: shouldPromoteToContacted,
       },
       created_by: userId,
     }])

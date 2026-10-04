@@ -60,8 +60,20 @@ export const fetchEstimateById = async (id, version) => {
 
 export const updateEstimateStatus = async (id, status, version = 1) => {
   const table = Number(version) === 2 ? "estimates_v2" : "estimates";
+  const { data: estimate, error: fetchError } = await supabase.from(table).select("id,lead_id,status").eq("id", id).maybeSingle();
+  if (fetchError) throw fetchError;
   const { error } = await supabase.from(table).update({ status, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) throw error;
+
+  // Sending an estimate means the lead has moved from "ready for estimate"
+  // into the commercial/closing stage. Approval remains a separate business
+  // action; conversion is intentionally never automatic here.
+  if (estimate?.lead_id && ["sent","approved"].includes(status)) {
+    const { data: lead } = await supabase.from("leads").select("id,status").eq("id", estimate.lead_id).maybeSingle();
+    if (lead && ["estimate_to_be_created","quotation_given"].includes(lead.status)) {
+      await supabase.from("leads").update({ status: "quotation_given" }).eq("id", lead.id);
+    }
+  }
 };
 
 export const deleteEstimate = async (id, userId, version = 1) => {

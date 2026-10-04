@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { uploadFile } from "@/services/attachmentService";
 
 export const fetchSchedules = async ({ from, to, status, ownerId } = {}) => {
-  let q = supabase.from("schedules").select("*, owner:profiles!schedules_owner_id_fkey(id,full_name,email), creator:profiles!schedules_created_by_fkey(id,full_name), next_owner:profiles!schedules_next_action_owner_id_fkey(id,full_name)").is("deleted_at", null).order("start_at", { ascending: true });
+  let q = supabase.from("schedules").select("*, owner:profiles!schedules_owner_id_fkey(id,full_name,email), creator:profiles!schedules_created_by_fkey(id,full_name), next_owner:profiles!schedules_next_action_owner_id_fkey(id,full_name), participants:schedule_participants(user_id,participant_role,is_required,profile:profiles!schedule_participants_user_id_fkey(id,full_name,email,role,is_admin))").is("deleted_at", null).order("start_at", { ascending: true });
   if (from) q=q.gte("start_at",from); if(to) q=q.lt("start_at",to); if(status) q=q.eq("status",status); if(ownerId) q=q.eq("owner_id",ownerId);
   const {data,error}=await q; if(error) throw error; return data||[];
 };

@@ -172,19 +172,10 @@ export const bulkInsertLeads = async (rows, _userId) => {
   return { inserted, skipped, errors };
 };
 
-export const updateLeadStatus = async (id, status, userId) => {
-  const lead = await updateLead(id, { status });
-  if (userId) {
-    try {
-      await supabase.from("lead_activities").insert([{
-        lead_id: id,
-        type: "status_change",
-        content: `Status changed to ${status.replace(/_/g, " ")}`,
-        created_by: userId,
-      }]);
-    } catch (_) { /* ignore */ }
-  }
-  return lead;
+export const updateLeadStatus = async (id, status, _userId) => {
+  // Timeline status events are written by the database trigger so every
+  // status change is captured consistently across the BMS.
+  return updateLead(id, { status });
 };
 
 export const requestDelete = async (id, _userId) => {

@@ -121,7 +121,9 @@ export default function LeadsPage() {
     // Follow-up smart views are applied on top of the existing lead filters.
     // They never change the underlying lead status.
     if (followupFilter !== "all") {
-      if (!l.next_followup_date || ["converted", "lost"].includes(l.status)) return false;
+      if (["converted", "lost"].includes(l.status)) return false;
+      if (followupFilter === "nofollowup") return !l.next_followup_date;
+      if (!l.next_followup_date) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const next3 = new Date(today); next3.setDate(next3.getDate() + 3);

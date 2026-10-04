@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import LeadFormDialog from "@/components/leads/LeadFormDialog";
 import LeadKpiStrip from "@/components/leads/LeadKpiStrip";
-import LeadFollowupBar from "@/components/leads/LeadFollowupBar";
 import LeadFilters from "@/components/leads/LeadFilters";
 import LeadTableView from "@/components/leads/LeadTableView";
 import LeadPipelineView from "@/components/leads/LeadPipelineView";
@@ -121,7 +120,9 @@ export default function LeadsPage() {
     // Follow-up smart views are applied on top of the existing lead filters.
     // They never change the underlying lead status.
     if (followupFilter !== "all") {
-      if (!l.next_followup_date || ["converted", "lost"].includes(l.status)) return false;
+      if (["converted", "lost"].includes(l.status)) return false;
+      if (followupFilter === "nofollowup") return !l.next_followup_date;
+      if (!l.next_followup_date) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const next3 = new Date(today); next3.setDate(next3.getDate() + 3);
@@ -223,10 +224,21 @@ export default function LeadsPage() {
         </>
       )} />
       <PageBody>
-        <LeadKpiStrip leads={filtered} />
+        <LeadKpiStrip
+          leads={leads}
+          selectedFilter={followupFilter === "all" ? (statusFilter === "converted" ? "converted" : "all") : followupFilter}
+          onFilterChange={(filter) => {
+            if (filter === "converted") {
+              setFollowupFilter("all");
+              setStatusFilter("converted");
+              return;
+            }
+            setStatusFilter("all");
+            setFollowupFilter(filter);
+          }}
+        />
         <div className="mt-4"><LeadBulkActionBar selectedCount={selected.size} totalCount={filtered.length} onClear={clearSelection} onSelectAll={() => toggleAll(true, filtered)} isAdmin={isAdmin} rmOptions={profiles} onBulkStatus={handleBulkStatus} onBulkPriority={handleBulkPriority} onBulkAssign={handleBulkAssign} onBulkAddCoAssignee={handleBulkAddCoAssignee} onBulkDeleteRequest={handleBulkDeleteRequest} onExportSelected={handleExportSelected} /></div>
-        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} followupFilter={followupFilter} onFollowupFilterChange={setFollowupFilter} onClear={clearFilters} />
-      <div className="mb-4"><LeadFollowupBar leads={leads} value={followupFilter} onChange={setFollowupFilter} /></div>
+        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} onClear={clearFilters} />
 </div>
         <div className="mt-5">
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading leads…</div>

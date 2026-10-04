@@ -5,6 +5,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Phone, MessageCircle, Mail, Pencil, ArrowRightCircle, MapPin, IndianRupee,
@@ -31,6 +32,12 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   const [quickFollowupOpen, setQuickFollowupOpen] = useState(false);
   const [followupDate, setFollowupDate] = useState(lead?.next_followup_date || "");
   const [followupNote, setFollowupNote] = useState(lead?.reminder_note || "");
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completionOutcome, setCompletionOutcome] = useState("");
+  const [customerResponse, setCustomerResponse] = useState("");
+  const [nextAction, setNextAction] = useState("");
+  const [nextFollowupDate, setNextFollowupDate] = useState("");
+  const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);
 
   useEffect(() => {
     if (!open || !lead?.id) return;
@@ -96,6 +103,64 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
 
   const openSchedule = () => {
     window.location.href = "/schedule?lead_id=" + encodeURIComponent(lead.id);
+  };
+
+  const openCompletion = () => {
+    setCompletionOutcome("");
+    setCustomerResponse("");
+    setNextAction("");
+    setNextFollowupDate(lead.next_followup_date || "");
+    setNoFurtherFollowup(false);
+    setCompleteOpen(true);
+  };
+
+  const completeFollowup = async () => {
+    if (!completionOutcome) {
+      toast.error("Select what happened during the follow-up");
+      return;
+    }
+    if (!noFurtherFollowup && !nextFollowupDate) {
+      toast.error("Set the next follow-up date, or choose No further follow-up");
+      return;
+    }
+    setPosting(true);
+    try {
+      const date = noFurtherFollowup ? null : nextFollowupDate;
+      const content = [
+        `Outcome: ${completionOutcome}`,
+        customerResponse.trim() ? `Customer response: ${customerResponse.trim()}` : "",
+        nextAction.trim() ? `Next action: ${nextAction.trim()}` : "",
+        date ? `Next follow-up: ${date}` : "No further follow-up scheduled",
+      ].filter(Boolean).join("\n");
+
+      await addLeadActivity({
+        leadId: lead.id,
+        type: "followup",
+        content,
+        meta: {
+          outcome: completionOutcome,
+          customer_response: customerResponse.trim() || null,
+          next_action: nextAction.trim() || null,
+          next_followup_date: date,
+          completed_at: new Date().toISOString(),
+        },
+        userId: user.id,
+      });
+
+      const updated = await updateLead(lead.id, {
+        next_followup_date: date,
+        reminder_note: nextAction.trim() || null,
+        last_contact_date: new Date().toISOString().slice(0, 10),
+      });
+      onLeadUpdated?.(updated);
+      setCompleteOpen(false);
+      await reload();
+      toast.success("Follow-up completed and next action saved");
+    } catch (e) {
+      toast.error(e.message || "Failed to complete follow-up");
+    } finally {
+      setPosting(false);
+    }
   };
 
   const handleCallOutcome = async (outcome) => {
@@ -171,6 +236,54 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                     </button>
                   ))}
                   <button disabled={posting} onClick={() => handleQuickStatus("lost")} className="w-full text-left px-2.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Mark Lost</button>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <Button onClick={openCompletion} variant="outline" className="rounded-none border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-9 text-xs tracking-widest uppercase font-semibold" data-testid="details-complete-followup"><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Complete Follow-up</Button>
+              {completeOpen && (
+                <div className="absolute z-50 top-10 left-0 w-[min(92vw,420px)] bg-white border border-stone-200 shadow-2xl p-4">
+                  <div className="label-uppercase mb-1">Follow-up Completion</div>
+                  <div className="text-xs text-stone-500 mb-3">Record the result before moving the lead to its next action.</div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="label-uppercase mb-1">What happened *</div>
+                      <Select value={completionOutcome} onValueChange={setCompletionOutcome}>
+                        <SelectTrigger className="rounded-none border-stone-300 h-9 text-sm"><SelectValue placeholder="Select outcome" /></SelectTrigger>
+                        <SelectContent className="rounded-none">
+                          <SelectItem value="connected">Customer connected</SelectItem>
+                          <SelectItem value="interested">Interested / positive</SelectItem>
+                          <SelectItem value="needs_time">Needs more time</SelectItem>
+                          <SelectItem value="site_visit_discussion">Site visit discussed</SelectItem>
+                          <SelectItem value="estimate_discussion">Estimate discussed</SelectItem>
+                          <SelectItem value="not_connected">Could not connect</SelectItem>
+                          <SelectItem value="not_interested">Not interested</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="label-uppercase mb-1">Customer response</div>
+                      <Textarea value={customerResponse} onChange={e => setCustomerResponse(e.target.value)} placeholder="What did the customer say?" className="rounded-none border-stone-300 min-h-[64px]" />
+                    </div>
+                    <div>
+                      <div className="label-uppercase mb-1">Next action</div>
+                      <Textarea value={nextAction} onChange={e => setNextAction(e.target.value)} placeholder="Example: send estimate / call after salary date / arrange site visit" className="rounded-none border-stone-300 min-h-[64px]" />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-medium text-stone-700">
+                      <input type="checkbox" checked={noFurtherFollowup} onChange={e => setNoFurtherFollowup(e.target.checked)} className="accent-emerald-600" />
+                      No further follow-up required
+                    </label>
+                    {!noFurtherFollowup && (
+                      <div>
+                        <div className="label-uppercase mb-1">Next follow-up date *</div>
+                        <input type="date" value={nextFollowupDate} onChange={e => setNextFollowupDate(e.target.value)} className="w-full h-9 border border-stone-300 px-2 text-sm" />
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <Button disabled={posting} onClick={completeFollowup} className="rounded-none bg-emerald-700 hover:bg-emerald-800 text-white h-8 text-xs font-semibold">Save Completion</Button>
+                      <Button disabled={posting} onClick={() => setCompleteOpen(false)} variant="outline" className="rounded-none h-8 text-xs">Cancel</Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

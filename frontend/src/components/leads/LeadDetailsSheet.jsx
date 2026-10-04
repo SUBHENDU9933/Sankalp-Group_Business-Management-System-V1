@@ -12,14 +12,14 @@ import {
   CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle,
 } from "lucide-react";
 import { LEAD_PRIORITIES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
-import { fetchLeadActivities, addLeadActivity } from "@/services/leadActivityService";
+import { fetchLeadActivities, addLeadActivity, logLeadCallOutcome } from "@/services/leadActivityService";
 import { buildEstimatorUrl } from "@/services/estimateService";
 import AssigneeManager from "@/components/leads/AssigneeManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged }) {
+export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome }) {
   const { user } = useAuth();
   const [tab, setTab] = useState("overview");
   const [activities, setActivities] = useState([]);
@@ -63,6 +63,17 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   };
 
   const followups = activities.filter((a) => a.type === "followup");
+
+  const handleCallOutcome = async (outcome) => {
+    setPosting(true);
+    try {
+      await logLeadCallOutcome({ leadId: lead.id, outcome, userId: user.id });
+      await reload();
+      onCallOutcome?.(lead, outcome);
+      toast.success(outcome === "connected" ? "Call connected — lead moved to Contacted" : "Call not connected — lead moved to Not Contacted");
+    } catch (e) { toast.error(e.message || "Failed to update call outcome"); }
+    finally { setPosting(false); }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -198,6 +209,14 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
               <div className="flex items-center gap-2 mt-2">
                 <Button onClick={() => postNote("note")} disabled={posting || !note.trim()} className="rounded-none bg-stone-900 hover:bg-stone-800 text-white h-8 text-xs tracking-widest uppercase font-semibold" data-testid="timeline-post-note"><NotebookPen className="w-3.5 h-3.5 mr-1.5" />Save Note</Button>
                 <Button onClick={() => postNote("call")} disabled={posting || !note.trim()} variant="outline" className="rounded-none border-stone-300 h-8 text-xs tracking-widest uppercase font-semibold" data-testid="timeline-post-call"><Phone className="w-3.5 h-3.5 mr-1.5" />Log Call</Button>
+              </div>
+              <div className="mt-3 pt-3 border-t border-stone-200">
+                <div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-500 mb-2">Call outcome · updates lead status automatically</div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => { window.location.href = "tel:" + phoneClean; setTimeout(() => handleCallOutcome("connected"), 1200); }} disabled={posting} className="rounded-none bg-emerald-700 hover:bg-emerald-800 text-white h-8 text-xs font-semibold"><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Call Connected</Button>
+                  <Button onClick={() => { window.location.href = "tel:" + phoneClean; setTimeout(() => handleCallOutcome("not_connected"), 1200); }} disabled={posting} variant="outline" className="rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 h-8 text-xs font-semibold"><XCircle className="w-3.5 h-3.5 mr-1.5" />Call Not Connected</Button>
+                </div>
+              </div>
               </div>
             </div>
             <div className="space-y-0 border border-stone-200 bg-white">

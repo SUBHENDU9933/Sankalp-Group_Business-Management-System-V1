@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import LeadFormDialog from "@/components/leads/LeadFormDialog";
 import LeadKpiStrip from "@/components/leads/LeadKpiStrip";
-import LeadFollowupBar from "@/components/leads/LeadFollowupBar";
 import LeadFilters from "@/components/leads/LeadFilters";
 import LeadTableView from "@/components/leads/LeadTableView";
 import LeadPipelineView from "@/components/leads/LeadPipelineView";
@@ -239,7 +238,7 @@ export default function LeadsPage() {
           }}
         />
         <div className="mt-4"><LeadBulkActionBar selectedCount={selected.size} totalCount={filtered.length} onClear={clearSelection} onSelectAll={() => toggleAll(true, filtered)} isAdmin={isAdmin} rmOptions={profiles} onBulkStatus={handleBulkStatus} onBulkPriority={handleBulkPriority} onBulkAssign={handleBulkAssign} onBulkAddCoAssignee={handleBulkAddCoAssignee} onBulkDeleteRequest={handleBulkDeleteRequest} onExportSelected={handleExportSelected} /></div>
-        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} followupFilter={followupFilter} onFollowupFilterChange={setFollowupFilter} onClear={clearFilters} />
+        <div className="mt-5"><LeadFilters search={search} onSearchChange={setSearch} status={statusFilter} onStatusChange={setStatusFilter} rm={rmFilter} onRmChange={setRmFilter} source={sourceFilter} onSourceChange={setSourceFilter} tag={tagFilter} onTagChange={setTagFilter} fromDate={fromDate} onFromDateChange={setFromDate} toDate={toDate} onToDateChange={setToDate} view={view} onViewChange={setView} rmOptions={profiles} isAdmin={isAdmin} onClear={clearFilters} />
 </div>
         <div className="mt-5">
           {loading ? <div className="bg-white border border-stone-200 p-12 text-center text-sm text-stone-500">Loading leads…</div>

@@ -8,7 +8,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfiles } from "@/services/profileService";
-import { fetchLeadOptions } from "@/services/leadService";
+import { fetchLeadOptions, updateLead } from "@/services/leadService";
 import {
   completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
@@ -71,7 +71,7 @@ export default function SchedulePage() {
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false);
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
-  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
+  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);\n  const [titleManual, setTitleManual] = useState(false);
   const [dateTab, setDateTab] = useState("today"), [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState("list"), [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState("date_asc");
@@ -80,8 +80,8 @@ export default function SchedulePage() {
   });
   const [form, setForm] = useState({
     lead_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
-    priority: "normal", date: localDate(), location_address: "", meeting_link: "",
-    description: "", owner_id: "", manager_id: "", director_id: "", customer_email: ""
+    priority: "normal", date: localDate(), location_address: "", location_map_url: "", location_landmark: "", meeting_link: "",
+    description: "", owner_id: "", manager_ids: [], director_id: "", customer_email: ""
   });
 
   const load = async () => {
@@ -123,7 +123,7 @@ export default function SchedulePage() {
   }, [showCreate, form.meeting_type, form.mode]);
 
   const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
-  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);
+  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);\n  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
 
   useEffect(() => {
@@ -205,10 +205,16 @@ export default function SchedulePage() {
   const checkAvailability = async () => {
     if (!form.owner_id || !form.date) return toast.error("Meeting owner and date are required");
     if (!calendar?.configured || !calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
-    const managersToCheck = rule?.participant_rule?.manager === "any" ? (form.manager_id ? managers.filter(p => p.id === form.manager_id) : managers) : [];
+    const selectedManagerIds = Array.isArray(form.manager_ids) ? form.manager_ids.filter(Boolean) : [];
     const directorIds = rule?.participant_rule?.director ? (form.director_id ? [form.director_id] : directors.slice(0, 1).map(p => p.id)) : [];
-    if (rule?.participant_rule?.manager === "any" && !managersToCheck.length) return toast.error("No manager is configured");
-    const combos = (rule?.participant_rule?.manager === "any" ? managersToCheck : [null]).map(m => [form.owner_id, ...(m ? [m.id] : []), ...directorIds].filter(Boolean));
+    let combos;
+    if (rule?.participant_rule?.manager === "any") {
+      const managerCombos = selectedManagerIds.length ? [selectedManagerIds] : managers.map(m => [m.id]);
+      if (!managerCombos.length) return toast.error("No manager is configured");
+      combos = managerCombos.map(ids => [form.owner_id, ...ids, ...directorIds].filter(Boolean));
+    } else {
+      combos = [[form.owner_id, ...selectedManagerIds, ...directorIds].filter(Boolean)];
+    }
     setChecking(true); setSlots([]);
     try {
       const dayStart = slotIso(form.date, 9, 0), dayEnd = slotIso(form.date, 20, 0);
@@ -234,7 +240,7 @@ export default function SchedulePage() {
     if (form.mode === "physical" && !form.location_address.trim()) return toast.error("Physical schedule needs a site/location");
     setSyncing(true);
     try {
-      const created = await createSchedule({
+      if (form.lead_id && form.customer_email.trim()) {\n        const lead = leadMap.get(form.lead_id);\n        if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });\n      }\n      const created = await createSchedule({
         lead_id: form.lead_id || null, title: form.title, meeting_type: form.meeting_type, mode: form.mode,
         status: "scheduled", priority: form.priority, start_at: chosen.start, end_at: chosen.end, timezone: "Asia/Kolkata",
         location_address: form.mode === "physical" ? form.location_address : null,

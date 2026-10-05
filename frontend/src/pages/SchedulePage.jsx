@@ -291,6 +291,20 @@ export default function SchedulePage() {
     if (form.mode === "physical" && !form.location_address.trim()) return toast.error("Physical schedule needs a site/location");
     setSyncing(true);
     try {
+      // Final conflict check immediately before booking. The availability grid can become stale
+      // if another user books the same slot after the initial check.
+      const finalCheck = await checkCalendarAvailability({
+        start: chosen.start,
+        end: chosen.end,
+        userIds: chosen.participantIds || []
+      });
+      const selectedIds = new Set(chosen.participantIds || []);
+      const blocking = (finalCheck?.busy || []).filter(b => !b.user_id || selectedIds.has(b.user_id));
+      if (blocking.length) {
+        const names = [...new Set(blocking.map(b => b.user_name || "Company Calendar"))].join(", ");
+        setSlots(x => x.map(s => s.start === chosen.start ? { ...s, selected: false, available: false, bookedBy: [...new Set([...s.bookedBy || [], ...blocking.map(b => b.user_name || "Company Calendar")])] } : s));
+        throw Object.assign(new Error(`That slot is no longer available: ${names}`), { code: "SLOT_CONFLICT" });
+      }
       if (form.lead_id && form.customer_email.trim()) {
         const lead = leadMap.get(form.lead_id);
         if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });

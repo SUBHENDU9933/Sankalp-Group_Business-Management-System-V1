@@ -118,20 +118,45 @@ Deno.serve(async(req:Request)=>{
     }
     return json({success:true,synced,failed,pending:(pending||[]).length-synced-failed});
   }
-  if(action==="availability"){const start=String(payload.start||""),end=String(payload.end||""),ids=[...new Set((payload.user_ids||[]).filter(Boolean))],excludeEventId=String(payload.exclude_event_id||"")||null;if(!start||!end||!ids.length)return json({error:"start, end and user_ids are required"},400);
-    const calendars=await connectedUserCalendars(admin,ids);const master=await masterInfo(admin);const connected=calendars.filter((x:any)=>x.connected!==false);const all=[{...master,user_id:null},...connected];const busy:any[]=[];
-    for(const c of all){if(excludeEventId){for(const b of await listBusy(c,start,end,excludeEventId))busy.push({...b,user_id:c.user_id,calendar_email:c.calendar_email,user_name:c.user_id?null:"Company Calendar",source:"google"})}else{const fb=await freeBusy(c,start,end);for(const b of fb.calendars?.[c.calendar_id]?.busy||[])busy.push({...b,user_id:c.user_id,calendar_email:c.calendar_email,user_name:c.user_id?null:"Company Calendar",source:"google"})}}
-    const {data:existingSchedules}=await admin.from("schedules").select("id,title,start_at,end_at,status,owner_id,arranged_by").is("deleted_at",null).lt("start_at",end).gt("end_at",start).in("status",["scheduled","confirmed","in_progress","pending_confirmation"]);
-    const scheduleIds=(existingSchedules||[]).map((s:any)=>s.id);const participantRows:any[]=[];
-    if(scheduleIds.length){const {data:p}=await admin.from("schedule_participants").select("schedule_id,user_id").in("schedule_id",scheduleIds);participantRows.push(...(p||[]));}
-    const scheduleMap=new Map((existingSchedules||[]).map((s:any)=>[s.id,s]));
-    const bmsBusy:any[]=[];
-    for(const p of participantRows){if(!ids.includes(p.user_id))continue;const s=scheduleMap.get(p.schedule_id);if(s)bmsBusy.push({start:s.start_at,end:s.end_at,user_id:p.user_id,user_name:null,source:"bms",schedule_id:s.id,title:s.title});}
-    for(const s of existingSchedules||[]){if(s.owner_id&&ids.includes(s.owner_id)&&!participantRows.some((p:any)=>p.schedule_id===s.id&&p.user_id===s.owner_id))bmsBusy.push({start:s.start_at,end:s.end_at,user_id:s.owner_id,user_name:null,source:"bms",schedule_id:s.id,title:s.title}); if(s.arranged_by&&ids.includes(s.arranged_by)&&!participantRows.some((p:any)=>p.schedule_id===s.id&&p.user_id===s.arranged_by))bmsBusy.push({start:s.start_at,end:s.end_at,user_id:s.arranged_by,user_name:null,source:"bms",schedule_id:s.id,title:s.title});}
-    const busyIds=[...new Set([...busy,...bmsBusy].map((b:any)=>b.user_id).filter(Boolean))];if(busyIds.length){const {data:profiles}=await admin.from("profiles").select("id,full_name,email").in("id",busyIds);const nameMap=new Map((profiles||[]).map((p:any)=>[p.id,p.full_name||p.email||"Team Member"]));for(const b of [...busy,...bmsBusy])if(b.user_id)b.user_name=nameMap.get(b.user_id)||"Team Member";}
-    busy.push(...bmsBusy);
-    return json({configured:true,available:busy.length===0,calendars:all.map(c=>({user_id:c.user_id,calendar_id:c.calendar_id,calendar_email:c.calendar_email,user_name:c.user_id?busy.find((b:any)=>b.user_id===c.user_id)?.user_name:null})),unconnected_user_ids:calendars.filter((x:any)=>x.connected===false).map((x:any)=>x.user_id),busy})}
-  if(action==="create_event"){
+  if(action==="availability"){
+     const start=String(payload.start||""),end=String(payload.end||""),ids=[...new Set((payload.user_ids||[]).filter(Boolean))];
+     if(!start||!end||!ids.length)return json({error:"start, end and user_ids are required"},400);
+     const calendars=await connectedUserCalendars(admin,ids),master=await masterInfo(admin),connected=calendars.filter((x:any)=>x.connected!==false),all=[{...master,user_id:null},...connected],busy:any[]=[];
+
+     // Scan every connected employee calendar so the UI can show who is busy.
+     for(const c of connected){
+       const fb=await freeBusy(c,start,end);
+       for(const b of fb.calendars?.[c.calendar_id]?.busy||[])busy.push({...b,user_id:c.user_id,calendar_email:c.calendar_email,user_name:null,source:"google"});
+     }
+
+     // Map active BMS schedules to the employees actually involved.
+     // Linked Master Calendar events are therefore not global blockers.
+     const {data:existingSchedules}=await admin.from("schedules").select("id,title,start_at,end_at,status,owner_id,arranged_by,deleted_at").lt("start_at",end).gt("end_at",start);
+     const activeStatuses=["scheduled","confirmed","in_progress","pending_confirmation"];
+     const activeSchedules=(existingSchedules||[]).filter((s:any)=>!s.deleted_at&&activeStatuses.includes(String(s.status)));
+     const scheduleIds=activeSchedules.map((s:any)=>s.id),participantRows:any[]=[];
+     if(scheduleIds.length){const {data:p}=await admin.from("schedule_participants").select("schedule_id,user_id").in("schedule_id",scheduleIds);participantRows.push(...(p||[]));}
+     const scheduleMap=new Map(activeSchedules.map((s:any)=>[s.id,s])),bmsBusy:any[]=[];
+     for(const p of participantRows){if(!ids.includes(p.user_id))continue;const s=scheduleMap.get(p.schedule_id);if(s)bmsBusy.push({start:s.start_at,end:s.end_at,user_id:p.user_id,user_name:null,source:"bms",schedule_id:s.id,title:s.title});}
+     for(const s of activeSchedules){
+       if(s.owner_id&&ids.includes(s.owner_id)&&!participantRows.some((p:any)=>p.schedule_id===s.id&&p.user_id===s.owner_id))bmsBusy.push({start:s.start_at,end:s.end_at,user_id:s.owner_id,user_name:null,source:"bms",schedule_id:s.id,title:s.title});
+       if(s.arranged_by&&ids.includes(s.arranged_by)&&!participantRows.some((p:any)=>p.schedule_id===s.id&&p.user_id===s.arranged_by))bmsBusy.push({start:s.start_at,end:s.end_at,user_id:s.arranged_by,user_name:null,source:"bms",schedule_id:s.id,title:s.title});
+     }
+
+     // Only an unmapped Master Calendar event is a true company-wide blocker.
+     const masterBusy=await listBusy(master,start,end,null);
+     for(const b of masterBusy)if(!b.schedule_id)busy.push({...b,user_id:null,calendar_email:master.calendar_email,user_name:"Company Calendar",source:"master"});
+
+     const busyIds=[...new Set([...busy,...bmsBusy].map((b:any)=>b.user_id).filter(Boolean))];
+     if(busyIds.length){
+       const {data:profiles}=await admin.from("profiles").select("id,full_name,email").in("id",busyIds);
+       const nameMap=new Map((profiles||[]).map((p:any)=>[p.id,p.full_name||p.email||"Team Member"]));
+       for(const b of [...busy,...bmsBusy])if(b.user_id)b.user_name=nameMap.get(b.user_id)||"Team Member";
+     }
+     busy.push(...bmsBusy);
+     return json({configured:true,available:busy.length===0,calendars:all.map(c=>({user_id:c.user_id,calendar_id:c.calendar_id,calendar_email:c.calendar_email,user_name:c.user_id?(busy.find((b:any)=>b.user_id===c.user_id)?.user_name||"Team Member"):"Company Calendar"})),unconnected_user_ids:calendars.filter((x:any)=>x.connected===false).map((x:any)=>x.user_id),busy})
+   }
+if(action==="create_event"){
    const scheduleId=String(payload.schedule_id||"");if(!scheduleId)return json({error:"schedule_id is required"},400);
    const {data:s,error:se}=await admin.from("schedules").select("*").eq("id",scheduleId).single();if(se||!s)return json({error:"Schedule not found"},404);
    if(s.google_calendar_status==="synced"&&s.google_calendar_event_id)return json({success:true,already_synced:true,event_id:s.google_calendar_event_id,event_url:s.google_calendar_url,meeting_link:s.meeting_link});

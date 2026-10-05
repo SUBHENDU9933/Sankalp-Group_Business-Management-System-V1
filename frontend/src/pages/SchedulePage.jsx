@@ -504,7 +504,7 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} />}
     </section>
   );
@@ -523,7 +523,7 @@ function ScheduleRow({ s, lead, onOpen }) {
   </button>;
 }
 
-function CreateModal({ form, setForm, rule, team, activeTeam, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, setTitleManual }) {
+function CreateModal({ form, setForm, rule, team, activeTeam, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, setTitleManual, availabilityNote }) {
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="text-[10px] uppercase tracking-[0.18em] text-orange-600 font-bold">New Activity</div><h2 className="text-xl font-display font-bold mt-1">Create Schedule</h2><p className="text-xs text-slate-500 mt-1">Choose the team, check availability and confirm the meeting.</p></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500" /></button></div><div className="p-5 grid md:grid-cols-2 gap-4">
     <LeadCustomerPicker
       partyType={partyType}

@@ -12,9 +12,9 @@ import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadOptions, updateLead } from "@/services/leadService";
 import { fetchCustomers } from "@/services/customerService";
 import {
-  completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule,
+  completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
-  syncScheduleToCalendar, syncPendingCalendar
+  syncScheduleToCalendar, updateScheduleCalendar, syncPendingCalendar
 } from "@/services/scheduleService";
 
 const TYPES = [
@@ -34,7 +34,6 @@ const localDate = (d = new Date()) => {
   const p = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
-const localInput = (d = new Date()) => `${localDate(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const slotIso = (date, h, m) => { const d = new Date(`${date}T00:00:00`); d.setHours(h, m, 0, 0); return d.toISOString(); };
 const label = v => String(v || "").replaceAll("_", " ").replace(/\b\w/g, m => m.toUpperCase());
 const fmtTime = iso => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -45,7 +44,7 @@ const startDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const overlaps = (a, b, s, e) => new Date(a).getTime() < new Date(e).getTime() && new Date(b).getTime() > new Date(s).getTime();
 const whatsappNumber = value => {
-  const digits = String(value || "").replace(/\\D/g, "");
+  const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "";
   if (digits.length === 10) return "91" + digits;
   if (digits.length === 11 && digits.startsWith("0")) return "91" + digits.slice(1);
@@ -86,7 +85,7 @@ function ModeBadge({ mode }) {
 export default function SchedulePage() {
   const { profile, role, isAdmin } = useAuth();
   const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [customers, setCustomers] = useState([]), [team, setTeam] = useState([]);
-  const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
+  const [selected, setSelected] = useState(null), [files, setFiles] = useState([]), [history, setHistory] = useState([]), [lifecycle, setLifecycle] = useState(null);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
   const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false), [availabilityNote, setAvailabilityNote] = useState("");
@@ -189,7 +188,7 @@ export default function SchedulePage() {
     return rows.filter(s => {
       const d = new Date(s.start_at);
       if (dateTab === "today") return sameDay(d, today);
-      if (dateTab === "scheduled") return d >= today && !["completed", "cancelled", "customer_cancelled", "no_show"].includes(s.status);
+      if (dateTab === "scheduled") return d >= today && !["completed", "cancelled", "customer_cancelled", "team_cancelled", "customer_no_show", "no_show"].includes(s.status);
       if (dateTab === "next3") return d >= today && d < next3;
       if (dateTab === "next7") return d >= today && d < next7;
       if (dateTab === "previous") return d < today;
@@ -229,7 +228,7 @@ export default function SchedulePage() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const active = rows.filter(s => !["cancelled", "customer_cancelled"].includes(s.status));
+    const active = rows.filter(s => !["cancelled", "customer_cancelled", "team_cancelled", "customer_no_show"].includes(s.status));
     return {
       today: rows.filter(s => sameDay(s.start_at, now)).length,
       upcoming: active.filter(s => new Date(s.start_at) >= now).length,
@@ -357,19 +356,30 @@ export default function SchedulePage() {
   };
 
   const open = async r => {
-    setSelected({
-      ...r,
-      lead: leadMap.get(r.lead_id) || null,
-      customer: customerMap.get(r.customer_id) || null
-    });
-    try { setFiles(await fetchScheduleFiles(r.id)); } catch (_) { setFiles([]); }
+    setSelected({...r,lead:leadMap.get(r.lead_id)||null,customer:customerMap.get(r.customer_id)||null});
+    try { const [f,h]=await Promise.all([fetchScheduleFiles(r.id),fetchScheduleHistory(r.id)]); setFiles(f); setHistory(h); } catch (_) { setFiles([]); setHistory([]); }
   };
   const update = async p => {
     if (!selected) return;
-    try {
-      const u = p.status === "completed" ? await completeSchedule(selected.id, p) : await updateSchedule(selected.id, p);
-      setSelected(u); toast.success("Schedule updated"); await load();
-    } catch (e) { toast.error(e.message || "Update failed"); }
+    try { const u=p.status==="completed"?await completeSchedule(selected.id,p):await updateSchedule(selected.id,p); setSelected({...selected,...u}); toast.success("Schedule updated"); await load(); }
+    catch(e){toast.error(e.message||"Update failed");}
+  };
+  const runLifecycle = async(action,payload={}) => {
+    if(!selected) return;
+    if(action==="__close__"){setLifecycle(null);return;}
+    try{
+      if(action==="reschedule" && calendar?.master_calendar_configured){
+        const participantIds=[selected.arranged_by,selected.owner_id,...(selected.participants||[]).filter(p=>p.is_required).map(p=>p.user_id)].filter(Boolean);
+        const finalCalendar=await checkCalendarAvailability({start:payload.start_at,end:payload.end_at,userIds:[...new Set(participantIds)],excludeEventId:selected.google_calendar_event_id||null});
+        if((finalCalendar?.busy||[]).length) throw new Error("The new time is no longer free on the selected team calendars.");
+      }
+      const u=await lifecycleAction(selected.id,action,payload);
+      if(action==="delete"){toast.success("Meeting deleted");setSelected(null);setLifecycle(null);await load();return;}
+      if(["reschedule","cancel","no_show"].includes(action) && selected.google_calendar_event_id) await updateScheduleCalendar(selected.id);
+      setSelected({...selected,...u});setLifecycle(null);
+      setHistory(await fetchScheduleHistory(selected.id));await load();
+      toast.success(action==="reschedule"?"Meeting rescheduled":action==="cancel"?"Meeting cancelled":action==="no_show"?"No-show recorded":"Meeting completed");
+    }catch(e){toast.error(e.message||"Could not process meeting");}
   };
   const upload = async file => {
     if (!file || !selected) return;
@@ -525,11 +535,72 @@ export default function SchedulePage() {
         </aside>
       </div>
 
+      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} calendar={calendar} />}
       {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
-      {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
+      {selected && <DetailModal selected={selected} files={files} history={history} update={update} upload={upload} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );
 }
+
+function LifecycleModal({action,selected,run,calendar}){
+ const [reason,setReason]=useState(""),[reasonText,setReasonText]=useState(""),[notes,setNotes]=useState("");
+ const [rescheduleDate,setRescheduleDate]=useState(localDate(new Date(selected.start_at)));
+ const [rescheduleSlots,setRescheduleSlots]=useState([]),[checkingSlots,setCheckingSlots]=useState(false);
+ const [outcome,setOutcome]=useState(""),[stage,setStage]=useState(selected.lead_stage_after||""),[feedback,setFeedback]=useState(selected.feedback||""),[remarks,setRemarks]=useState(selected.remarks||""),[nextAction,setNextAction]=useState(selected.next_action||""),[nextDate,setNextDate]=useState(selected.next_action_date||""),[saving,setSaving]=useState(false);
+ const RESCHEDULE=[["customer_requested","Customer Requested"],["employee_unavailable","Employee Unavailable"],["customer_not_available","Customer Not Available"],["site_not_ready","Site Not Ready"],["material_design_pending","Material / Design Pending"],["travel_issue","Travel Issue"],["weather_issue","Weather Issue"],["internal_schedule_conflict","Internal Schedule Conflict"],["other","Other"]];
+ const CANCEL=[["customer_cancelled","Customer Cancelled"],["customer_not_available","Customer Not Available"],["customer_not_interested","Customer Not Interested"],["customer_requested_later","Customer Requested Later"],["employee_unavailable","Employee Unavailable"],["site_not_ready","Site Not Ready"],["budget_issue","Budget Issue"],["project_on_hold","Project On Hold"],["duplicate_meeting","Duplicate Meeting"],["wrong_schedule","Wrong Schedule"],["internal_reason","Internal Reason"],["other","Other"]];
+ const OUTCOMES=[["highly_interested","Highly Interested"],["interested","Interested"],["needs_more_discussion","Needs More Discussion"],["estimate_required","Estimate Required"],["design_required","Design Required"],["site_measurement_required","Site Measurement Required"],["follow_up_required","Follow-up Required"],["budget_issue","Budget Issue"],["customer_not_interested","Customer Not Interested"],["project_on_hold","Project On Hold"],["converted_booking_expected","Converted / Booking Expected"],["other","Other"]];
+ const STAGES=[["contacted","Contacted"],["site_visit","Ready for Meeting"],["floor_plan_site_info","Meeting / Visit Scheduled"],["estimate_to_be_created","Meeting Done · Ready for Estimate"],["quotation_given","Estimate Given"],["need_followup","Closing Follow-up"],["converted","Converted"]];
+ const participantIds=[selected.arranged_by,selected.owner_id,...(selected.participants||[]).filter(p=>p.is_required).map(p=>p.user_id)].filter(Boolean).filter((id,i,a)=>a.indexOf(id)===i);
+ const searchSlots=async()=>{
+   if(!rescheduleDate) return toast.error("Select a date first");
+   if(new Date(rescheduleDate+"T23:59:59")<=new Date()) return toast.error("Select a future date");
+   if(!calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
+   setCheckingSlots(true);setRescheduleSlots([]);
+   try{
+     const duration=Math.max(15,Math.round((new Date(selected.end_at)-new Date(selected.start_at))/60000));
+     const dayStart=slotIso(rescheduleDate,9,0),dayEnd=slotIso(rescheduleDate,20,0);
+     const data=await checkCalendarAvailability({start:dayStart,end:dayEnd,userIds:participantIds,excludeEventId:selected.google_calendar_event_id||null});
+     const busy=data?.busy||[],unconnected=new Set(data?.unconnected_user_ids||[]);
+     const selectedUnconnected=participantIds.filter(id=>unconnected.has(id));
+     if(selectedUnconnected.length) throw new Error("Google Calendar is not connected for one or more required team members.");
+     const found=[];const now=new Date();
+     for(let h=9;h<20;h++) for(let m=0;m<60;m+=30){
+       const start=slotIso(rescheduleDate,h,m),end=slotIso(rescheduleDate,h,m+duration);
+       if(new Date(end)>new Date(dayEnd)) continue;
+       const past=new Date(start)<=now;
+       const overlapping=busy.filter(b=>overlaps(b.start,b.end,start,end));
+       const available=!past&&!overlapping.length;
+       found.push({start,end,available,past,bookedBy:[...new Set(overlapping.map(b=>b.user_name||(b.user_id?activeTeamName(b.user_id):"Company Calendar")).filter(Boolean))]});
+     }
+     setRescheduleSlots(found);
+     if(!found.some(s=>s.available)) toast.info("No available slot found for the selected date");
+   }catch(e){toast.error(e.message||"Availability check failed");}
+   finally{setCheckingSlots(false);}
+ };
+ const activeTeamName=id=>selected.participants?.find(p=>p.user_id===id)?.profile?.full_name||selected.arranger?.full_name||"Team Calendar";
+ const submit=async()=>{setSaving(true);try{
+   if(action==="reschedule"){
+     const chosen=rescheduleSlots.find(s=>s.selected&&s.available);
+     if(!chosen) throw new Error("Search and select an available slot first");
+     if(!reason) throw new Error("Reason is required");
+     await run(action,{start_at:chosen.start,end_at:chosen.end,reason_code:reason,reason_text:reasonText,notes});
+   }else if(action==="cancel"||action==="no_show"){
+     if(!reason) throw new Error("Reason is required");await run(action,{reason_code:reason,reason_text:reasonText,notes});
+   }else if(action==="complete"){
+     if(!outcome||!stage) throw new Error("Outcome and Lead Stage are required");await run(action,{outcome_type:outcome,lead_stage_after:stage,feedback,remarks,next_action:nextAction,next_action_date:nextDate,notes});
+   }else if(action==="delete"){await run(action,{notes});}
+ }catch(e){toast.error(e.message||"Could not process meeting")}finally{setSaving(false)}};
+ const title={reschedule:"Reschedule Meeting",cancel:"Cancel Meeting",no_show:"Record No-Show",complete:"Complete Meeting",delete:"Delete Meeting"}[action];
+ return <div className="fixed inset-0 z-[60] bg-slate-950/50 p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 bg-white border-b p-5 flex justify-between"><div><h3 className="text-xl font-bold">{title}</h3><div className="text-xs text-slate-500 mt-1">{selected.title}</div></div><button onClick={()=>run("__close__")} className="w-9 h-9 rounded-xl hover:bg-slate-100">×</button></div><div className="p-5 space-y-4">
+ {action==="reschedule"&&<><div className="rounded-2xl border bg-slate-50 p-4"><label className="text-xs font-bold">Select New Date<input type="date" value={rescheduleDate} min={localDate(new Date())} onChange={e=>{setRescheduleDate(e.target.value);setRescheduleSlots([])}} className="mt-1.5 w-full h-11 border rounded-xl px-3 bg-white"/></label><button type="button" onClick={searchSlots} disabled={checkingSlots} className="mt-3 w-full h-11 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold disabled:opacity-60">{checkingSlots?"Searching…":"Search Available Slots"}</button></div>{rescheduleSlots.length>0&&<div><div className="text-xs font-bold mb-2">Available Slots</div><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-auto">{rescheduleSlots.map(s=><button type="button" key={s.start} disabled={!s.available} onClick={()=>s.available&&setRescheduleSlots(x=>x.map(v=>({...v,selected:v.start===s.start})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:border-blue-300"}>{fmtTime(s.start)} – {fmtTime(s.end)}</button>)}</div></div>}<ReasonPicker values={RESCHEDULE} value={reason} setValue={setReason}/></>}
+ {(action==="cancel"||action==="no_show")&&<ReasonPicker values={CANCEL} value={reason} setValue={setReason}/>} 
+ {(action==="reschedule"||action==="cancel"||action==="no_show")&&<label className="text-xs font-bold">Reason / Notes<textarea value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label>}
+ {action==="complete"&&<><label className="text-xs font-bold">Meeting Outcome *<select value={outcome} onChange={e=>setOutcome(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select outcome</option>{OUTCOMES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Lead Stage After Meeting *<select value={stage} onChange={e=>setStage(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select stage</option>{STAGES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Customer Feedback<textarea value={feedback} onChange={e=>setFeedback(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><label className="text-xs font-bold">Employee Remarks<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">Next Action<input value={nextAction} onChange={e=>setNextAction(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label><label className="text-xs font-bold">Next Action Date<input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label></div></>}
+ {action==="delete"&&<><div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">Delete is an administrative soft-delete. The meeting remains in audit history.</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} className="w-full border rounded-xl p-3 text-sm" placeholder="Optional delete note"/></>}
+ </div><div className="border-t p-4 flex justify-end gap-2"><button onClick={()=>run("__close__")} className="px-4 py-2.5 rounded-xl border font-semibold">Close</button><button disabled={saving} onClick={submit} className="px-5 py-2.5 rounded-xl bg-blue-700 text-white font-bold disabled:opacity-50">{saving?"Processing…":action==="delete"?"Delete Meeting":"Save"}</button></div></div></div>;
+}
+function ReasonPicker({values,value,setValue}){return <div><div className="text-xs font-bold mb-2">Quick Reason *</div><div className="flex flex-wrap gap-2">{values.map(([v,l])=><button type="button" key={v} onClick={()=>setValue(v)} className={value===v?"px-3 py-2 rounded-full bg-blue-700 text-white text-xs font-bold":"px-3 py-2 rounded-full border bg-slate-50 text-xs font-bold"}>{l}</button>)}</div></div>;}
 
 function ScheduleRow({ s, lead, onOpen }) {
   const owner = s.arranger?.full_name || s.owner?.full_name || "Unassigned";
@@ -643,7 +714,7 @@ function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   return <div className="text-xs font-bold text-slate-600">Manager(s) <span className="text-slate-400 font-normal">• Admin/Director can assign multiple{urgent ? " • urgent/special case" : ""}</span><div className="mt-1.5 border rounded-xl p-2 max-h-32 overflow-auto space-y-1">{managers.map(p=><label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer font-medium"><input type="checkbox" checked={ids.includes(p.id)} onChange={()=>setIds(ids.includes(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>{p.full_name}</label>)}<button type="button" onClick={()=>setIds([])} className="text-[11px] text-blue-700 font-bold px-2 py-1">Auto assign any available</button></div></div>;
 }
 
-function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
+function DetailModal({ selected, files, history, update, upload, openLifecycle, close, syncCalendar }) {
   const customer = selected.customer || selected.lead || {};
   const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
   const customerName = titleCaseName(customer.name || selected.title || "Customer");
@@ -677,10 +748,7 @@ function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
     window.open(whatsappUrl(phone, message), "_blank", "noopener,noreferrer");
   };
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={e=>e.target===e.currentTarget&&close()}><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="flex items-center gap-2"><StatusBadge status={selected.status}/><ModeBadge mode={selected.mode}/></div><h2 className="text-xl font-display font-bold mt-2">{selected.title}</h2><div className="text-sm text-slate-500 mt-1">{new Date(selected.start_at).toLocaleString("en-IN")}</div></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500"/></button></div><div className="p-5 space-y-5">
-    <div className="grid md:grid-cols-3 gap-3"><button onClick={()=>update({status:"completed"})} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-2"/>Completed</button><button onClick={()=>update({status:"rescheduled"})} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-2"/>Reschedule</button><button onClick={()=>update({status:"customer_cancelled"})} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-2"/>Customer Cancelled</button></div>
-    <div><div className="text-sm font-bold mb-2">Quick Feedback</div><div className="flex flex-wrap gap-2">{FEEDBACKS.map(n=><button key={n} onClick={()=>update({feedback_tags:[n]})} className="px-3 py-2 rounded-full border bg-slate-50 text-xs font-bold hover:border-blue-300">{n}</button>)}</div></div>
-    <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Remarks<textarea defaultValue={selected.remarks||""} onBlur={e=>e.target.value!==selected.remarks&&update({remarks:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What happened?" /></label><label className="text-sm font-bold">Customer Feedback<textarea defaultValue={selected.feedback||""} onBlur={e=>e.target.value!==selected.feedback&&update({feedback:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What did the customer say?" /></label></div>
-    <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Next Action<input defaultValue={selected.next_action||""} onBlur={e=>e.target.value!==selected.next_action&&update({next_action:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" placeholder="Create estimate / follow-up call" /></label><label className="text-sm font-bold">Next Action Date<input type="date" defaultValue={selected.next_action_date||""} onBlur={e=>e.target.value!==selected.next_action_date&&update({next_action_date:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" /></label></div>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2"><button onClick={()=>openLifecycle("complete")} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-1"/>Complete</button><button onClick={()=>openLifecycle("reschedule")} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-1"/>Reschedule</button><button onClick={()=>openLifecycle("cancel")} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-1"/>Cancel</button><button onClick={()=>openLifecycle("no_show")} className="p-3 rounded-xl border bg-violet-50 text-violet-700 font-bold text-sm">No Show</button><button onClick={()=>openLifecycle("delete")} className="p-3 rounded-xl border bg-slate-100 text-slate-700 font-bold text-sm">Delete</button></div>
     <div className="border-t pt-4"><div className="flex items-center justify-between mb-2"><div className="font-bold">Files / Site Information</div><label className="px-3 py-2 rounded-xl border text-sm font-bold cursor-pointer flex items-center gap-2"><FileUp className="w-4 h-4"/>Upload<input type="file" className="hidden" onChange={e=>upload(e.target.files?.[0])}/></label></div>{files.length===0?<div className="text-sm text-slate-400 py-4">No files uploaded yet.</div>:<div className="space-y-2">{files.map(f=><a key={f.id} href={f.file_url||f.drive_url||"#"} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border text-sm"><span className="truncate">{f.file_name}</span><span className="text-xs text-slate-400">{label(f.source)}</span></a>)}</div>}</div>
     <div className="grid md:grid-cols-2 gap-3 text-sm">
       <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><MapPin className="w-4 h-4 inline mr-2"/>{selected.location_address||"Digital meeting"}</div>
@@ -708,6 +776,10 @@ function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
           <button type="button" onClick={async()=>{const ok=await copyText(teamMessage);toast[ok?"success":"error"](ok?"Team message copied":"Could not copy message")}} className="px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5"><Copy className="w-3.5 h-3.5"/>Copy Team Message</button>
         </div>
       </div> : <div className="mt-3 p-3 bg-white rounded-xl border text-sm text-slate-600">Physical meeting — Google Meet sharing controls are hidden.</div>}
+    </div>
+    <div className="border rounded-2xl p-4 bg-slate-50">
+      <div className="font-bold text-sm">Lifecycle History</div>
+      <div className="mt-3 space-y-2 max-h-56 overflow-auto">{(history||[]).length ? history.map(h=><div key={h.id} className="p-3 rounded-xl bg-white border text-xs"><div className="flex justify-between gap-2"><span className="font-bold uppercase">{label(h.action)}</span><span className="text-slate-400">{fmtDate(h.created_at)} {fmtTime(h.created_at)}</span></div>{h.reason_code&&<div className="mt-1 text-slate-600">Reason: {label(h.reason_code)}{h.reason_text?` — ${h.reason_text}`:""}</div>}{h.outcome_type&&<div className="mt-1 text-slate-600">Outcome: {label(h.outcome_type)}{h.lead_stage_after?` · Lead Stage: ${label(h.lead_stage_after)}`:""}</div>}</div>) : <div className="text-xs text-slate-400">No lifecycle history yet.</div>}</div>
     </div>
     <div className="border rounded-2xl p-4 bg-slate-50">
       <div className="font-bold text-sm">Participants</div>

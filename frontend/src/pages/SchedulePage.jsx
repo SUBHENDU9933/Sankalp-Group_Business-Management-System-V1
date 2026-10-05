@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
   Copy, ExternalLink, FileUp, Filter, Link2, ListFilter, MapPin, MessageCircle,
@@ -7,6 +7,7 @@ import {
   ArrowUpRight, RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadOptions, updateLead } from "@/services/leadService";
@@ -301,6 +302,25 @@ export default function SchedulePage() {
     finally { setChecking(false); }
   };
 
+  const availabilityCheckRef = useRef(null);
+  const availabilityHasSlotsRef = useRef(false);
+  availabilityCheckRef.current = checkAvailability;
+  availabilityHasSlotsRef.current = slots.length > 0;
+
+  useEffect(() => {
+    if (!showCreate) return;
+    const refreshSlots = () => {
+      if (document.visibilityState !== "visible") return;
+      if (availabilityHasSlotsRef.current) availabilityCheckRef.current?.();
+    };
+    const channel = supabase.channel("schedule-slot-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedules" }, () => { load(); refreshSlots(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants" }, () => { load(); refreshSlots(); })
+      .subscribe();
+    const timer = window.setInterval(refreshSlots, 15000);
+    return () => { window.clearInterval(timer); supabase.removeChannel(channel); };
+  }, [showCreate, form.date, form.arranged_by, form.meeting_type, form.mode, (form.comember_ids || []).join(",")]);
+
   const save = async () => {
     const chosen = slots.find(s => s.selected);
     if (!chosen) return toast.error("Select an available slot first");
@@ -361,7 +381,11 @@ export default function SchedulePage() {
   };
   const update = async p => {
     if (!selected) return;
-    try { const u=p.status==="completed"?await completeSchedule(selected.id,p):await updateSchedule(selected.id,p); setSelected({...selected,...u}); toast.success("Schedule updated"); await load(); }
+    try {
+      const u=p.status==="completed"?await completeSchedule(selected.id,p):await updateSchedule(selected.id,p);
+      if(selected.google_calendar_event_id) { try { await updateScheduleCalendar(selected.id); } catch (_) {} }
+      setSelected({...selected,...u}); toast.success("Schedule updated"); await load();
+    }
     catch(e){toast.error(e.message||"Update failed");}
   };
   const runLifecycle = async(action,payload={}) => {

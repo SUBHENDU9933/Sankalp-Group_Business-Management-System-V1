@@ -68,7 +68,15 @@ async function masterInfo(admin:any){
 async function userCalendar(admin:any,userId:string){const t=await tokenFor(admin,userId);return {user_id:userId,calendar_id:t.connection.primary_calendar_id||"primary",calendar_email:t.connection.google_email,token:t.token}}
 async function requiredUsers(admin:any,scheduleId:string){const {data:s,error}=await admin.from("schedules").select("owner_id,arranged_by").eq("id",scheduleId).single();if(error)throw error;const {data:p}=await admin.from("schedule_participants").select("user_id,is_required").eq("schedule_id",scheduleId).eq("is_required",true);return [...new Set([s.owner_id,s.arranged_by,...(p||[]).map((x:any)=>x.user_id)].filter(Boolean))]}
 async function freeBusy(calendar:any,start:string,end:string){return gfetch("/freeBusy",calendar.token,{method:"POST",body:JSON.stringify({timeMin:start,timeMax:end,timeZone:"Asia/Kolkata",calendarExpansionMax:50,items:[{id:calendar.calendar_id}]})})}
-async function listBusy(calendar:any,start:string,end:string,excludeEventId:string|null=null){const qs=new URLSearchParams({timeMin:start,timeMax:end,singleEvents:"true",showDeleted:"false",maxResults:"2500"});const d=await gfetch("/calendars/"+encodeURIComponent(calendar.calendar_id)+"/events?"+qs.toString(),calendar.token);return (d.items||[]).filter((e:any)=>e.status!=="cancelled"&&e.transparency!=="transparent"&&e.id!==excludeEventId).map((e:any)=>{const s=e.start?.dateTime||e.start?.date;const en=e.end?.dateTime||e.end?.date;return s&&en?{start:s,end:en,event_id:e.id}:null}).filter(Boolean)}
+async function listBusy(calendar:any,start:string,end:string,excludeEventId:string|null=null){
+ const qs=new URLSearchParams({timeMin:start,timeMax:end,singleEvents:"true",showDeleted:"false",maxResults:"2500"});
+ const d=await gfetch("/calendars/"+encodeURIComponent(calendar.calendar_id)+"/events?"+qs.toString(),calendar.token);
+ return (d.items||[]).filter((e:any)=>e.status!=="cancelled"&&e.transparency!=="transparent"&&e.id!==excludeEventId).map((e:any)=>{
+   const s=e.start?.dateTime||e.start?.date; const en=e.end?.dateTime||e.end?.date;
+   const scheduleId=e.extendedProperties?.private?.sankalp_schedule_id||e.extendedProperties?.shared?.sankalp_schedule_id||null;
+   return s&&en?{start:s,end:en,event_id:e.id,schedule_id:scheduleId}:null;
+ }).filter(Boolean)
+}
 async function connectedUserCalendars(admin:any,ids:string[]){const out:any[]=[];for(const id of ids){try{out.push(await userCalendar(admin,id))}catch(e){out.push({user_id:id,connected:false,error:e instanceof Error?e.message:"Calendar not connected"})}}return out}
 async function upsertSync(admin:any,scheduleId:string,userId:string,status:string,error:string|null=null,eventId:string|null=null){await admin.from("schedule_calendar_sync_items").upsert({schedule_id:scheduleId,user_id:userId,provider:"google",calendar_type:"personal",google_event_id:eventId,sync_status:status,last_synced_at:status==="synced"?new Date().toISOString():null,last_error:error,last_source:"bms",updated_at:new Date().toISOString()},{onConflict:"schedule_id,user_id,provider,calendar_type"})}
 

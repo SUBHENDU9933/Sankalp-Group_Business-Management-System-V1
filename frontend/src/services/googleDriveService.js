@@ -79,3 +79,9 @@ export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+export const fetchGoogleDriveQuota = async () => {
+  const { data, error } = await supabase.functions.invoke("google-drive-oauth", { body: { action: "quota" } });
+  if (error) throw error;
+  return data;
+};

@@ -485,7 +485,7 @@ function ActivityRow({ a }) {
         <div className="flex items-center gap-2 flex-wrap"><div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-600">{labels[a.type] || a.type.replace(/_/g, " ")}</div><div className="text-xs text-stone-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(a.created_at)}</div></div>
         {a.type === "call" && meta.attempt_number && <div className="mt-1.5 inline-flex items-center gap-2 text-[11px] text-stone-500"><span className="font-semibold text-stone-700">Attempt #{meta.attempt_number}</span><span>·</span><span>{meta.outcome === "connected" ? "Connected" : "Not Connected"}</span>{meta.status_changed && <span className="text-emerald-700 font-medium">· First contact</span>}</div>}
         {a.content && (a.type === "schedule_file_added" && meta.schedule_file_id ? (
-          <button type="button" onClick={async () => { try { await downloadGoogleDriveFile({ fileId: meta.schedule_file_id, recordId: meta.schedule_file_id }); } catch (e) { toast.error(e.message || "Could not open file"); } }} className="text-left text-sm text-blue-700 hover:text-blue-900 hover:underline mt-1 whitespace-pre-wrap cursor-pointer">
+          <button type="button" onClick={async () => { try { await downloadGoogleDriveFile({ fileId: meta.schedule_file_id, recordId: meta.schedule_id }); } catch (e) { toast.error(e.message || "Could not open file"); } }} className="text-left text-sm text-blue-700 hover:text-blue-900 hover:underline mt-1 whitespace-pre-wrap cursor-pointer">
             {a.content}
           </button>
         ) : (

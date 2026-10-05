@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader, PageBody } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RotateCcw, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, IndianRupee, Plus, RefreshCw, RotateCcw, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadPaymentTotals } from "@/services/leadPaymentService";
 import { fetchLeadSegment, reviveLostLead, claimLostLead } from "@/services/leadSegmentService";
+import { fetchLostLeadKpis } from "@/services/lostLeadKpiService";
 import { updateLeadStatus, requestDelete, cancelDeleteRequest, convertLeadToCustomer, bulkUpdateLeads, bulkAddCoAssignee } from "@/services/leadService";
 import { exportLeadsCSV } from "@/utils/leadCsv";
 import LeadFilters from "@/components/leads/LeadFilters";
@@ -45,6 +46,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editLead, setEditLead] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [lostKpis, setLostKpis] = useState(null);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -68,6 +70,10 @@ export default function LeadSegmentPage({ segment = "active" }) {
 
   useEffect(() => { fetchProfiles().then(setProfiles).catch(() => setProfiles([])); }, []);
   useEffect(() => { load(); }, [segment, page, pageSize, search, statusFilter, rmFilter, sourceFilter, tagFilter, fromDate, toDate]);
+  useEffect(() => {
+    if (!isLost) return;
+    fetchLostLeadKpis().then(setLostKpis).catch(() => setLostKpis(null));
+  }, [isLost, leads.length, total]);
 
   const toggleSelect = (id) => setSelected((current) => {
     const next = new Set(current);
@@ -196,6 +202,43 @@ export default function LeadSegmentPage({ segment = "active" }) {
         </div>
       )} />
       <PageBody>
+        {isLost && (
+          <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {[
+              ["TOTAL LOST", lostKpis?.totalLost, "All lost leads", AlertTriangle, "rose"],
+              ["AVAILABLE POOL", lostKpis?.availablePool, "Ready to claim", Users, "blue"],
+              ["LOST TODAY", lostKpis?.lostToday, "Lost today", CalendarClock, "orange"],
+              ["LOST THIS MONTH", lostKpis?.lostThisMonth, "Current month", CalendarDays, "amber"],
+              ["RECLAIMED", lostKpis?.reclaimed, "Returned from Lost", RefreshCw, "emerald"],
+              ["LOST VALUE", lostKpis?.lostValue, "Current lost budgets", IndianRupee, "violet"],
+            ].map(([label, value, sub, Icon, tone]) => {
+              const tones = {
+                rose: "from-rose-50 to-white border-rose-100 text-rose-600",
+                blue: "from-blue-50 to-white border-blue-100 text-blue-600",
+                orange: "from-orange-50 to-white border-orange-100 text-orange-600",
+                amber: "from-amber-50 to-white border-amber-100 text-amber-600",
+                emerald: "from-emerald-50 to-white border-emerald-100 text-emerald-600",
+                violet: "from-violet-50 to-white border-violet-100 text-violet-600",
+              };
+              const displayValue = value == null ? "—" : label === "LOST VALUE"
+                ? `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Number(value || 0))}`
+                : Number(value || 0).toLocaleString("en-IN");
+              return (
+                <div key={label} className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_-28px_rgba(15,23,42,.5)] ${tones[tone]}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">{label}</p>
+                      <div className="mt-2 text-[25px] font-black tracking-[-.045em] text-slate-900">{displayValue}</div>
+                      <p className="mt-1 truncate text-[11px] text-slate-500">{sub}</p>
+                    </div>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Icon className="h-4 w-4" /></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <LeadBulkActionBar
           selectedCount={selected.size}
           totalCount={leads.length}

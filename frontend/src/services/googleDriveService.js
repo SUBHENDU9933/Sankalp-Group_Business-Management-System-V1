@@ -123,9 +123,15 @@ export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
   const match = disposition.match(/filename="([^"]+)"/i);
   const name = match?.[1] || "download";
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const previewWindow = window.open("about:blank", "_blank");
+  if (previewWindow && !previewWindow.closed) {
+    previewWindow.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    const a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 };
 
 export const fetchGoogleDriveQuota = async () => {

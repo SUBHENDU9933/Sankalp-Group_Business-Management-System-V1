@@ -12,7 +12,7 @@ import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadOptions, updateLead } from "@/services/leadService";
 import { fetchCustomers } from "@/services/customerService";
 import {
-  completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule,
+  completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
   syncScheduleToCalendar, syncPendingCalendar
 } from "@/services/scheduleService";
@@ -86,7 +86,7 @@ function ModeBadge({ mode }) {
 export default function SchedulePage() {
   const { profile, role, isAdmin } = useAuth();
   const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [customers, setCustomers] = useState([]), [team, setTeam] = useState([]);
-  const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
+  const [selected, setSelected] = useState(null), [files, setFiles] = useState([]), [history, setHistory] = useState([]), [lifecycle, setLifecycle] = useState(null);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
   const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false), [availabilityNote, setAvailabilityNote] = useState("");
@@ -357,19 +357,24 @@ export default function SchedulePage() {
   };
 
   const open = async r => {
-    setSelected({
-      ...r,
-      lead: leadMap.get(r.lead_id) || null,
-      customer: customerMap.get(r.customer_id) || null
-    });
-    try { setFiles(await fetchScheduleFiles(r.id)); } catch (_) { setFiles([]); }
+    setSelected({...r,lead:leadMap.get(r.lead_id)||null,customer:customerMap.get(r.customer_id)||null});
+    try { const [f,h]=await Promise.all([fetchScheduleFiles(r.id),fetchScheduleHistory(r.id)]); setFiles(f); setHistory(h); } catch (_) { setFiles([]); setHistory([]); }
   };
   const update = async p => {
     if (!selected) return;
-    try {
-      const u = p.status === "completed" ? await completeSchedule(selected.id, p) : await updateSchedule(selected.id, p);
-      setSelected(u); toast.success("Schedule updated"); await load();
-    } catch (e) { toast.error(e.message || "Update failed"); }
+    try { const u=p.status==="completed"?await completeSchedule(selected.id,p):await updateSchedule(selected.id,p); setSelected({...selected,...u}); toast.success("Schedule updated"); await load(); }
+    catch(e){toast.error(e.message||"Update failed");}
+  };
+  const runLifecycle = async(action,payload={}) => {
+    if(!selected) return;
+    if(action==="__close__"){setLifecycle(null);return;}
+    try{
+      const u=await lifecycleAction(selected.id,action,payload);
+      if(action==="delete"){toast.success("Meeting deleted");setSelected(null);setLifecycle(null);await load();return;}
+      setSelected({...selected,...u});setLifecycle(null);
+      setHistory(await fetchScheduleHistory(selected.id));await load();
+      toast.success(action==="reschedule"?"Meeting rescheduled":action==="cancel"?"Meeting cancelled":action==="no_show"?"No-show recorded":"Meeting completed");
+    }catch(e){toast.error(e.message||"Could not process meeting");}
   };
   const upload = async file => {
     if (!file || !selected) return;
@@ -525,11 +530,32 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
-      {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
+      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} />}\n      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
+      {selected && <DetailModal selected={selected} files={files} history={history} update={update} upload={upload} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );
 }
+
+function LifecycleModal({action,selected,run}){
+ const [reason,setReason]=useState(""),[reasonText,setReasonText]=useState(""),[notes,setNotes]=useState("");
+ const [start,setStart]=useState(localInput(new Date(selected.start_at))),[end,setEnd]=useState(localInput(new Date(selected.end_at||new Date(new Date(selected.start_at).getTime()+30*60000))));
+ const [outcome,setOutcome]=useState(""),[stage,setStage]=useState(selected.lead_stage_after||"estimate_to_be_created"),[feedback,setFeedback]=useState(selected.feedback||""),[remarks,setRemarks]=useState(selected.remarks||""),[nextAction,setNextAction]=useState(selected.next_action||""),[nextDate,setNextDate]=useState(selected.next_action_date||""),[saving,setSaving]=useState(false);
+ const RESCHEDULE=[["customer_requested","Customer Requested"],["employee_unavailable","Employee Unavailable"],["customer_not_available","Customer Not Available"],["site_not_ready","Site Not Ready"],["material_design_pending","Material / Design Pending"],["travel_issue","Travel Issue"],["weather_issue","Weather Issue"],["internal_schedule_conflict","Internal Schedule Conflict"],["other","Other"]];
+ const CANCEL=[["customer_cancelled","Customer Cancelled"],["customer_not_available","Customer Not Available"],["customer_not_interested","Customer Not Interested"],["customer_requested_later","Customer Requested Later"],["employee_unavailable","Employee Unavailable"],["site_not_ready","Site Not Ready"],["budget_issue","Budget Issue"],["project_on_hold","Project On Hold"],["duplicate_meeting","Duplicate Meeting"],["wrong_schedule","Wrong Schedule"],["internal_reason","Internal Reason"],["other","Other"]];
+ const OUTCOMES=[["highly_interested","Highly Interested"],["interested","Interested"],["needs_more_discussion","Needs More Discussion"],["estimate_required","Estimate Required"],["design_required","Design Required"],["site_measurement_required","Site Measurement Required"],["follow_up_required","Follow-up Required"],["budget_issue","Budget Issue"],["customer_not_interested","Customer Not Interested"],["project_on_hold","Project On Hold"],["converted_booking_expected","Converted / Booking Expected"],["other","Other"]];
+ const STAGES=[["new","New"],["contacted","Contacted"],["site_visit","Ready for Meeting"],["floor_plan_site_info","Meeting / Visit Scheduled"],["estimate_to_be_created","Meeting Done · Ready for Estimate"],["quotation_given","Estimate Given"],["need_followup","Closing Follow-up"],["converted","Converted"]];
+ const reasons=action==="reschedule"?RESCHEDULE:CANCEL;
+ const submit=async()=>{setSaving(true);try{if(action==="reschedule"){const s=new Date(start),e=new Date(end);if(!start||!end||e<=s)throw new Error("Select a valid new time");await run(action,{start_at:s.toISOString(),end_at:e.toISOString(),reason_code:reason,reason_text:reasonText,notes});}else if(action==="cancel"||action==="no_show"){if(!reason)throw new Error("Reason is required");await run(action,{reason_code:reason,reason_text:reasonText,notes});}else if(action==="complete"){if(!outcome||!stage)throw new Error("Outcome and Lead Stage are required");await run(action,{outcome_type:outcome,lead_stage_after:stage,feedback,remarks,next_action:nextAction,next_action_date:nextDate,notes});}else if(action==="delete"){await run(action,{notes});}}catch(e){toast.error(e.message||"Could not process meeting")}finally{setSaving(false)}};
+ const title={reschedule:"Reschedule Meeting",cancel:"Cancel Meeting",no_show:"Record No-Show",complete:"Complete Meeting",delete:"Delete Meeting"}[action];
+ return <div className="fixed inset-0 z-[60] bg-slate-950/50 p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 bg-white border-b p-5 flex justify-between"><div><h3 className="text-xl font-bold">{title}</h3><div className="text-xs text-slate-500 mt-1">{selected.title}</div></div><button onClick={()=>run("__close__")} className="w-9 h-9 rounded-xl hover:bg-slate-100">×</button></div><div className="p-5 space-y-4">
+ {action==="reschedule"&&<><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">New Start<input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"/></label><label className="text-xs font-bold">New End<input type="datetime-local" value={end} onChange={e=>setEnd(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"/></label></div><ReasonPicker values={RESCHEDULE} value={reason} setValue={setReason}/></>}
+ {(action==="cancel"||action==="no_show")&&<ReasonPicker values={reasons} value={reason} setValue={setReason}/>}
+ {(action==="reschedule"||action==="cancel"||action==="no_show")&&<label className="text-xs font-bold">Reason / Notes<textarea value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label>}
+ {action==="complete"&&<><label className="text-xs font-bold">Meeting Outcome *<select value={outcome} onChange={e=>setOutcome(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select outcome</option>{OUTCOMES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Lead Stage After Meeting *<select value={stage} onChange={e=>setStage(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select stage</option>{STAGES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Customer Feedback<textarea value={feedback} onChange={e=>setFeedback(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><label className="text-xs font-bold">Employee Remarks<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">Next Action<input value={nextAction} onChange={e=>setNextAction(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label><label className="text-xs font-bold">Next Action Date<input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label></div></>}
+ {action==="delete"&&<><div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">Delete is an administrative soft-delete. The meeting remains in audit history.</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} className="w-full border rounded-xl p-3 text-sm" placeholder="Optional delete note"/></>}
+ </div><div className="border-t p-4 flex justify-end gap-2"><button onClick={()=>run("__close__")} className="px-4 py-2.5 rounded-xl border font-semibold">Close</button><button disabled={saving} onClick={submit} className="px-5 py-2.5 rounded-xl bg-blue-700 text-white font-bold disabled:opacity-50">{saving?"Processing…":action==="delete"?"Delete Meeting":"Save"}</button></div></div></div>;
+}
+function ReasonPicker({values,value,setValue}){return <div><div className="text-xs font-bold mb-2">Quick Reason *</div><div className="flex flex-wrap gap-2">{values.map(([v,l])=><button type="button" key={v} onClick={()=>setValue(v)} className={value===v?"px-3 py-2 rounded-full bg-blue-700 text-white text-xs font-bold":"px-3 py-2 rounded-full border bg-slate-50 text-xs font-bold"}>{l}</button>)}</div></div>;}
 
 function ScheduleRow({ s, lead, onOpen }) {
   const owner = s.arranger?.full_name || s.owner?.full_name || "Unassigned";
@@ -643,7 +669,7 @@ function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   return <div className="text-xs font-bold text-slate-600">Manager(s) <span className="text-slate-400 font-normal">• Admin/Director can assign multiple{urgent ? " • urgent/special case" : ""}</span><div className="mt-1.5 border rounded-xl p-2 max-h-32 overflow-auto space-y-1">{managers.map(p=><label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer font-medium"><input type="checkbox" checked={ids.includes(p.id)} onChange={()=>setIds(ids.includes(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>{p.full_name}</label>)}<button type="button" onClick={()=>setIds([])} className="text-[11px] text-blue-700 font-bold px-2 py-1">Auto assign any available</button></div></div>;
 }
 
-function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
+function DetailModal({ selected, files, history, update, upload, openLifecycle, close, syncCalendar }) {
   const customer = selected.customer || selected.lead || {};
   const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
   const customerName = titleCaseName(customer.name || selected.title || "Customer");
@@ -677,7 +703,7 @@ function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
     window.open(whatsappUrl(phone, message), "_blank", "noopener,noreferrer");
   };
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={e=>e.target===e.currentTarget&&close()}><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="flex items-center gap-2"><StatusBadge status={selected.status}/><ModeBadge mode={selected.mode}/></div><h2 className="text-xl font-display font-bold mt-2">{selected.title}</h2><div className="text-sm text-slate-500 mt-1">{new Date(selected.start_at).toLocaleString("en-IN")}</div></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500"/></button></div><div className="p-5 space-y-5">
-    <div className="grid md:grid-cols-3 gap-3"><button onClick={()=>update({status:"completed"})} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-2"/>Completed</button><button onClick={()=>update({status:"rescheduled"})} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-2"/>Reschedule</button><button onClick={()=>update({status:"customer_cancelled"})} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-2"/>Customer Cancelled</button></div>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2"><button onClick={()=>openLifecycle("complete")} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-1"/>Complete</button><button onClick={()=>openLifecycle("reschedule")} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-1"/>Reschedule</button><button onClick={()=>openLifecycle("cancel")} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-1"/>Cancel</button><button onClick={()=>openLifecycle("no_show")} className="p-3 rounded-xl border bg-violet-50 text-violet-700 font-bold text-sm">No Show</button><button onClick={()=>openLifecycle("delete")} className="p-3 rounded-xl border bg-slate-100 text-slate-700 font-bold text-sm">Delete</button></div>
     <div><div className="text-sm font-bold mb-2">Quick Feedback</div><div className="flex flex-wrap gap-2">{FEEDBACKS.map(n=><button key={n} onClick={()=>update({feedback_tags:[n]})} className="px-3 py-2 rounded-full border bg-slate-50 text-xs font-bold hover:border-blue-300">{n}</button>)}</div></div>
     <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Remarks<textarea defaultValue={selected.remarks||""} onBlur={e=>e.target.value!==selected.remarks&&update({remarks:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What happened?" /></label><label className="text-sm font-bold">Customer Feedback<textarea defaultValue={selected.feedback||""} onBlur={e=>e.target.value!==selected.feedback&&update({feedback:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What did the customer say?" /></label></div>
     <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Next Action<input defaultValue={selected.next_action||""} onBlur={e=>e.target.value!==selected.next_action&&update({next_action:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" placeholder="Create estimate / follow-up call" /></label><label className="text-sm font-bold">Next Action Date<input type="date" defaultValue={selected.next_action_date||""} onBlur={e=>e.target.value!==selected.next_action_date&&update({next_action_date:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" /></label></div>

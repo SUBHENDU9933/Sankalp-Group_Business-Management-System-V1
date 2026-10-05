@@ -736,6 +736,10 @@ function DetailModal({ selected, files, history, update, upload, openLifecycle, 
       </div> : <div className="mt-3 p-3 bg-white rounded-xl border text-sm text-slate-600">Physical meeting — Google Meet sharing controls are hidden.</div>}
     </div>
     <div className="border rounded-2xl p-4 bg-slate-50">
+      <div className="font-bold text-sm">Lifecycle History</div>
+      <div className="mt-3 space-y-2 max-h-56 overflow-auto">{(history||[]).length ? history.map(h=><div key={h.id} className="p-3 rounded-xl bg-white border text-xs"><div className="flex justify-between gap-2"><span className="font-bold uppercase">{label(h.action)}</span><span className="text-slate-400">{fmtDate(h.created_at)} {fmtTime(h.created_at)}</span></div>{h.reason_code&&<div className="mt-1 text-slate-600">Reason: {label(h.reason_code)}{h.reason_text?` — ${h.reason_text}`:""}</div>}{h.outcome_type&&<div className="mt-1 text-slate-600">Outcome: {label(h.outcome_type)}{h.lead_stage_after?` · Lead Stage: ${label(h.lead_stage_after)}`:""}</div>}</div>) : <div className="text-xs text-slate-400">No lifecycle history yet.</div>}</div>
+    </div>
+    <div className="border rounded-2xl p-4 bg-slate-50">
       <div className="font-bold text-sm">Participants</div>
       <div className="text-xs text-slate-500 mt-1"><span className="font-semibold">Arranged By:</span> {arranger?.full_name || "Unassigned"}</div>
       <div className="text-xs text-slate-500 mt-1"><span className="font-semibold">Co-Members:</span> {comembers.map(p=>p.full_name||p.email).join(", ") || "None"}</div>

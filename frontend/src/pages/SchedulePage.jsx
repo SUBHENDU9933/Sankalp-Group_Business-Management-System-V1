@@ -536,7 +536,8 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} />}\n      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
+      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} history={history} update={update} upload={upload} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );

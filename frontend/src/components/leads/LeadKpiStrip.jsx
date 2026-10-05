@@ -93,12 +93,14 @@ export default function LeadKpiStrip({ leads = [], selectedFilter = "all", onFil
             data-testid={`kpi-${key}`}
             aria-pressed={selected}
           >
-            <div className="pointer-events-none absolute -right-6 -bottom-8 h-24 w-24 rounded-full bg-white/50 blur-2xl transition-transform duration-500 group-hover:scale-125" />\n            <div className="relative flex items-start justify-between gap-3">
+            <div className="pointer-events-none absolute -right-6 -bottom-8 h-24 w-24 rounded-full bg-white/50 blur-2xl transition-transform duration-500 group-hover:scale-125" />
+            <div className="relative flex items-start justify-between gap-3">
               <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl", tones[tone].icon)}><Icon className="w-4 h-4" /></div>
               <div className="truncate font-display text-[25px] font-black leading-none tracking-[-.045em] tabular-nums text-stone-900">{value}</div>
             </div>
             <div className="relative mt-3 text-[10px] tracking-[0.11em] uppercase font-extrabold text-stone-500 leading-tight">{label}</div>
-            <div className="relative mt-1 text-[10px] font-medium text-stone-500 truncate">{note}</div>\n            <div className={cn("relative mt-2 flex h-7 w-7 items-center justify-center rounded-full border bg-white/90 text-xs font-bold shadow-sm transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-white", tones[tone].accent)}>›</div>
+            <div className="relative mt-1 text-[10px] font-medium text-stone-500 truncate">{note}</div>
+            <div className={cn("relative mt-2 flex h-7 w-7 items-center justify-center rounded-full border bg-white/90 text-xs font-bold shadow-sm transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-white", tones[tone].accent)}>›</div>
             {selected && <div className="mt-1 text-[9px] tracking-wider uppercase font-semibold text-stone-500">Selected view</div>}
           </button>
           );

@@ -34,7 +34,6 @@ const localDate = (d = new Date()) => {
   const p = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
-const localInput = (d = new Date()) => `${localDate(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const slotIso = (date, h, m) => { const d = new Date(`${date}T00:00:00`); d.setHours(h, m, 0, 0); return d.toISOString(); };
 const label = v => String(v || "").replaceAll("_", " ").replace(/\b\w/g, m => m.toUpperCase());
 const fmtTime = iso => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -536,29 +535,68 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} />}
+      {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} calendar={calendar} />}
       {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} history={history} update={update} upload={upload} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );
 }
 
-function LifecycleModal({action,selected,run}){
+function LifecycleModal({action,selected,run,calendar}){
  const [reason,setReason]=useState(""),[reasonText,setReasonText]=useState(""),[notes,setNotes]=useState("");
- const [start,setStart]=useState(localInput(new Date(selected.start_at))),[end,setEnd]=useState(localInput(new Date(selected.end_at||new Date(new Date(selected.start_at).getTime()+30*60000))));
- const [outcome,setOutcome]=useState(""),[stage,setStage]=useState(selected.lead_stage_after||"estimate_to_be_created"),[feedback,setFeedback]=useState(selected.feedback||""),[remarks,setRemarks]=useState(selected.remarks||""),[nextAction,setNextAction]=useState(selected.next_action||""),[nextDate,setNextDate]=useState(selected.next_action_date||""),[saving,setSaving]=useState(false);
+ const [rescheduleDate,setRescheduleDate]=useState(localDate(new Date(selected.start_at)));
+ const [rescheduleSlots,setRescheduleSlots]=useState([]),[checkingSlots,setCheckingSlots]=useState(false);
+ const [outcome,setOutcome]=useState(""),[stage,setStage]=useState(selected.lead_stage_after||""),[feedback,setFeedback]=useState(selected.feedback||""),[remarks,setRemarks]=useState(selected.remarks||""),[nextAction,setNextAction]=useState(selected.next_action||""),[nextDate,setNextDate]=useState(selected.next_action_date||""),[saving,setSaving]=useState(false);
  const RESCHEDULE=[["customer_requested","Customer Requested"],["employee_unavailable","Employee Unavailable"],["customer_not_available","Customer Not Available"],["site_not_ready","Site Not Ready"],["material_design_pending","Material / Design Pending"],["travel_issue","Travel Issue"],["weather_issue","Weather Issue"],["internal_schedule_conflict","Internal Schedule Conflict"],["other","Other"]];
  const CANCEL=[["customer_cancelled","Customer Cancelled"],["customer_not_available","Customer Not Available"],["customer_not_interested","Customer Not Interested"],["customer_requested_later","Customer Requested Later"],["employee_unavailable","Employee Unavailable"],["site_not_ready","Site Not Ready"],["budget_issue","Budget Issue"],["project_on_hold","Project On Hold"],["duplicate_meeting","Duplicate Meeting"],["wrong_schedule","Wrong Schedule"],["internal_reason","Internal Reason"],["other","Other"]];
  const OUTCOMES=[["highly_interested","Highly Interested"],["interested","Interested"],["needs_more_discussion","Needs More Discussion"],["estimate_required","Estimate Required"],["design_required","Design Required"],["site_measurement_required","Site Measurement Required"],["follow_up_required","Follow-up Required"],["budget_issue","Budget Issue"],["customer_not_interested","Customer Not Interested"],["project_on_hold","Project On Hold"],["converted_booking_expected","Converted / Booking Expected"],["other","Other"]];
- const STAGES=[["new","New"],["contacted","Contacted"],["site_visit","Ready for Meeting"],["floor_plan_site_info","Meeting / Visit Scheduled"],["estimate_to_be_created","Meeting Done · Ready for Estimate"],["quotation_given","Estimate Given"],["need_followup","Closing Follow-up"],["converted","Converted"]];
- const reasons=action==="reschedule"?RESCHEDULE:CANCEL;
- const submit=async()=>{setSaving(true);try{if(action==="reschedule"){const s=new Date(start),e=new Date(end);if(!start||!end||e<=s)throw new Error("Select a valid new time");await run(action,{start_at:s.toISOString(),end_at:e.toISOString(),reason_code:reason,reason_text:reasonText,notes});}else if(action==="cancel"||action==="no_show"){if(!reason)throw new Error("Reason is required");await run(action,{reason_code:reason,reason_text:reasonText,notes});}else if(action==="complete"){if(!outcome||!stage)throw new Error("Outcome and Lead Stage are required");await run(action,{outcome_type:outcome,lead_stage_after:stage,feedback,remarks,next_action:nextAction,next_action_date:nextDate,notes});}else if(action==="delete"){await run(action,{notes});}}catch(e){toast.error(e.message||"Could not process meeting")}finally{setSaving(false)}};
+ const STAGES=[["contacted","Contacted"],["site_visit","Ready for Meeting"],["floor_plan_site_info","Meeting / Visit Scheduled"],["estimate_to_be_created","Meeting Done · Ready for Estimate"],["quotation_given","Estimate Given"],["need_followup","Closing Follow-up"],["converted","Converted"]];
+ const participantIds=[selected.arranged_by,selected.owner_id,...(selected.participants||[]).filter(p=>p.is_required).map(p=>p.user_id)].filter(Boolean).filter((id,i,a)=>a.indexOf(id)===i);
+ const searchSlots=async()=>{
+   if(!rescheduleDate) return toast.error("Select a date first");
+   if(new Date(rescheduleDate+"T23:59:59")<=new Date()) return toast.error("Select a future date");
+   if(!calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
+   setCheckingSlots(true);setRescheduleSlots([]);
+   try{
+     const duration=Math.max(15,Math.round((new Date(selected.end_at)-new Date(selected.start_at))/60000));
+     const dayStart=slotIso(rescheduleDate,9,0),dayEnd=slotIso(rescheduleDate,20,0);
+     const data=await checkCalendarAvailability({start:dayStart,end:dayEnd,userIds:participantIds,excludeEventId:selected.google_calendar_event_id||null});
+     const busy=data?.busy||[],unconnected=new Set(data?.unconnected_user_ids||[]);
+     const selectedUnconnected=participantIds.filter(id=>unconnected.has(id));
+     if(selectedUnconnected.length) throw new Error("Google Calendar is not connected for one or more required team members.");
+     const found=[];const now=new Date();
+     for(let h=9;h<20;h++) for(let m=0;m<60;m+=30){
+       const start=slotIso(rescheduleDate,h,m),end=slotIso(rescheduleDate,h,m+duration);
+       if(new Date(end)>new Date(dayEnd)) continue;
+       const past=new Date(start)<=now;
+       const overlapping=busy.filter(b=>overlaps(b.start,b.end,start,end));
+       const available=!past&&!overlapping.length;
+       found.push({start,end,available,past,bookedBy:[...new Set(overlapping.map(b=>b.user_name||(b.user_id?activeTeamName(b.user_id):"Company Calendar")).filter(Boolean))]});
+     }
+     setRescheduleSlots(found);
+     if(!found.some(s=>s.available)) toast.info("No available slot found for the selected date");
+   }catch(e){toast.error(e.message||"Availability check failed");}
+   finally{setCheckingSlots(false);}
+ };
+ const activeTeamName=id=>selected.participants?.find(p=>p.user_id===id)?.profile?.full_name||selected.arranger?.full_name||"Team Calendar";
+ const submit=async()=>{setSaving(true);try{
+   if(action==="reschedule"){
+     const chosen=rescheduleSlots.find(s=>s.selected&&s.available);
+     if(!chosen) throw new Error("Search and select an available slot first");
+     if(!reason) throw new Error("Reason is required");
+     await run(action,{start_at:chosen.start,end_at:chosen.end,reason_code:reason,reason_text:reasonText,notes});
+   }else if(action==="cancel"||action==="no_show"){
+     if(!reason) throw new Error("Reason is required");await run(action,{reason_code:reason,reason_text:reasonText,notes});
+   }else if(action==="complete"){
+     if(!outcome||!stage) throw new Error("Outcome and Lead Stage are required");await run(action,{outcome_type:outcome,lead_stage_after:stage,feedback,remarks,next_action:nextAction,next_action_date:nextDate,notes});
+   }else if(action==="delete"){await run(action,{notes});}
+ }catch(e){toast.error(e.message||"Could not process meeting")}finally{setSaving(false)}};
  const title={reschedule:"Reschedule Meeting",cancel:"Cancel Meeting",no_show:"Record No-Show",complete:"Complete Meeting",delete:"Delete Meeting"}[action];
  return <div className="fixed inset-0 z-[60] bg-slate-950/50 p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 bg-white border-b p-5 flex justify-between"><div><h3 className="text-xl font-bold">{title}</h3><div className="text-xs text-slate-500 mt-1">{selected.title}</div></div><button onClick={()=>run("__close__")} className="w-9 h-9 rounded-xl hover:bg-slate-100">×</button></div><div className="p-5 space-y-4">
- {action==="reschedule"&&<><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">New Start<input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"/></label><label className="text-xs font-bold">New End<input type="datetime-local" value={end} onChange={e=>setEnd(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"/></label></div><ReasonPicker values={RESCHEDULE} value={reason} setValue={setReason}/></>}
- {(action==="cancel"||action==="no_show")&&<ReasonPicker values={reasons} value={reason} setValue={setReason}/>}
+ {action==="reschedule"&&<><div className="rounded-2xl border bg-slate-50 p-4"><label className="text-xs font-bold">Select New Date<input type="date" value={rescheduleDate} min={localDate(new Date())} onChange={e=>{setRescheduleDate(e.target.value);setRescheduleSlots([])}} className="mt-1.5 w-full h-11 border rounded-xl px-3 bg-white"/></label><button type="button" onClick={searchSlots} disabled={checkingSlots} className="mt-3 w-full h-11 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold disabled:opacity-60">{checkingSlots?"Searching…":"Search Available Slots"}</button></div>{rescheduleSlots.length>0&&<div><div className="text-xs font-bold mb-2">Available Slots</div><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-auto">{rescheduleSlots.map(s=><button type="button" key={s.start} disabled={!s.available} onClick={()=>s.available&&setRescheduleSlots(x=>x.map(v=>({...v,selected:v.start===s.start})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:border-blue-300"}>{fmtTime(s.start)} – {fmtTime(s.end)}</button>)}</div></div>}<ReasonPicker values={RESCHEDULE} value={reason} setValue={setReason}/></>}
+ {(action==="cancel"||action==="no_show")&&<ReasonPicker values={CANCEL} value={reason} setValue={setReason}/>} 
  {(action==="reschedule"||action==="cancel"||action==="no_show")&&<label className="text-xs font-bold">Reason / Notes<textarea value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label>}
- {action==="complete"&&<><label className="text-xs font-bold">Meeting Outcome *<select value={outcome} onChange={e=>setOutcome(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select outcome</option>{OUTCOMES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Lead Stage After Meeting *<select value={stage} onChange={e=>setStage(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select stage</option>{STAGES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Customer Feedback<textarea value={feedback} onChange={e=>setFeedback(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><label className="text-xs font-bold">Employee Remarks<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">Next Action<input value={nextAction} onChange={e=>setNextAction(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label><label className="text-xs font-bold">Next Action Date<input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label></div></>}
+ {action==="complete"&&<><label className="text-xs font-bold">Meeting Outcome *<select value={outcome} onChange={e=>setOutcome(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select outcome</option>{OUTCOMES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Lead Stage After Meeting *<select value={stage} onChange={e=>setStage(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3"><option value="">Select stage</option>{STAGES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label className="text-xs font-bold">Customer Feedback<textarea value={feedback} onChange={e=>setFeedback(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><label className="text-xs font-bold">Employee Remarks<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} rows={3} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold">Next Action<input value={nextAction} onChange={e=>setNextAction(e.target.value)} className="mt-1 w-full h-10 border rounded-xl px-3 font-normal"/></label><label className="text-xs font-bold">Next Action Date<input type="date" value={nextDate} onChange={e=>setNextDate(e.target.value)} className="mt-1 w-full border rounded-xl p-3 font-normal"/></label></div></>}
  {action==="delete"&&<><div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">Delete is an administrative soft-delete. The meeting remains in audit history.</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} className="w-full border rounded-xl p-3 text-sm" placeholder="Optional delete note"/></>}
  </div><div className="border-t p-4 flex justify-end gap-2"><button onClick={()=>run("__close__")} className="px-4 py-2.5 rounded-xl border font-semibold">Close</button><button disabled={saving} onClick={submit} className="px-5 py-2.5 rounded-xl bg-blue-700 text-white font-bold disabled:opacity-50">{saving?"Processing…":action==="delete"?"Delete Meeting":"Save"}</button></div></div></div>;
 }

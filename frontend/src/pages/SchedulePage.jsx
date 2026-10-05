@@ -72,7 +72,7 @@ export default function SchedulePage() {
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
-  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
+  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false), [availabilityNote, setAvailabilityNote] = useState("");
   const [titleManual, setTitleManual] = useState(false);
   const [partyType, setPartyType] = useState("lead");
   const [dateTab, setDateTab] = useState("today"), [query, setQuery] = useState("");
@@ -243,22 +243,44 @@ export default function SchedulePage() {
     if (!form.arranged_by || !form.date) return toast.error("Meeting arranged by and date are required");
     if (!calendar?.configured || !calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
     const coMemberIds = [...new Set((form.comember_ids || []).filter(Boolean))];
-    const combos = [coMemberIds];
-    setChecking(true); setSlots([]);
+    setChecking(true); setSlots([]); setAvailabilityNote("");
     try {
       const dayStart = slotIso(form.date, 9, 0), dayEnd = slotIso(form.date, 20, 0);
       const duration = rule?.default_duration_minutes || 30, buffer = rule?.travel_buffer_minutes || 0;
-      const results = await Promise.all(combos.map(async ids => ({ ids, data: await checkCalendarAvailability({ start: dayStart, end: dayEnd, userIds: ids }) })));
+      // Check the full active team so every slot can show who is already busy.
+      const visibleTeamIds = activeTeam.map(p => p.id).filter(Boolean);
+      const data = await checkCalendarAvailability({ start: dayStart, end: dayEnd, userIds: visibleTeamIds });
+      const busy = data?.busy || [];
+      const unconnected = new Set(data?.unconnected_user_ids || []);
+      const selectedUnconnected = coMemberIds.filter(id => unconnected.has(id));
+      if (selectedUnconnected.length) {
+        const names = selectedUnconnected.map(id => activeTeam.find(p => p.id === id)?.full_name || "Selected member").join(", ");
+        setAvailabilityNote("Calendar not connected for: " + names + ". Those members cannot be booked until their Google Calendar is connected.");
+      }
       const found = [];
-      for (const r of results) for (let h = 9; h < 20; h++) for (let m = 0; m < 60; m += 30) {
+      const now = new Date();
+      for (let h = 9; h < 20; h++) for (let m = 0; m < 60; m += 30) {
         const start = slotIso(form.date, h, m), end = slotIso(form.date, h, m + duration);
         const safeStart = new Date(new Date(start).getTime() - buffer * 60000).toISOString();
         const safeEnd = new Date(new Date(end).getTime() + buffer * 60000).toISOString();
         if (new Date(end) > new Date(dayEnd)) continue;
-        if (!(r.data?.busy || []).some(b => overlaps(b.start, b.end, safeStart, safeEnd))) found.push({ start, end, participantIds: r.ids });
+        const past = new Date(start) <= now;
+        const overlappingBusy = busy.filter(b => overlaps(b.start, b.end, safeStart, safeEnd));
+        const selectedBusy = overlappingBusy.filter(b => b.user_id && coMemberIds.includes(b.user_id));
+        const selectedUnavailable = selectedUnconnected.length > 0;
+        const blocked = past || selectedBusy.length > 0 || selectedUnavailable ||
+          overlappingBusy.some(b => !b.user_id); // Company Master Calendar busy.
+        const bookedBy = [...new Set(overlappingBusy.map(b => b.user_name || (b.user_id ? activeTeam.find(p => p.id === b.user_id)?.full_name : "Company Calendar")).filter(Boolean))];
+        found.push({
+          start, end, participantIds: coMemberIds,
+          available: !blocked,
+          past,
+          bookedBy,
+          reason: past ? "Time passed" : selectedUnavailable ? "Calendar not connected" : selectedBusy.length ? "Selected member is busy" : overlappingBusy.length ? "Company/team booking" : ""
+        });
       }
-      setSlots([...new Map(found.map(s => [s.start + "-" + s.end, s])).values()]);
-      if (!found.length) toast.info("No common free slot found for the selected co-members");
+      setSlots(found);
+      if (!found.some(s => s.available)) toast.info("No selectable free slot found for the selected date and team");
     } catch (e) { toast.error(e.message || "Availability check failed"); }
     finally { setChecking(false); }
   };
@@ -510,7 +532,11 @@ function CreateModal({ form, setForm, rule, team, activeTeam, calendar, slots, s
     <label className="text-xs font-bold text-slate-600">Meeting Date<input type="date" value={form.date} onChange={e=>{setForm({...form,date:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
     <CoMemberPicker team={activeTeam} ids={form.comember_ids||[]} setIds={ids=>{setForm({...form,comember_ids:ids});setSlots([])}} />
     {form.mode==="physical"?<div className="md:col-span-2 grid md:grid-cols-3 gap-3"><label className="text-xs font-bold text-slate-600">Google Maps Link<input value={form.location_map_url} onChange={e=>setForm({...form,location_map_url:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Maps link" /></label><label className="text-xs font-bold text-slate-600">Address<input value={form.location_address} onChange={e=>setForm({...form,location_address:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Customer site address" /></label><label className="text-xs font-bold text-slate-600">Landmark<input value={form.location_landmark} onChange={e=>setForm({...form,location_landmark:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Nearby landmark" /></label></div>:<label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Link <span className="text-slate-400 font-normal">(optional)</span><input value={form.meeting_link} onChange={e=>setForm({...form,meeting_link:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Meet can be generated on sync" /></label>}
-    <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-bold text-sm text-slate-800">Team Availability</div><div className="text-xs text-slate-500 mt-1">{calendar?.configured&&calendar?.master_calendar_configured?"Connected calendars will be checked together.":"Google Calendar connection is pending."}</div></div><button onClick={checkAvailability} disabled={checking||!calendar?.configured||!calendar?.master_calendar_configured} className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold disabled:opacity-50">{checking?"Checking…":"Check Available Slots"}</button></div>{slots.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">{slots.map((s,i)=><button key={i} onClick={()=>setSlots(x=>x.map((z,j)=>({...z,selected:j===i})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold hover:border-blue-300"}>{fmtTime(s.start)} – {fmtTime(s.end)}</button>)}</div>}</div>
+    <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-bold text-sm text-slate-800">Team Availability</div><div className="text-xs text-slate-500 mt-1">{calendar?.configured&&calendar?.master_calendar_configured?"Connected calendars will be checked together.":"Google Calendar connection is pending."}</div></div><button onClick={checkAvailability} disabled={checking||!calendar?.configured||!calendar?.master_calendar_configured} className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold disabled:opacity-50">{checking?"Checking…":"Check Available Slots"}</button></div>{availabilityNote&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">{availabilityNote}</div>}
+      {slots.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">{slots.map((s,i)=><button key={i} type="button" disabled={!s.available} onClick={()=>s.available&&setSlots(x=>x.map((z,j)=>({...z,selected:j===i})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold text-left":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold text-left disabled:opacity-60 disabled:cursor-not-allowed hover:border-blue-300"}>
+        <div>{fmtTime(s.start)} – {fmtTime(s.end)}</div>
+        {s.past?<div className="text-[10px] mt-1 font-semibold text-slate-400">Time passed</div>:s.bookedBy?.length?<div className="text-[10px] mt-1 font-semibold text-rose-600 truncate" title={s.bookedBy.join(", ")}>Booked: {s.bookedBy.join(", ")}</div>:<div className="text-[10px] mt-1 font-semibold text-emerald-600">Available</div>}
+      </button>)}</div>}</div>
     <label className="text-xs font-bold text-slate-600">Customer Email <span className="text-slate-400 font-normal">• auto from lead; manual entry updates lead</span><input value={form.customer_email} onChange={e=>setForm({...form,customer_email:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
     <label className="text-xs font-bold text-slate-600">Priority<select value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label>
     <label className="text-xs font-bold text-slate-600 md:col-span-2">Description<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3} className="mt-1.5 w-full border rounded-xl p-3 text-sm" placeholder="Purpose, customer expectations, preparation notes..." /></label>

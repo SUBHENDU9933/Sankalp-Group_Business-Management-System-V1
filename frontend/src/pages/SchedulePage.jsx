@@ -645,14 +645,32 @@ function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
 
 function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
   const customer = selected.customer || selected.lead || {};
-  const customerName = customer.name || selected.title || "Customer";
+  const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\\b\\w/g, m => m.toUpperCase());
+  const customerName = titleCaseName(customer.name || selected.title || "Customer");
   const customerPhone = customer.phone || customer.mobile || customer.whatsapp || "";
   const arranger = selected.arranger || selected.owner || null;
+  const arrangerName = titleCaseName(arranger?.full_name || "Unassigned");
   const participantProfiles = (selected.participants || []).map(p => p.profile).filter(Boolean);
   const comembers = participantProfiles.filter(p => p.id !== arranger?.id);
+  const comemberNames = comembers.map(p => titleCaseName(p.full_name || p.email)).filter(Boolean);
   const meetLink = selected.meeting_link || "";
-  const meetMessage = `Hello ${customerName},\\n\\nGreetings from Sankalp Interior Solution. Your ${label(selected.meeting_type)} is scheduled for ${fmtDate(selected.start_at)} at ${fmtTime(selected.start_at)}.\\n\\nGoogle Meet: ${meetLink || "The meeting link will be shared shortly."}\\n\\nThank you.\\nSankalp Interior Solution`;
-  const teamMessage = `Sankalp Schedule Update\\n\\nCustomer: ${customerName}\\nMeeting: ${label(selected.meeting_type)} (${label(selected.mode)})\\nDate: ${fmtDate(selected.start_at)}\\nTime: ${fmtTime(selected.start_at)}\\nArranged By: ${arranger?.full_name || "Unassigned"}\\nCo-Members: ${comembers.map(p => p.full_name || p.email).join(", ") || "None"}\\nGoogle Meet: ${meetLink || "Pending"}`;
+  const meetingTypeName = {
+    customer_home: "Customer Home Consultation",
+    office_meeting: "Office Meeting",
+    site_visit: "Site Visit",
+    measurement_visit: "Measurement Visit",
+    project_review: "Project Review",
+    material_discussion: "Material Discussion",
+    video_meeting: "Video Meeting",
+    design_presentation: "Design Presentation",
+    estimate_discussion: "Estimate Discussion",
+    phone_discussion: "Phone Discussion",
+    whatsapp_discussion: "WhatsApp Discussion",
+    follow_up: "Follow-up",
+    other: "Meeting"
+  }[selected.meeting_type] || label(selected.meeting_type);
+  const meetMessage = `Hello *${customerName}*,\\n\\nGreetings from *Sankalp Interior Solution*! ✨\\n\\nYour *${meetingTypeName}* has been scheduled with our team.\\n\\n📅 *Date:* ${fmtDate(selected.start_at)}\\n⏰ *Time:* ${fmtTime(selected.start_at)}\\n💻 *Mode:* Google Meet\\n\\n🔗 *Meeting Link:*\\n${meetLink || "The meeting link will be shared shortly."}\\n\\nPlease join the meeting at the scheduled time.\\n\\nLooking forward to connecting with you.\\n\\nWarm regards,\\n*Sankalp Interior Solution*`;
+  const teamMessage = `📌 *SANKALP SCHEDULE UPDATE*\\n\\n👤 *Customer:* ${customerName}\\n📋 *Meeting Type:* ${meetingTypeName}\\n💻 *Mode:* Digital\\n\\n📅 *Date:* ${fmtDate(selected.start_at)}\\n⏰ *Time:* ${fmtTime(selected.start_at)}\\n\\n👨‍💼 *Arranged By:* ${arrangerName}\\n👥 *Co-Members:* ${comemberNames.join(", ") || "None"}\\n\\n🔗 *Google Meet:*\\n${meetLink || "Pending"}\\n\\nPlease be available on time.`;
   const openWhatsApp = async (phone, message, labelText) => {
     const ok = await copyText(message);
     if (ok) toast.success(`${labelText} message copied`);

@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 import { PageHeader, PageBody } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, RefreshCw, ShieldCheck } from "lucide-react";
+import { CalendarDays, RefreshCw, ShieldCheck, HardDrive } from "lucide-react";
 import { toast } from "sonner";
 import { fetchGoogleCalendarConnection, startGoogleCalendarOAuth, disconnectGoogleCalendar } from "@/services/scheduleService";
+import { fetchGoogleDriveStatus, startGoogleDriveOAuth, disconnectGoogleDrive } from "@/services/googleDriveService";
 
 export default function AdminCalendarSettingsPage() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [driveStatus, setDriveStatus] = useState(null);
+  const [driveWorking, setDriveWorking] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    try { setStatus(await fetchGoogleCalendarConnection()); }
+    try {
+      const [calendarStatus, storageStatus] = await Promise.all([fetchGoogleCalendarConnection(), fetchGoogleDriveStatus()]);
+      setStatus(calendarStatus);
+      setDriveStatus(storageStatus);
+    }
     catch (e) { setStatus(null); toast.error(e.message); }
     finally { setLoading(false); }
   };
@@ -20,7 +27,7 @@ export default function AdminCalendarSettingsPage() {
   useEffect(() => {
     load();
     const params = new URLSearchParams(window.location.search);
-    if (params.get("google_calendar") === "connected") {
+    if (params.get("google_calendar") === "connected" || params.get("google_drive") === "connected") {
       params.delete("google_calendar");
       const q = params.toString();
       window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : ""));
@@ -79,6 +86,35 @@ export default function AdminCalendarSettingsPage() {
               </Button>
               {connected && <Button onClick={disconnect} disabled={working} variant="outline" className="rounded-none"><RefreshCw className="w-4 h-4 mr-1.5" />Disconnect</Button>}
               <Button onClick={load} disabled={loading || working} variant="outline" className="rounded-none"><RefreshCw className="w-4 h-4 mr-1.5" />Refresh</Button>
+            </div>
+          </div>
+
+          <div className="mt-6 bg-white border border-stone-200 p-6" data-testid="google-drive-storage-section">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="label-uppercase mb-2"><HardDrive className="w-3 h-3 inline mr-1" />BMS File Storage</div>
+                <h2 className="text-xl font-semibold text-stone-900">Google Drive Storage</h2>
+                <p className="text-sm text-stone-500 mt-2 max-w-2xl">Google Drive is the primary file storage for BMS modules. The BMS keeps file metadata and permissions in Supabase while the actual files are stored in the connected Drive account.</p>
+              </div>
+              <span className={driveStatus?.connected ? "shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1" : "shrink-0 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1"}>{driveStatus?.connected ? "Connected" : "Not Connected"}</span>
+            </div>
+            <div className="mt-6 grid sm:grid-cols-2 gap-4">
+              <div className="border border-stone-200 p-4 bg-stone-50">
+                <div className="text-[10px] tracking-widest uppercase text-stone-400">Google Account</div>
+                <div className="mt-1 font-semibold text-stone-900">{driveStatus?.connection?.google_email || "Not connected"}</div>
+              </div>
+              <div className="border border-stone-200 p-4 bg-stone-50">
+                <div className="text-[10px] tracking-widest uppercase text-stone-400">BMS Root Folder</div>
+                <div className="mt-1 text-sm text-stone-700 break-all">{driveStatus?.connection?.root_folder_id || "Created automatically after connection"}</div>
+              </div>
+            </div>
+            {driveStatus?.connection?.last_error && <div className="mt-4 p-3 bg-rose-50 border border-rose-100 text-xs text-rose-700">{driveStatus.connection.last_error}</div>}
+            <div className="mt-6 flex gap-2">
+              <Button onClick={async()=>{setDriveWorking(true);try{await startGoogleDriveOAuth();}catch(e){toast.error(e.message);setDriveWorking(false)}}} disabled={driveWorking || loading} className="rounded-none bg-emerald-700 hover:bg-emerald-800 text-white">
+                <HardDrive className="w-4 h-4 mr-1.5" />{driveWorking ? "Connecting…" : driveStatus?.connected ? "Reconnect Google Drive" : "Connect Google Drive"}
+              </Button>
+              {driveStatus?.connected && <Button onClick={async()=>{if(!window.confirm("Disconnect Google Drive from Sankalp BMS? Existing Drive files will not be deleted."))return;setDriveWorking(true);try{await disconnectGoogleDrive();setDriveStatus(await fetchGoogleDriveStatus());toast.success("Google Drive disconnected")}catch(e){toast.error(e.message)}finally{setDriveWorking(false)}}} disabled={driveWorking} variant="outline" className="rounded-none"><RefreshCw className="w-4 h-4 mr-1.5" />Disconnect</Button>}
+              <Button onClick={async()=>{try{setDriveStatus(await fetchGoogleDriveStatus())}catch(e){toast.error(e.message)}}} disabled={driveWorking} variant="outline" className="rounded-none"><RefreshCw className="w-4 h-4 mr-1.5" />Refresh</Button>
             </div>
           </div>
 

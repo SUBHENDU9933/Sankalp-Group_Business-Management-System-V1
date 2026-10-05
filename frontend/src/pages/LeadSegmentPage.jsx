@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader, PageBody } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RotateCcw, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, IndianRupee, Plus, RefreshCw, RotateCcw, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadPaymentTotals } from "@/services/leadPaymentService";
 import { fetchLeadSegment, reviveLostLead, claimLostLead } from "@/services/leadSegmentService";
+import { fetchLostLeadKpis } from "@/services/lostLeadKpiService";
 import { updateLeadStatus, requestDelete, cancelDeleteRequest, convertLeadToCustomer, bulkUpdateLeads, bulkAddCoAssignee } from "@/services/leadService";
 import { exportLeadsCSV } from "@/utils/leadCsv";
 import LeadFilters from "@/components/leads/LeadFilters";
@@ -45,6 +46,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editLead, setEditLead] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [lostKpis, setLostKpis] = useState(null);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -68,6 +70,10 @@ export default function LeadSegmentPage({ segment = "active" }) {
 
   useEffect(() => { fetchProfiles().then(setProfiles).catch(() => setProfiles([])); }, []);
   useEffect(() => { load(); }, [segment, page, pageSize, search, statusFilter, rmFilter, sourceFilter, tagFilter, fromDate, toDate]);
+  useEffect(() => {
+    if (!isLost) return;
+    fetchLostLeadKpis().then(setLostKpis).catch(() => setLostKpis(null));
+  }, [isLost, leads.length, total]);
 
   const toggleSelect = (id) => setSelected((current) => {
     const next = new Set(current);
@@ -196,6 +202,77 @@ export default function LeadSegmentPage({ segment = "active" }) {
         </div>
       )} />
       <PageBody>
+        {isLost && (
+          <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {[
+              ["TOTAL LOST", lostKpis?.totalLost, "All lost leads", AlertTriangle, "rose"],
+              ["AVAILABLE POOL", lostKpis?.availablePool, "Ready to claim", Users, "blue"],
+              ["LOST TODAY", lostKpis?.lostToday, "Lost today", CalendarClock, "orange"],
+              ["LOST THIS MONTH", lostKpis?.lostThisMonth, "Current month", CalendarDays, "amber"],
+              ["RECLAIMED", lostKpis?.reclaimed, "Returned from Lost", RefreshCw, "emerald"],
+              ["LOST VALUE", lostKpis?.lostValue, "Current lost budgets", IndianRupee, "violet"],
+            ].map(([label, value, sub, Icon, tone]) => {
+              const tones = {
+                rose: {
+                  card: "from-rose-50 via-white to-rose-50/60 border-rose-100 hover:from-rose-100 hover:via-rose-50 hover:to-rose-100/80",
+                  icon: "bg-rose-500 text-white shadow-rose-200",
+                  accent: "text-rose-600",
+                },
+                blue: {
+                  card: "from-blue-50 via-white to-blue-50/60 border-blue-100 hover:from-blue-100 hover:via-blue-50 hover:to-blue-100/80",
+                  icon: "bg-blue-500 text-white shadow-blue-200",
+                  accent: "text-blue-600",
+                },
+                orange: {
+                  card: "from-orange-50 via-white to-orange-50/60 border-orange-100 hover:from-orange-100 hover:via-orange-50 hover:to-orange-100/80",
+                  icon: "bg-orange-500 text-white shadow-orange-200",
+                  accent: "text-orange-600",
+                },
+                amber: {
+                  card: "from-amber-50 via-white to-amber-50/60 border-amber-100 hover:from-amber-100 hover:via-amber-50 hover:to-amber-100/80",
+                  icon: "bg-amber-500 text-white shadow-amber-200",
+                  accent: "text-amber-600",
+                },
+                emerald: {
+                  card: "from-emerald-50 via-white to-emerald-50/60 border-emerald-100 hover:from-emerald-100 hover:via-emerald-50 hover:to-emerald-100/80",
+                  icon: "bg-emerald-500 text-white shadow-emerald-200",
+                  accent: "text-emerald-600",
+                },
+                violet: {
+                  card: "from-violet-50 via-white to-violet-50/60 border-violet-100 hover:from-violet-100 hover:via-violet-50 hover:to-violet-100/80",
+                  icon: "bg-violet-500 text-white shadow-violet-200",
+                  accent: "text-violet-600",
+                },
+              };
+              const displayValue = value == null ? "—" : label === "LOST VALUE"
+                ? `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Number(value || 0))}`
+                : Number(value || 0).toLocaleString("en-IN");
+              const style = tones[tone];
+              return (
+                <div
+                  key={label}
+                  className={`group relative min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_40px_-20px_rgba(15,23,42,.38)] hover:brightness-[0.98] ${style.card}`}
+                >
+                  <div className="pointer-events-none absolute -right-6 -bottom-8 h-24 w-24 rounded-full bg-white/50 blur-2xl transition-transform duration-500 group-hover:scale-125" />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`text-[10px] font-extrabold uppercase tracking-[.15em] text-slate-500/80`}>{label}</p>
+                      <div className="mt-2 truncate text-[25px] font-black leading-none tracking-[-.045em] text-slate-900">{displayValue}</div>
+                      <p className="mt-2 truncate text-[11px] font-medium text-slate-500">{sub}</p>
+                    </div>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl ${style.icon}`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className={`relative mt-3 flex h-7 w-7 items-center justify-center rounded-full border bg-white/90 text-xs font-bold shadow-sm transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-white ${style.accent}`}>
+                    <span aria-hidden="true">›</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <LeadBulkActionBar
           selectedCount={selected.size}
           totalCount={leads.length}

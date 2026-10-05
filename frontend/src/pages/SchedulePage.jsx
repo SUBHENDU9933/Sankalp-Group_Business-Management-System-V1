@@ -36,7 +36,7 @@ const localDate = (d = new Date()) => {
 };
 const localInput = (d = new Date()) => `${localDate(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const slotIso = (date, h, m) => { const d = new Date(`${date}T00:00:00`); d.setHours(h, m, 0, 0); return d.toISOString(); };
-const label = v => String(v || "").replaceAll("_", " ").replace(/\\b\\w/g, m => m.toUpperCase());
+const label = v => String(v || "").replaceAll("_", " ").replace(/\b\w/g, m => m.toUpperCase());
 const fmtTime = iso => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 const fmtDate = iso => new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 const dayKey = iso => localDate(new Date(iso));
@@ -645,7 +645,7 @@ function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
 
 function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
   const customer = selected.customer || selected.lead || {};
-  const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\\b\\w/g, m => m.toUpperCase());
+  const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
   const customerName = titleCaseName(customer.name || selected.title || "Customer");
   const customerPhone = customer.phone || customer.mobile || customer.whatsapp || "";
   const arranger = selected.arranger || selected.owner || null;
@@ -669,8 +669,8 @@ function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
     follow_up: "Follow-up",
     other: "Meeting"
   }[selected.meeting_type] || label(selected.meeting_type);
-  const meetMessage = `Hello *${customerName}*,\\n\\nGreetings from *Sankalp Interior Solution*! ✨\\n\\nYour *${meetingTypeName}* has been scheduled with our team.\\n\\n📅 *Date:* ${fmtDate(selected.start_at)}\\n⏰ *Time:* ${fmtTime(selected.start_at)}\\n💻 *Mode:* Google Meet\\n\\n🔗 *Meeting Link:*\\n${meetLink || "The meeting link will be shared shortly."}\\n\\nPlease join the meeting at the scheduled time.\\n\\nLooking forward to connecting with you.\\n\\nWarm regards,\\n*Sankalp Interior Solution*`;
-  const teamMessage = `📌 *SANKALP SCHEDULE UPDATE*\\n\\n👤 *Customer:* ${customerName}\\n📋 *Meeting Type:* ${meetingTypeName}\\n💻 *Mode:* Digital\\n\\n📅 *Date:* ${fmtDate(selected.start_at)}\\n⏰ *Time:* ${fmtTime(selected.start_at)}\\n\\n👨‍💼 *Arranged By:* ${arrangerName}\\n👥 *Co-Members:* ${comemberNames.join(", ") || "None"}\\n\\n🔗 *Google Meet:*\\n${meetLink || "Pending"}\\n\\nPlease be available on time.`;
+  const meetMessage = `Hello *${customerName}*,\n\nGreetings from *Sankalp Interior Solution*! ✨\n\nYour *${meetingTypeName}* has been scheduled with our team.\n\n📅 *Date:* ${fmtDate(selected.start_at)}\n⏰ *Time:* ${fmtTime(selected.start_at)}\n💻 *Mode:* Google Meet\n\n🔗 *Meeting Link:*\n${meetLink || "The meeting link will be shared shortly."}\n\nPlease join the meeting at the scheduled time.\n\nLooking forward to connecting with you.\n\nWarm regards,\n*Sankalp Interior Solution*`;
+  const teamMessage = `📌 *SANKALP SCHEDULE UPDATE*\n\n👤 *Customer:* ${customerName}\n📋 *Meeting Type:* ${meetingTypeName}\n💻 *Mode:* Digital\n\n📅 *Date:* ${fmtDate(selected.start_at)}\n⏰ *Time:* ${fmtTime(selected.start_at)}\n\n👨‍💼 *Arranged By:* ${arrangerName}\n👥 *Co-Members:* ${comemberNames.join(", ") || "None"}\n\n🔗 *Google Meet:*\n${meetLink || "Pending"}\n\nPlease be available on time.`;
   const openWhatsApp = async (phone, message, labelText) => {
     const ok = await copyText(message);
     if (ok) toast.success(`${labelText} message copied`);

@@ -54,6 +54,8 @@ declare
   v_new_start timestamptz;
   v_new_end timestamptz;
   v_old_status text;
+  v_old_start_at timestamptz;
+  v_old_end_at timestamptz;
   v_new_status text;
   v_reason_code text := nullif(p_payload->>'reason_code','');
   v_reason_text text := nullif(p_payload->>'reason_text','');
@@ -69,6 +71,9 @@ begin
   if not private.can_access_schedule(p_schedule_id) then raise exception 'You do not have access to this schedule'; end if;
 
   v_old_status := v_s.status;
+  -- Keep the original slot before any lifecycle update for accurate audit history.
+  v_old_start_at := v_s.start_at;
+  v_old_end_at := v_s.end_at;
 
   if p_action = 'reschedule' then
     v_new_start := nullif(p_payload->>'start_at','')::timestamptz;
@@ -104,7 +109,7 @@ begin
       returning * into v_s;
 
     insert into public.schedule_history(schedule_id,action,old_status,new_status,old_start_at,old_end_at,new_start_at,new_end_at,reason_code,reason_text,notes,created_by)
-    values(p_schedule_id,'rescheduled',v_old_status,'scheduled',v_s.start_at,v_s.end_at,v_new_start,v_new_end,v_reason_code,v_reason_text,v_notes,v_user);
+    values(p_schedule_id,'rescheduled',v_old_status,'scheduled',v_old_start_at,v_old_end_at,v_new_start,v_new_end,v_reason_code,v_reason_text,v_notes,v_user);
 
   elsif p_action = 'cancel' then
     v_new_status := case when lower(coalesce(v_reason_code,'')) like '%customer%' then 'customer_cancelled' else 'team_cancelled' end;

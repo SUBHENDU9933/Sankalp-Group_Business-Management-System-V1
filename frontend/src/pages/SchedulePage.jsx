@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadOptions, updateLead } from "@/services/leadService";
+import { fetchCustomers } from "@/services/customerService";
 import {
   completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
@@ -67,12 +68,13 @@ function ModeBadge({ mode }) {
 
 export default function SchedulePage() {
   const { profile, role, isAdmin } = useAuth();
-  const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [team, setTeam] = useState([]);
+  const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [customers, setCustomers] = useState([]), [team, setTeam] = useState([]);
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
   const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
   const [titleManual, setTitleManual] = useState(false);
+  const [partyType, setPartyType] = useState("lead");
   const [dateTab, setDateTab] = useState("today"), [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState("list"), [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState("date_asc");
@@ -80,7 +82,7 @@ export default function SchedulePage() {
     owner: "", assignedBy: "", manager: "", status: "", type: "", mode: "", priority: "", lead: "", calendar: "", from: "", to: ""
   });
   const [form, setForm] = useState({
-    lead_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
+    lead_id: "", customer_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
     priority: "normal", date: localDate(), location_address: "", location_map_url: "", location_landmark: "", meeting_link: "",
     description: "", owner_id: "", manager_ids: [], director_id: "", customer_email: ""
   });
@@ -92,13 +94,14 @@ export default function SchedulePage() {
       const today = startDay(new Date());
       const from = addDays(today, -30).toISOString();
       const to = addDays(today, 31).toISOString();
-      const [s, l, p, cal] = await Promise.all([
+      const [s, l, c, p, cal] = await Promise.all([
         fetchSchedules({ from, to }),
         fetchLeadOptions(),
+        fetchCustomers(),
         fetchProfiles(),
         fetchCalendarStatus()
       ]);
-      setRows(s || []); setLeads(l || []); setTeam(p || []); setCalendar(cal);
+      setRows(s || []); setLeads(l || []); setCustomers(c || []); setTeam(p || []); setCalendar(cal);
     } catch (e) {
       setLoadError(e.message || "Could not load schedules");
       toast.error(e.message || "Could not load schedules");
@@ -111,7 +114,8 @@ export default function SchedulePage() {
   useEffect(() => {
     const leadId = new URLSearchParams(window.location.search).get("lead_id");
     if (!leadId || !leads.some(l => l.id === leadId)) return;
-    setForm(f => ({ ...f, lead_id: leadId, meeting_type: "customer_home", mode: "physical" }));
+    setPartyType("lead");
+    setForm(f => ({ ...f, lead_id: leadId, customer_id: "", meeting_type: "customer_home", mode: "physical" }));
     setShowCreate(true);
     window.history.replaceState({}, "", window.location.pathname);
   }, [leads]);
@@ -137,6 +141,7 @@ export default function SchedulePage() {
   const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
   const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
+  const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
   const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
 
   useEffect(() => {
@@ -149,7 +154,8 @@ export default function SchedulePage() {
   useEffect(() => {
     if (!showCreate || titleManual) return;
     const lead = leadMap.get(form.lead_id);
-    const customerName = lead?.name || "Customer";
+    const customer = customerMap.get(form.customer_id);
+    const customerName = lead?.name || customer?.name || "Customer";
     const typeName = label(form.meeting_type);
     const modeName = label(form.mode);
     const chosen = slots.find(s => s.selected);
@@ -158,7 +164,7 @@ export default function SchedulePage() {
       : (form.date ? new Date(form.date + "T12:00:00").toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" }) : "Date");
     const nextTitle = customerName + " — " + typeName + " · " + modeName + " · " + when;
     if (form.title !== nextTitle) setForm(f => ({ ...f, title: nextTitle }));
-  }, [showCreate, titleManual, form.lead_id, form.meeting_type, form.mode, form.date, slots, leadMap]);
+  }, [showCreate, titleManual, form.lead_id, form.customer_id, form.meeting_type, form.mode, form.date, slots, leadMap, customerMap]);
 
   useEffect(() => {
     if (showCreate && rule?.participant_rule?.director && !form.director_id && directors[0]) {
@@ -285,7 +291,7 @@ export default function SchedulePage() {
         if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });
       }
       const created = await createSchedule({
-        lead_id: form.lead_id || null, title: form.title, meeting_type: form.meeting_type, mode: form.mode,
+        lead_id: form.lead_id || null, customer_id: form.customer_id || null, title: form.title, meeting_type: form.meeting_type, mode: form.mode,
         status: "scheduled", priority: form.priority, start_at: chosen.start, end_at: chosen.end, timezone: "Asia/Kolkata",
         location_address: form.mode === "physical" ? form.location_address : null,
         location_map_url: form.mode === "physical" ? form.location_map_url || null : null,
@@ -479,7 +485,7 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} canAssignMultipleManagers={canAssignMultipleManagers} setTitleManual={setTitleManual} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} canAssignMultipleManagers={canAssignMultipleManagers} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} />}
     </section>
   );
@@ -498,9 +504,22 @@ function ScheduleRow({ s, lead, onOpen }) {
   </button>;
 }
 
-function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, canAssignMultipleManagers, setTitleManual }) {
+function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, canAssignMultipleManagers, setTitleManual }) {
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="text-[10px] uppercase tracking-[0.18em] text-orange-600 font-bold">New Activity</div><h2 className="text-xl font-display font-bold mt-1">Create Schedule</h2><p className="text-xs text-slate-500 mt-1">Choose the team, check availability and confirm the meeting.</p></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500" /></button></div><div className="p-5 grid md:grid-cols-2 gap-4">
-    <LeadPicker leads={leads} selectedId={form.lead_id} onSelect={lead=>setForm({...form,lead_id:lead?.id||"",customer_email:lead?.email||""})} />
+    <LeadCustomerPicker
+      partyType={partyType}
+      setPartyType={type => {
+        setPartyType(type);
+        setSlots([]);
+        setForm(f => ({ ...f, lead_id: "", customer_id: "", customer_email: "" }));
+      }}
+      leads={leads}
+      customers={customers}
+      selectedLeadId={form.lead_id}
+      selectedCustomerId={form.customer_id}
+      onSelectLead={lead => setForm(f => ({ ...f, lead_id: lead?.id || "", customer_id: "", customer_email: lead?.email || "" }))}
+      onSelectCustomer={customer => setForm(f => ({ ...f, lead_id: "", customer_id: customer?.id || "", customer_email: customer?.email || "" }))}
+    />
     <label className="text-xs font-bold text-slate-600">Meeting Owner<select value={form.owner_id} onChange={e=>{setForm({...form,owner_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{team.filter(p=>p.is_active!==false).map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>
     <label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Title <span className="text-slate-400 font-normal">• auto-generated, editable</span><input value={form.title} onChange={e=>{setTitleManual(true);setForm({...form,title:e.target.value})}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Rahul Kumar — Site Visit" /></label>
     <label className="text-xs font-bold text-slate-600">Meeting Type<select value={form.meeting_type} onChange={e=>{setForm({...form,meeting_type:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm">{TYPES.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label>
@@ -516,11 +535,51 @@ function CreateModal({ form, setForm, rule, team, managers, directors, calendar,
   </div><div className="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-2"><button onClick={close} className="px-4 py-2.5 rounded-xl border text-sm font-semibold">Cancel</button><button disabled={saving||!slots.some(s=>s.selected)} onClick={save} className="px-5 py-2.5 rounded-xl bg-blue-700 text-white text-sm font-bold disabled:opacity-50">{saving?"Booking…":"Confirm Schedule"}</button></div></div></div>;
 }
 
-function LeadPicker({ leads, selectedId, onSelect }) {
+function LeadCustomerPicker({ partyType, setPartyType, leads, customers, selectedLeadId, selectedCustomerId, onSelectLead, onSelectCustomer }) {
   const [open, setOpen] = useState(false), [q, setQ] = useState("");
-  const selected = leads.find(l => l.id === selectedId);
-  const list = leads.filter(l => !q.trim() || [l.name,l.phone,l.email,l.location,l.area].filter(Boolean).join(" ").toLowerCase().includes(q.trim().toLowerCase())).slice(0,80);
-  return <div className="relative"><label className="text-xs font-bold text-slate-600">Lead / Customer</label><button type="button" onClick={()=>setOpen(v=>!v)} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm text-left flex items-center justify-between"><span className={selected?"text-slate-800":"text-slate-400"}>{selected ? selected.name + (selected.phone ? " — " + selected.phone : "") : "Select lead / customer"}</span><ChevronRight className="w-4 h-4 rotate-90 text-slate-400"/></button>{open&&<div className="absolute z-30 left-0 right-0 mt-1 bg-white border rounded-2xl shadow-xl overflow-hidden"><div className="p-2 border-b"><div className="relative"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"/><input autoFocus value={q} onChange={e=>setQ(e.target.value)} className="w-full h-9 border rounded-lg pl-9 pr-3 text-sm" placeholder="Search name, phone, email, location..."/></div></div><div className="max-h-64 overflow-auto">{list.map(l=><button type="button" key={l.id} onClick={()=>{onSelect(l);setOpen(false);setQ("");}} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b last:border-b-0"><div className="text-sm font-semibold">{l.name||"No Name"}</div><div className="text-[11px] text-slate-400">{[l.phone,l.email,l.location].filter(Boolean).join(" · ")}</div></button>)}{!list.length&&<div className="p-4 text-xs text-slate-400">No matching lead found.</div>}</div></div>}</div>;
+  const selectedLead = leads.find(l => l.id === selectedLeadId);
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+  const selected = partyType === "lead" ? selectedLead : selectedCustomer;
+  const list = (partyType === "lead" ? leads : customers)
+    .filter(item => {
+      if (!q.trim()) return true;
+      return [item.name, item.phone, item.email, item.location, item.area, item.address, item.project_details]
+        .filter(Boolean).join(" ").toLowerCase().includes(q.trim().toLowerCase());
+    })
+    .slice(0, 80);
+
+  return <div className="relative">
+    <label className="text-xs font-bold text-slate-600">Lead / Customer</label>
+    <div className="mt-1.5 flex gap-1 p-1 rounded-xl bg-slate-100">
+      {[["lead", "Lead"], ["customer", "Customer"]].map(([value, name]) => <button
+        type="button" key={value}
+        onClick={() => { setPartyType(value); setOpen(false); setQ(""); }}
+        className={`flex-1 h-8 rounded-lg text-xs font-bold transition-colors ${partyType === value ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+      >{name}</button>)}
+    </div>
+    <button type="button" onClick={() => setOpen(v => !v)} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm text-left flex items-center justify-between">
+      <span className={selected ? "text-slate-800" : "text-slate-400"}>
+        {selected ? selected.name + (selected.phone ? " — " + selected.phone : "") : `Select ${partyType === "lead" ? "lead" : "customer"}`}
+      </span>
+      <ChevronRight className="w-4 h-4 rotate-90 text-slate-400"/>
+    </button>
+    {open && <div className="absolute z-30 left-0 right-0 mt-1 bg-white border rounded-2xl shadow-xl overflow-hidden">
+      <div className="p-2 border-b"><div className="relative">
+        <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"/>
+        <input autoFocus value={q} onChange={e=>setQ(e.target.value)} className="w-full h-9 border rounded-lg pl-9 pr-3 text-sm" placeholder={`Search ${partyType === "lead" ? "lead" : "customer"} name, phone, email...`}/>
+      </div></div>
+      <div className="max-h-64 overflow-auto">
+        {list.map(item => <button type="button" key={item.id} onClick={() => {
+          if (partyType === "lead") onSelectLead(item); else onSelectCustomer(item);
+          setOpen(false); setQ("");
+        }} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b last:border-b-0">
+          <div className="text-sm font-semibold">{item.name || "No Name"}</div>
+          <div className="text-[11px] text-slate-400">{[item.phone, item.email, item.location || item.address].filter(Boolean).join(" · ")}</div>
+        </button>)}
+        {!list.length && <div className="p-4 text-xs text-slate-400">No matching {partyType === "lead" ? "lead" : "customer"} found.</div>}
+      </div>
+    </div>}
+  </div>;
 }
 function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   if (!multi) return <label className="text-xs font-bold text-slate-600">Manager<select value={ids[0]||""} onChange={e=>setIds(e.target.value?[e.target.value]:[])} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Any available manager</option>{managers.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>;

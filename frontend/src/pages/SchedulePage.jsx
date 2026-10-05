@@ -15,7 +15,7 @@ import { fetchCustomers } from "@/services/customerService";
 import {
   completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
-  syncScheduleToCalendar, updateScheduleCalendar, syncPendingCalendar
+  syncScheduleToCalendar, updateScheduleCalendar, deleteScheduleCalendar, syncPendingCalendar
 } from "@/services/scheduleService";
 
 const TYPES = [

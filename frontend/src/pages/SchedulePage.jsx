@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
-  FileUp, Filter, ListFilter, MapPin, MessageSquareText, MoreVertical, Plus,
-  RefreshCw, Search, SlidersHorizontal, Users, X, XCircle, Video, Phone,
-  Building2, Home, Target, UserRound, ArrowUpRight, RotateCcw
+  Copy, ExternalLink, FileUp, Filter, Link2, ListFilter, MapPin, MessageCircle,
+  MessageSquareText, MoreVertical, Plus, RefreshCw, Search, SlidersHorizontal,
+  Users, X, XCircle, Video, Phone, Building2, Home, Target, UserRound,
+  ArrowUpRight, RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +36,7 @@ const localDate = (d = new Date()) => {
 };
 const localInput = (d = new Date()) => `${localDate(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const slotIso = (date, h, m) => { const d = new Date(`${date}T00:00:00`); d.setHours(h, m, 0, 0); return d.toISOString(); };
-const label = v => String(v || "").replaceAll("_", " ").replace(/\\b\\w/g, m => m.toUpperCase());
+const label = v => String(v || "").replaceAll("_", " ").replace(/\b\w/g, m => m.toUpperCase());
 const fmtTime = iso => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 const fmtDate = iso => new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 const dayKey = iso => localDate(new Date(iso));
@@ -43,6 +44,22 @@ const sameDay = (a, b) => dayKey(a) === dayKey(b);
 const startDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const overlaps = (a, b, s, e) => new Date(a).getTime() < new Date(e).getTime() && new Date(b).getTime() > new Date(s).getTime();
+const whatsappNumber = value => {
+  const digits = String(value || "").replace(/\\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 10) return "91" + digits;
+  if (digits.length === 11 && digits.startsWith("0")) return "91" + digits.slice(1);
+  return digits;
+};
+const whatsappUrl = (phone, message) => {
+  const text = encodeURIComponent(message || "");
+  const number = whatsappNumber(phone);
+  return number ? `https://wa.me/${number}?text=${text}` : `https://wa.me/?text=${text}`;
+};
+const copyText = async text => {
+  try { await navigator.clipboard.writeText(text); return true; } catch (_) { return false; }
+};
+
 
 const statusMeta = {
   scheduled: { label: "Scheduled", cls: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-600" },
@@ -72,7 +89,7 @@ export default function SchedulePage() {
   const [selected, setSelected] = useState(null), [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
-  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false);
+  const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false), [availabilityNote, setAvailabilityNote] = useState("");
   const [titleManual, setTitleManual] = useState(false);
   const [partyType, setPartyType] = useState("lead");
   const [dateTab, setDateTab] = useState("today"), [query, setQuery] = useState("");
@@ -84,7 +101,7 @@ export default function SchedulePage() {
   const [form, setForm] = useState({
     lead_id: "", customer_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
     priority: "normal", date: localDate(), location_address: "", location_map_url: "", location_landmark: "", meeting_link: "",
-    description: "", owner_id: "", manager_ids: [], director_id: "", customer_email: ""
+    description: "", owner_id: "", arranged_by: "", comember_ids: [], manager_ids: [], director_id: "", customer_email: ""
   });
 
   const load = async () => {
@@ -138,15 +155,12 @@ export default function SchedulePage() {
     if (showCreate) fetchMeetingRule(form.meeting_type, form.mode).then(setRule).catch(e => toast.error(e.message));
   }, [showCreate, form.meeting_type, form.mode]);
 
-  const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
-  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);
+  const activeTeam = useMemo(() => team.filter(p => p.is_active !== false), [team]);
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
   const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
-  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
-
   useEffect(() => {
     if (showCreate && profile?.id) {
-      setForm(f => ({ ...f, owner_id: profile.id, manager_ids: [] }));
+      setForm(f => ({ ...f, owner_id: null, arranged_by: f.arranged_by || profile.id, comember_ids: [] }));
       setTitleManual(false);
     }
   }, [showCreate, profile?.id]);
@@ -165,12 +179,6 @@ export default function SchedulePage() {
     const nextTitle = customerName + " — " + typeName + " · " + modeName + " · " + when;
     if (form.title !== nextTitle) setForm(f => ({ ...f, title: nextTitle }));
   }, [showCreate, titleManual, form.lead_id, form.customer_id, form.meeting_type, form.mode, form.date, slots, leadMap, customerMap]);
-
-  useEffect(() => {
-    if (showCreate && rule?.participant_rule?.director && !form.director_id && directors[0]) {
-      setForm(f => ({ ...f, director_id: directors[0].id }));
-    }
-  }, [showCreate, rule, directors]);
 
   const resetFilters = () => setFilters({ owner: "", assignedBy: "", manager: "", status: "", type: "", mode: "", priority: "", lead: "", calendar: "", from: "", to: "" });
 
@@ -249,33 +257,47 @@ export default function SchedulePage() {
   }, [filtered]);
 
   const checkAvailability = async () => {
-    if (!form.owner_id || !form.date) return toast.error("Meeting owner and date are required");
+    if (!form.arranged_by || !form.date) return toast.error("Meeting arranged by and date are required");
     if (!calendar?.configured || !calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
-    const selectedManagerIds = Array.isArray(form.manager_ids) ? form.manager_ids.filter(Boolean) : [];
-    const directorIds = rule?.participant_rule?.director ? (form.director_id ? [form.director_id] : directors.slice(0, 1).map(p => p.id)) : [];
-    let combos;
-    if (rule?.participant_rule?.manager === "any") {
-      const managerCombos = selectedManagerIds.length ? [selectedManagerIds] : managers.map(m => [m.id]);
-      if (!managerCombos.length) return toast.error("No manager is configured");
-      combos = managerCombos.map(ids => [form.owner_id, ...ids, ...directorIds].filter(Boolean));
-    } else {
-      combos = [[form.owner_id, ...selectedManagerIds, ...directorIds].filter(Boolean)];
-    }
-    setChecking(true); setSlots([]);
+    const coMemberIds = [...new Set((form.comember_ids || []).filter(Boolean))];
+    setChecking(true); setSlots([]); setAvailabilityNote("");
     try {
       const dayStart = slotIso(form.date, 9, 0), dayEnd = slotIso(form.date, 20, 0);
       const duration = rule?.default_duration_minutes || 30, buffer = rule?.travel_buffer_minutes || 0;
-      const results = await Promise.all(combos.map(async ids => ({ ids, data: await checkCalendarAvailability({ start: dayStart, end: dayEnd, userIds: ids }) })));
+      // Check the full active team so every slot can show who is already busy.
+      const visibleTeamIds = activeTeam.map(p => p.id).filter(Boolean);
+      const data = await checkCalendarAvailability({ start: dayStart, end: dayEnd, userIds: visibleTeamIds });
+      const busy = data?.busy || [];
+      const unconnected = new Set(data?.unconnected_user_ids || []);
+      const selectedUnconnected = coMemberIds.filter(id => unconnected.has(id));
+      if (selectedUnconnected.length) {
+        const names = selectedUnconnected.map(id => activeTeam.find(p => p.id === id)?.full_name || "Selected member").join(", ");
+        setAvailabilityNote("Calendar not connected for: " + names + ". Those members cannot be booked until their Google Calendar is connected.");
+      }
       const found = [];
-      for (const r of results) for (let h = 9; h < 20; h++) for (let m = 0; m < 60; m += 30) {
+      const now = new Date();
+      for (let h = 9; h < 20; h++) for (let m = 0; m < 60; m += 30) {
         const start = slotIso(form.date, h, m), end = slotIso(form.date, h, m + duration);
         const safeStart = new Date(new Date(start).getTime() - buffer * 60000).toISOString();
         const safeEnd = new Date(new Date(end).getTime() + buffer * 60000).toISOString();
         if (new Date(end) > new Date(dayEnd)) continue;
-        if (!(r.data?.busy || []).some(b => overlaps(b.start, b.end, safeStart, safeEnd))) found.push({ start, end, participantIds: r.ids });
+        const past = new Date(start) <= now;
+        const overlappingBusy = busy.filter(b => overlaps(b.start, b.end, safeStart, safeEnd));
+        const selectedBusy = overlappingBusy.filter(b => b.user_id && coMemberIds.includes(b.user_id));
+        const selectedUnavailable = selectedUnconnected.length > 0;
+        const blocked = past || selectedBusy.length > 0 || selectedUnavailable ||
+          overlappingBusy.some(b => !b.user_id); // Company Master Calendar busy.
+        const bookedBy = [...new Set(overlappingBusy.map(b => b.user_name || (b.user_id ? activeTeam.find(p => p.id === b.user_id)?.full_name : "Company Calendar")).filter(Boolean))];
+        found.push({
+          start, end, participantIds: coMemberIds,
+          available: !blocked,
+          past,
+          bookedBy,
+          reason: past ? "Time passed" : selectedUnavailable ? "Calendar not connected" : selectedBusy.length ? "Selected member is busy" : overlappingBusy.length ? "Company/team booking" : ""
+        });
       }
-      setSlots([...new Map(found.map(s => [s.start + "-" + s.end, s])).values()]);
-      if (!found.length) toast.info("No common free slot found for the selected team");
+      setSlots(found);
+      if (!found.some(s => s.available)) toast.info("No selectable free slot found for the selected date and team");
     } catch (e) { toast.error(e.message || "Availability check failed"); }
     finally { setChecking(false); }
   };
@@ -286,6 +308,20 @@ export default function SchedulePage() {
     if (form.mode === "physical" && !form.location_address.trim()) return toast.error("Physical schedule needs a site/location");
     setSyncing(true);
     try {
+      // Final conflict check immediately before booking. The availability grid can become stale
+      // if another user books the same slot after the initial check.
+      const finalCheck = await checkCalendarAvailability({
+        start: chosen.start,
+        end: chosen.end,
+        userIds: chosen.participantIds || []
+      });
+      const selectedIds = new Set(chosen.participantIds || []);
+      const blocking = (finalCheck?.busy || []).filter(b => !b.user_id || selectedIds.has(b.user_id));
+      if (blocking.length) {
+        const names = [...new Set(blocking.map(b => b.user_name || "Company Calendar"))].join(", ");
+        setSlots(x => x.map(s => s.start === chosen.start ? { ...s, selected: false, available: false, bookedBy: [...new Set([...s.bookedBy || [], ...blocking.map(b => b.user_name || "Company Calendar")])] } : s));
+        throw Object.assign(new Error(`That slot is no longer available: ${names}`), { code: "SLOT_CONFLICT" });
+      }
       if (form.lead_id && form.customer_email.trim()) {
         const lead = leadMap.get(form.lead_id);
         if ((lead?.email || "").trim() !== form.customer_email.trim()) await updateLead(form.lead_id, { email: form.customer_email.trim() });
@@ -297,7 +333,7 @@ export default function SchedulePage() {
         location_map_url: form.mode === "physical" ? form.location_map_url || null : null,
         location_landmark: form.mode === "physical" ? form.location_landmark || null : null,
         meeting_link: form.mode === "digital" ? form.meeting_link || null : null,
-        description: form.description || null, owner_id: form.owner_id, assigned_by: profile?.id || null,
+        description: form.description || null, owner_id: null, arranged_by: form.arranged_by || profile?.id || null, assigned_by: profile?.id || null,
         customer_email: form.customer_email || null
       }, chosen.participantIds, chosen.participantIds);
       if (calendar?.master_calendar_configured) {
@@ -321,7 +357,11 @@ export default function SchedulePage() {
   };
 
   const open = async r => {
-    setSelected(r);
+    setSelected({
+      ...r,
+      lead: leadMap.get(r.lead_id) || null,
+      customer: customerMap.get(r.customer_id) || null
+    });
     try { setFiles(await fetchScheduleFiles(r.id)); } catch (_) { setFiles([]); }
   };
   const update = async p => {
@@ -404,7 +444,7 @@ export default function SchedulePage() {
               <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Active filters</span>
               {Object.entries(filters).filter(([,v]) => v).map(([key,value]) => {
                 const names = { owner:"Owner", assignedBy:"Assigned By", manager:"Manager", status:"Status", type:"Meeting Type", mode:"Mode", priority:"Priority", lead:"Lead / Customer", calendar:"Calendar", from:"From", to:"To" };
-                const collections = { owner:team, assignedBy:team, manager:managers, lead:leads };
+                const collections = { owner:team, assignedBy:team, manager:activeTeam, lead:leads };
                 const item = collections[key]?.find(x => x.id === value);
                 const display = item ? (item.full_name || item.name) : (key === "calendar" ? label(value) : value);
                 return <button key={key} onClick={() => setFilters(x => ({...x,[key]:""}))} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold hover:bg-blue-100">{names[key] || key}: {display}<X className="w-3 h-3" /></button>;
@@ -428,7 +468,7 @@ export default function SchedulePage() {
               {[
                 ["Owner", "owner", team.filter(p => p.is_active !== false), "id", "full_name"],
                 ["Assigned By", "assignedBy", team.filter(p => p.is_active !== false), "id", "full_name"],
-                ["Manager", "manager", managers, "id", "full_name"],
+                ["Co-Member", "manager", activeTeam, "id", "full_name"],
                 ["Status", "status", Object.keys(statusMeta).map(k => ({ id: k, full_name: statusMeta[k].label })), "id", "full_name"],
                 ["Meeting Type", "type", TYPES.map(([id, full_name]) => ({ id, full_name })), "id", "full_name"],
                 ["Mode", "mode", [{ id: "physical", full_name: "Physical" }, { id: "digital", full_name: "Digital" }], "id", "full_name"],
@@ -485,26 +525,26 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} canAssignMultipleManagers={canAssignMultipleManagers} setTitleManual={setTitleManual} />}
-      {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
+      {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );
 }
 
 function ScheduleRow({ s, lead, onOpen }) {
-  const owner = s.owner?.full_name || "Unassigned";
+  const owner = s.arranger?.full_name || s.owner?.full_name || "Unassigned";
   const customer = lead?.name || s.title || "Untitled meeting";
   const isToday = sameDay(s.start_at, new Date());
   return <button onClick={() => onOpen(s)} className="w-full text-left p-4 lg:px-5 hover:bg-blue-50/40 transition-colors grid lg:grid-cols-[130px_minmax(250px,1fr)_190px_150px_130px] gap-3 lg:gap-4 items-center">
     <div><div className="text-sm font-bold text-slate-900">{fmtTime(s.start_at)}</div><div className="text-[11px] text-slate-400 mt-0.5">{isToday ? "Today" : fmtDate(s.start_at)}</div></div>
     <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><span className="font-bold text-sm text-slate-900 truncate">{customer}</span>{s.priority && s.priority !== "normal" && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${s.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-orange-100 text-orange-700"}`}>{s.priority}</span>}</div><div className="text-xs text-slate-500 mt-1 truncate">{s.title}{lead?.project_type ? ` · ${lead.project_type}` : ""}</div><div className="flex flex-wrap gap-1.5 mt-2"><span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">{label(s.meeting_type)}</span>{s.location_address && <span className="text-[10px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{s.location_address}</span>}</div></div>
-    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 grid place-items-center text-xs font-bold">{owner.slice(0,1).toUpperCase()}</span><div className="min-w-0"><div className="text-xs font-bold text-slate-700 truncate">{owner}</div><div className="text-[10px] text-slate-400">Meeting owner</div></div></div>
+    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 grid place-items-center text-xs font-bold">{owner.slice(0,1).toUpperCase()}</span><div className="min-w-0"><div className="text-xs font-bold text-slate-700 truncate">{owner}</div><div className="text-[10px] text-slate-400">Meeting arranged by</div></div></div>
     <div><ModeBadge mode={s.mode} /></div>
     <div className="flex items-center justify-between gap-2"><StatusBadge status={s.status} /><MoreVertical className="w-4 h-4 text-slate-300" /></div>
   </button>;
 }
 
-function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, canAssignMultipleManagers, setTitleManual }) {
+function CreateModal({ form, setForm, rule, team, activeTeam, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, setTitleManual, availabilityNote }) {
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="text-[10px] uppercase tracking-[0.18em] text-orange-600 font-bold">New Activity</div><h2 className="text-xl font-display font-bold mt-1">Create Schedule</h2><p className="text-xs text-slate-500 mt-1">Choose the team, check availability and confirm the meeting.</p></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500" /></button></div><div className="p-5 grid md:grid-cols-2 gap-4">
     <LeadCustomerPicker
       partyType={partyType}
@@ -520,15 +560,18 @@ function CreateModal({ form, setForm, rule, team, managers, directors, calendar,
       onSelectLead={lead => setForm(f => ({ ...f, lead_id: lead?.id || "", customer_id: "", customer_email: lead?.email || "" }))}
       onSelectCustomer={customer => setForm(f => ({ ...f, lead_id: "", customer_id: customer?.id || "", customer_email: customer?.email || "" }))}
     />
-    <label className="text-xs font-bold text-slate-600">Meeting Owner<select value={form.owner_id} onChange={e=>{setForm({...form,owner_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{team.filter(p=>p.is_active!==false).map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>
+    <label className="text-xs font-bold text-slate-600">Meeting Arranged By / Generated By<select value={form.arranged_by || ""} onChange={e=>{setForm({...form,arranged_by:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{activeTeam.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>
     <label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Title <span className="text-slate-400 font-normal">• auto-generated, editable</span><input value={form.title} onChange={e=>{setTitleManual(true);setForm({...form,title:e.target.value})}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Rahul Kumar — Site Visit" /></label>
     <label className="text-xs font-bold text-slate-600">Meeting Type<select value={form.meeting_type} onChange={e=>{setForm({...form,meeting_type:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm">{TYPES.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label>
     <label className="text-xs font-bold text-slate-600">Mode<select value={form.mode} onChange={e=>{setForm({...form,mode:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="physical">Physical</option><option value="digital">Digital</option></select></label>
     <label className="text-xs font-bold text-slate-600">Meeting Date<input type="date" value={form.date} onChange={e=>{setForm({...form,date:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
-    {(rule?.participant_rule?.manager==="any" || (form.priority==="urgent" && canAssignMultipleManagers))&&<ManagerPicker managers={managers} ids={form.manager_ids||[]} setIds={ids=>{setForm({...form,manager_ids:ids});setSlots([])}} multi={canAssignMultipleManagers} urgent={form.priority==="urgent"}/>}
-    {rule?.participant_rule?.director&&<label className="text-xs font-bold text-slate-600 md:col-span-2">Director / Required Presence<select value={form.director_id} onChange={e=>{setForm({...form,director_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm">{directors.map(p=><option key={p.id} value={p.id}>{p.full_name} — required</option>)}</select></label>}
+    <CoMemberPicker team={activeTeam} ids={form.comember_ids||[]} setIds={ids=>{setForm({...form,comember_ids:ids});setSlots([])}} />
     {form.mode==="physical"?<div className="md:col-span-2 grid md:grid-cols-3 gap-3"><label className="text-xs font-bold text-slate-600">Google Maps Link<input value={form.location_map_url} onChange={e=>setForm({...form,location_map_url:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Maps link" /></label><label className="text-xs font-bold text-slate-600">Address<input value={form.location_address} onChange={e=>setForm({...form,location_address:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Customer site address" /></label><label className="text-xs font-bold text-slate-600">Landmark<input value={form.location_landmark} onChange={e=>setForm({...form,location_landmark:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Nearby landmark" /></label></div>:<label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Link <span className="text-slate-400 font-normal">(optional)</span><input value={form.meeting_link} onChange={e=>setForm({...form,meeting_link:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Meet can be generated on sync" /></label>}
-    <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-bold text-sm text-slate-800">Team Availability</div><div className="text-xs text-slate-500 mt-1">{calendar?.configured&&calendar?.master_calendar_configured?"Connected calendars will be checked together.":"Google Calendar connection is pending."}</div></div><button onClick={checkAvailability} disabled={checking||!calendar?.configured||!calendar?.master_calendar_configured} className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold disabled:opacity-50">{checking?"Checking…":"Check Available Slots"}</button></div>{slots.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">{slots.map((s,i)=><button key={i} onClick={()=>setSlots(x=>x.map((z,j)=>({...z,selected:j===i})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold hover:border-blue-300"}>{fmtTime(s.start)} – {fmtTime(s.end)}</button>)}</div>}</div>
+    <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-bold text-sm text-slate-800">Team Availability</div><div className="text-xs text-slate-500 mt-1">{calendar?.configured&&calendar?.master_calendar_configured?"Connected calendars will be checked together.":"Google Calendar connection is pending."}</div></div><button onClick={checkAvailability} disabled={checking||!calendar?.configured||!calendar?.master_calendar_configured} className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold disabled:opacity-50">{checking?"Checking…":"Check Available Slots"}</button></div>{availabilityNote&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">{availabilityNote}</div>}
+      {slots.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">{slots.map((s,i)=><button key={i} type="button" disabled={!s.available} onClick={()=>s.available&&setSlots(x=>x.map((z,j)=>({...z,selected:j===i})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold text-left":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold text-left disabled:opacity-60 disabled:cursor-not-allowed hover:border-blue-300"}>
+        <div>{fmtTime(s.start)} – {fmtTime(s.end)}</div>
+        {s.past?<div className="text-[10px] mt-1 font-semibold text-slate-400">Time passed</div>:s.bookedBy?.length?<div className="text-[10px] mt-1 font-semibold text-rose-600 truncate" title={s.bookedBy.join(", ")}>Booked: {s.bookedBy.join(", ")}</div>:<div className="text-[10px] mt-1 font-semibold text-emerald-600">Available</div>}
+      </button>)}</div>}</div>
     <label className="text-xs font-bold text-slate-600">Customer Email <span className="text-slate-400 font-normal">• auto from lead; manual entry updates lead</span><input value={form.customer_email} onChange={e=>setForm({...form,customer_email:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
     <label className="text-xs font-bold text-slate-600">Priority<select value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label>
     <label className="text-xs font-bold text-slate-600 md:col-span-2">Description<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3} className="mt-1.5 w-full border rounded-xl p-3 text-sm" placeholder="Purpose, customer expectations, preparation notes..." /></label>
@@ -581,18 +624,95 @@ function LeadCustomerPicker({ partyType, setPartyType, leads, customers, selecte
     </div>}
   </div>;
 }
+function CoMemberPicker({ team, ids, setIds }) {
+  const selected = new Set(ids);
+  return <div className="md:col-span-2 text-xs font-bold text-slate-600">
+    Assign Co-Member(s) <span className="text-slate-400 font-normal">• multiple employees can be selected; their calendars will be checked</span>
+    <div className="mt-1.5 border rounded-xl p-2 max-h-40 overflow-auto grid sm:grid-cols-2 gap-1">
+      {team.map(p => <label key={p.id} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
+        <input type="checkbox" checked={selected.has(p.id)} onChange={()=>setIds(selected.has(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>
+        <span>{p.full_name || p.email}</span>
+      </label>)}
+      {!team.length && <div className="p-2 text-slate-400">No active employees available.</div>}
+    </div>
+  </div>;
+}
+
 function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   if (!multi) return <label className="text-xs font-bold text-slate-600">Manager<select value={ids[0]||""} onChange={e=>setIds(e.target.value?[e.target.value]:[])} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Any available manager</option>{managers.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>;
   return <div className="text-xs font-bold text-slate-600">Manager(s) <span className="text-slate-400 font-normal">• Admin/Director can assign multiple{urgent ? " • urgent/special case" : ""}</span><div className="mt-1.5 border rounded-xl p-2 max-h-32 overflow-auto space-y-1">{managers.map(p=><label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer font-medium"><input type="checkbox" checked={ids.includes(p.id)} onChange={()=>setIds(ids.includes(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>{p.full_name}</label>)}<button type="button" onClick={()=>setIds([])} className="text-[11px] text-blue-700 font-bold px-2 py-1">Auto assign any available</button></div></div>;
 }
 
-function DetailModal({ selected, files, update, upload, close }) {
+function DetailModal({ selected, files, update, upload, close, syncCalendar }) {
+  const customer = selected.customer || selected.lead || {};
+  const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
+  const customerName = titleCaseName(customer.name || selected.title || "Customer");
+  const customerPhone = customer.phone || customer.mobile || customer.whatsapp || "";
+  const arranger = selected.arranger || selected.owner || null;
+  const arrangerName = titleCaseName(arranger?.full_name || "Unassigned");
+  const participantProfiles = (selected.participants || []).map(p => p.profile).filter(Boolean);
+  const comembers = participantProfiles.filter(p => p.id !== arranger?.id);
+  const comemberNames = comembers.map(p => titleCaseName(p.full_name || p.email)).filter(Boolean);
+  const meetLink = selected.meeting_link || "";
+  const meetingTypeName = {
+    customer_home: "Customer Home Consultation",
+    office_meeting: "Office Meeting",
+    site_visit: "Site Visit",
+    measurement_visit: "Measurement Visit",
+    project_review: "Project Review",
+    material_discussion: "Material Discussion",
+    video_meeting: "Video Meeting",
+    design_presentation: "Design Presentation",
+    estimate_discussion: "Estimate Discussion",
+    phone_discussion: "Phone Discussion",
+    whatsapp_discussion: "WhatsApp Discussion",
+    follow_up: "Follow-up",
+    other: "Meeting"
+  }[selected.meeting_type] || label(selected.meeting_type);
+  const meetMessage = `Hello *${customerName}*,\n\nGreetings from *Sankalp Interior Solution*! ✨\n\nYour *${meetingTypeName}* has been scheduled with our team.\n\n📅 *Date:* ${fmtDate(selected.start_at)}\n⏰ *Time:* ${fmtTime(selected.start_at)}\n💻 *Mode:* Google Meet\n\n🔗 *Meeting Link:*\n${meetLink || "The meeting link will be shared shortly."}\n\nPlease join the meeting at the scheduled time.\n\nLooking forward to connecting with you.\n\nWarm regards,\n*Sankalp Interior Solution*`;
+  const teamMessage = `📌 *SANKALP SCHEDULE UPDATE*\n\n👤 *Customer:* ${customerName}\n📋 *Meeting Type:* ${meetingTypeName}\n💻 *Mode:* Digital\n\n📅 *Date:* ${fmtDate(selected.start_at)}\n⏰ *Time:* ${fmtTime(selected.start_at)}\n\n👨‍💼 *Arranged By:* ${arrangerName}\n👥 *Co-Members:* ${comemberNames.join(", ") || "None"}\n\n🔗 *Google Meet:*\n${meetLink || "Pending"}\n\nPlease be available on time.`;
+  const openWhatsApp = async (phone, message, labelText) => {
+    const ok = await copyText(message);
+    if (ok) toast.success(`${labelText} message copied`);
+    window.open(whatsappUrl(phone, message), "_blank", "noopener,noreferrer");
+  };
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={e=>e.target===e.currentTarget&&close()}><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="flex items-center gap-2"><StatusBadge status={selected.status}/><ModeBadge mode={selected.mode}/></div><h2 className="text-xl font-display font-bold mt-2">{selected.title}</h2><div className="text-sm text-slate-500 mt-1">{new Date(selected.start_at).toLocaleString("en-IN")}</div></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500"/></button></div><div className="p-5 space-y-5">
     <div className="grid md:grid-cols-3 gap-3"><button onClick={()=>update({status:"completed"})} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-2"/>Completed</button><button onClick={()=>update({status:"rescheduled"})} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-2"/>Reschedule</button><button onClick={()=>update({status:"customer_cancelled"})} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-2"/>Customer Cancelled</button></div>
     <div><div className="text-sm font-bold mb-2">Quick Feedback</div><div className="flex flex-wrap gap-2">{FEEDBACKS.map(n=><button key={n} onClick={()=>update({feedback_tags:[n]})} className="px-3 py-2 rounded-full border bg-slate-50 text-xs font-bold hover:border-blue-300">{n}</button>)}</div></div>
     <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Remarks<textarea defaultValue={selected.remarks||""} onBlur={e=>e.target.value!==selected.remarks&&update({remarks:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What happened?" /></label><label className="text-sm font-bold">Customer Feedback<textarea defaultValue={selected.feedback||""} onBlur={e=>e.target.value!==selected.feedback&&update({feedback:e.target.value})} rows={4} className="mt-1 w-full border rounded-xl p-3 text-sm font-normal" placeholder="What did the customer say?" /></label></div>
     <div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-bold">Next Action<input defaultValue={selected.next_action||""} onBlur={e=>e.target.value!==selected.next_action&&update({next_action:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" placeholder="Create estimate / follow-up call" /></label><label className="text-sm font-bold">Next Action Date<input type="date" defaultValue={selected.next_action_date||""} onBlur={e=>e.target.value!==selected.next_action_date&&update({next_action_date:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm font-normal" /></label></div>
     <div className="border-t pt-4"><div className="flex items-center justify-between mb-2"><div className="font-bold">Files / Site Information</div><label className="px-3 py-2 rounded-xl border text-sm font-bold cursor-pointer flex items-center gap-2"><FileUp className="w-4 h-4"/>Upload<input type="file" className="hidden" onChange={e=>upload(e.target.files?.[0])}/></label></div>{files.length===0?<div className="text-sm text-slate-400 py-4">No files uploaded yet.</div>:<div className="space-y-2">{files.map(f=><a key={f.id} href={f.file_url||f.drive_url||"#"} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border text-sm"><span className="truncate">{f.file_name}</span><span className="text-xs text-slate-400">{label(f.source)}</span></a>)}</div>}</div>
-    <div className="grid md:grid-cols-2 gap-3 text-sm"><div className="p-3 bg-slate-50 rounded-xl text-slate-600"><MapPin className="w-4 h-4 inline mr-2"/>{selected.location_address||"Digital meeting"}</div><div className="p-3 bg-slate-50 rounded-xl text-slate-600"><Users className="w-4 h-4 inline mr-2"/>{selected.owner?.full_name||"Unassigned"}</div></div>
+    <div className="grid md:grid-cols-2 gap-3 text-sm">
+      <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><MapPin className="w-4 h-4 inline mr-2"/>{selected.location_address||"Digital meeting"}</div>
+      <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><UserRound className="w-4 h-4 inline mr-2"/><span className="font-semibold">Meeting Arranged By:</span> {arranger?.full_name||"Unassigned"}</div>
+    </div>
+    <div className="border rounded-2xl p-4 bg-violet-50/50 border-violet-100">
+      <div className="flex items-center justify-between gap-3">
+        <div><div className="font-bold text-slate-900">Digital Meeting & Sharing</div><div className="text-xs text-slate-500 mt-1">Google Meet is generated automatically for digital meetings.</div></div>
+        {selected.google_calendar_status === "synced" && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full">Calendar Synced</span>}
+      </div>
+      {selected.mode === "digital" ? <div className="mt-3 space-y-3">
+        <div className="flex items-center gap-2 p-3 bg-white rounded-xl border">
+          <Link2 className="w-4 h-4 text-violet-700 shrink-0"/>
+          <a href={meetLink || "#"} target="_blank" rel="noreferrer" className={`text-sm font-semibold truncate ${meetLink ? "text-blue-700 hover:underline" : "text-slate-400 pointer-events-none"}`}>{meetLink || "Google Meet link pending"}</a>
+          {meetLink && <button type="button" onClick={async()=>{const ok=await copyText(meetLink);toast[ok?"success":"error"](ok?"Google Meet link copied":"Could not copy link")} } className="ml-auto shrink-0 px-2.5 py-2 rounded-lg border bg-white text-xs font-bold flex items-center gap-1.5"><Copy className="w-3.5 h-3.5"/>Copy</button>}
+          {!meetLink && <button type="button" onClick={syncCalendar} className="ml-auto shrink-0 px-2.5 py-2 rounded-lg bg-blue-700 text-white text-xs font-bold">Generate / Sync</button>}
+        </div>
+        {meetLink && <a href={meetLink} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold"><Video className="w-4 h-4"/>Join Google Meet<ExternalLink className="w-3.5 h-3.5"/></a>}
+        <div className="grid md:grid-cols-2 gap-2">
+          <button type="button" onClick={()=>openWhatsApp(customerPhone,meetMessage,"Customer")} className="px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold flex items-center justify-center gap-2"><MessageCircle className="w-4 h-4"/>WhatsApp Customer</button>
+          <button type="button" onClick={()=>openWhatsApp(arranger?.phone,teamMessage,"Team")} className="px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center justify-center gap-2"><Users className="w-4 h-4"/>WhatsApp Team</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={async()=>{const ok=await copyText(meetMessage);toast[ok?"success":"error"](ok?"Customer message copied":"Could not copy message")}} className="px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5"><Copy className="w-3.5 h-3.5"/>Copy Customer Message</button>
+          <button type="button" onClick={async()=>{const ok=await copyText(teamMessage);toast[ok?"success":"error"](ok?"Team message copied":"Could not copy message")}} className="px-3 py-2 rounded-lg border text-xs font-bold flex items-center gap-1.5"><Copy className="w-3.5 h-3.5"/>Copy Team Message</button>
+        </div>
+      </div> : <div className="mt-3 p-3 bg-white rounded-xl border text-sm text-slate-600">Physical meeting — Google Meet sharing controls are hidden.</div>}
+    </div>
+    <div className="border rounded-2xl p-4 bg-slate-50">
+      <div className="font-bold text-sm">Participants</div>
+      <div className="text-xs text-slate-500 mt-1"><span className="font-semibold">Arranged By:</span> {arranger?.full_name || "Unassigned"}</div>
+      <div className="text-xs text-slate-500 mt-1"><span className="font-semibold">Co-Members:</span> {comembers.map(p=>p.full_name||p.email).join(", ") || "None"}</div>
+    </div>
   </div></div></div>;
 }

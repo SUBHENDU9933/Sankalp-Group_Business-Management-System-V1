@@ -213,25 +213,59 @@ export default function LeadSegmentPage({ segment = "active" }) {
               ["LOST VALUE", lostKpis?.lostValue, "Current lost budgets", IndianRupee, "violet"],
             ].map(([label, value, sub, Icon, tone]) => {
               const tones = {
-                rose: "from-rose-50 to-white border-rose-100 text-rose-600",
-                blue: "from-blue-50 to-white border-blue-100 text-blue-600",
-                orange: "from-orange-50 to-white border-orange-100 text-orange-600",
-                amber: "from-amber-50 to-white border-amber-100 text-amber-600",
-                emerald: "from-emerald-50 to-white border-emerald-100 text-emerald-600",
-                violet: "from-violet-50 to-white border-violet-100 text-violet-600",
+                rose: {
+                  card: "from-rose-50 via-white to-rose-50/60 border-rose-100 hover:from-rose-100 hover:via-rose-50 hover:to-rose-100/80",
+                  icon: "bg-rose-500 text-white shadow-rose-200",
+                  accent: "text-rose-600",
+                },
+                blue: {
+                  card: "from-blue-50 via-white to-blue-50/60 border-blue-100 hover:from-blue-100 hover:via-blue-50 hover:to-blue-100/80",
+                  icon: "bg-blue-500 text-white shadow-blue-200",
+                  accent: "text-blue-600",
+                },
+                orange: {
+                  card: "from-orange-50 via-white to-orange-50/60 border-orange-100 hover:from-orange-100 hover:via-orange-50 hover:to-orange-100/80",
+                  icon: "bg-orange-500 text-white shadow-orange-200",
+                  accent: "text-orange-600",
+                },
+                amber: {
+                  card: "from-amber-50 via-white to-amber-50/60 border-amber-100 hover:from-amber-100 hover:via-amber-50 hover:to-amber-100/80",
+                  icon: "bg-amber-500 text-white shadow-amber-200",
+                  accent: "text-amber-600",
+                },
+                emerald: {
+                  card: "from-emerald-50 via-white to-emerald-50/60 border-emerald-100 hover:from-emerald-100 hover:via-emerald-50 hover:to-emerald-100/80",
+                  icon: "bg-emerald-500 text-white shadow-emerald-200",
+                  accent: "text-emerald-600",
+                },
+                violet: {
+                  card: "from-violet-50 via-white to-violet-50/60 border-violet-100 hover:from-violet-100 hover:via-violet-50 hover:to-violet-100/80",
+                  icon: "bg-violet-500 text-white shadow-violet-200",
+                  accent: "text-violet-600",
+                },
               };
               const displayValue = value == null ? "—" : label === "LOST VALUE"
                 ? `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Number(value || 0))}`
                 : Number(value || 0).toLocaleString("en-IN");
+              const style = tones[tone];
               return (
-                <div key={label} className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_-28px_rgba(15,23,42,.5)] ${tones[tone]}`}>
-                  <div className="flex items-start justify-between gap-3">
+                <div
+                  key={label}
+                  className={`group relative min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_40px_-20px_rgba(15,23,42,.38)] hover:brightness-[0.98] ${style.card}`}
+                >
+                  <div className="pointer-events-none absolute -right-6 -bottom-8 h-24 w-24 rounded-full bg-white/50 blur-2xl transition-transform duration-500 group-hover:scale-125" />
+                  <div className="relative flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">{label}</p>
-                      <div className="mt-2 text-[25px] font-black tracking-[-.045em] text-slate-900">{displayValue}</div>
-                      <p className="mt-1 truncate text-[11px] text-slate-500">{sub}</p>
+                      <p className={`text-[10px] font-extrabold uppercase tracking-[.15em] text-slate-500/80 transition-colors duration-300 group-hover:${style.accent.replace("text-","text-")}`}>{label}</p>
+                      <div className="mt-2 truncate text-[25px] font-black leading-none tracking-[-.045em] text-slate-900">{displayValue}</div>
+                      <p className="mt-2 truncate text-[11px] font-medium text-slate-500">{sub}</p>
                     </div>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Icon className="h-4 w-4" /></span>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl ${style.icon}`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className={`relative mt-3 flex h-7 w-7 items-center justify-center rounded-full border bg-white/90 text-xs font-bold shadow-sm transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-white ${style.accent}`}>
+                    <span aria-hidden="true">›</span>
                   </div>
                 </div>
               );

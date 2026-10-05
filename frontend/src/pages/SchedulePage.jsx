@@ -14,7 +14,7 @@ import { fetchCustomers } from "@/services/customerService";
 import {
   completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory,
   uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
-  syncScheduleToCalendar, syncPendingCalendar
+  syncScheduleToCalendar, updateScheduleCalendar, syncPendingCalendar
 } from "@/services/scheduleService";
 
 const TYPES = [
@@ -369,8 +369,14 @@ export default function SchedulePage() {
     if(!selected) return;
     if(action==="__close__"){setLifecycle(null);return;}
     try{
+      if(action==="reschedule" && calendar?.master_calendar_configured){
+        const participantIds=[selected.arranged_by,selected.owner_id,...(selected.participants||[]).filter(p=>p.is_required).map(p=>p.user_id)].filter(Boolean);
+        const finalCalendar=await checkCalendarAvailability({start:payload.start_at,end:payload.end_at,userIds:[...new Set(participantIds)]});
+        if((finalCalendar?.busy||[]).length) throw new Error("The new time is no longer free on the selected team calendars.");
+      }
       const u=await lifecycleAction(selected.id,action,payload);
       if(action==="delete"){toast.success("Meeting deleted");setSelected(null);setLifecycle(null);await load();return;}
+      if(["reschedule","cancel","no_show"].includes(action) && selected.google_calendar_event_id) await updateScheduleCalendar(selected.id);
       setSelected({...selected,...u});setLifecycle(null);
       setHistory(await fetchScheduleHistory(selected.id));await load();
       toast.success(action==="reschedule"?"Meeting rescheduled":action==="cancel"?"Meeting cancelled":action==="no_show"?"No-show recorded":"Meeting completed");

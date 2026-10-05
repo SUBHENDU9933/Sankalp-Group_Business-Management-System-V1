@@ -28,6 +28,7 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onP
   form.set("file_name", file.name);
   form.set("mime_type", file.type || "application/octet-stream");
   form.set("size", String(file.size));
+
   const { data, error } = await supabase.functions.invoke("google-drive-storage", { body: form });
   if (error) {
     let message = error.message;
@@ -35,11 +36,56 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onP
     throw new Error(message || "Could not start Google Drive upload");
   }
   if (!data?.session_url) throw new Error("Google Drive upload session was not created");
-  const response = await fetch(data.session_url, { method: "PUT", headers: { "Content-Length": String(file.size) }, body: file });
-  if (!response.ok) { const body = await response.text().catch(() => ""); throw new Error(body || ("Google Drive upload failed (" + response.status + ")")); }
-  const uploaded = await response.json();
+
+  let response;
+  try {
+    response = await fetch(data.session_url, {
+      method: "PUT",
+      headers: { "Content-Length": String(file.size) },
+      body: file,
+    });
+  } catch (e) {
+    throw new Error(e?.message || "Google Drive file transfer failed");
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || ("Google Drive upload failed (" + response.status + ")"));
+  }
+
+  // Google Drive normally returns the created file resource here. We deliberately
+  // finalize through our authenticated storage function as well: this makes the
+  // metadata handoff reliable on mobile browsers even when the direct PUT response
+  // body is empty/unreadable after the file has already been created.
+  const finalizeBody = {
+    action: "finalize_upload",
+    module,
+    record_id: recordId || "",
+    session_url: data.session_url,
+    file_name: file.name,
+    mime_type: file.type || "application/octet-stream",
+    size: String(file.size),
+  };
+  const { data: finalized, error: finalizeError } = await supabase.functions.invoke("google-drive-storage", {
+    body: finalizeBody,
+  });
+  if (finalizeError) {
+    let message = finalizeError.message;
+    try { const details = await finalizeError.context?.json?.(); message = details?.error || message; } catch (_) {}
+    throw new Error(message || "Google Drive upload could not be finalized");
+  }
+  if (!finalized?.drive_file_id) throw new Error("Google Drive upload completed but file metadata was not returned");
+
   onProgress?.(100);
-  return { provider: "google_drive", driveFileId: uploaded.id, driveUrl: uploaded.webViewLink || ("https://drive.google.com/open?id=" + uploaded.id), driveParentId: data.parent_folder_id, name: uploaded.name || file.name, type: uploaded.mimeType || file.type, size: Number(uploaded.size || file.size) };
+  return {
+    provider: "google_drive",
+    driveFileId: finalized.drive_file_id,
+    driveUrl: finalized.drive_url,
+    driveParentId: finalized.drive_parent_id || data.parent_folder_id,
+    name: finalized.name || file.name,
+    type: finalized.type || file.type,
+    size: Number(finalized.size || file.size),
+  };
 };
 
 export const deleteGoogleDriveFile = async ({ driveFileId, module = "misc", recordId } = {}) => {

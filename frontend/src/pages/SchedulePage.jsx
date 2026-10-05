@@ -84,7 +84,7 @@ export default function SchedulePage() {
   const [form, setForm] = useState({
     lead_id: "", customer_id: "", title: "", meeting_type: "follow_up", mode: "digital", status: "scheduled",
     priority: "normal", date: localDate(), location_address: "", location_map_url: "", location_landmark: "", meeting_link: "",
-    description: "", owner_id: "", manager_ids: [], director_id: "", customer_email: ""
+    description: "", owner_id: "", arranged_by: "", comember_ids: [], manager_ids: [], director_id: "", customer_email: ""
   });
 
   const load = async () => {
@@ -138,15 +138,12 @@ export default function SchedulePage() {
     if (showCreate) fetchMeetingRule(form.meeting_type, form.mode).then(setRule).catch(e => toast.error(e.message));
   }, [showCreate, form.meeting_type, form.mode]);
 
-  const managers = useMemo(() => team.filter(p => p.role === "rm" && p.is_active !== false), [team]);
-  const directors = useMemo(() => team.filter(p => (p.is_admin === true || p.role === "admin") && p.is_active !== false), [team]);
+  const activeTeam = useMemo(() => team.filter(p => p.is_active !== false), [team]);
   const leadMap = useMemo(() => new Map(leads.map(l => [l.id, l])), [leads]);
   const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
-  const canAssignMultipleManagers = Boolean(isAdmin || role === "director" || profile?.role === "director");
-
   useEffect(() => {
     if (showCreate && profile?.id) {
-      setForm(f => ({ ...f, owner_id: profile.id, manager_ids: [] }));
+      setForm(f => ({ ...f, owner_id: null, arranged_by: f.arranged_by || profile.id, comember_ids: [] }));
       setTitleManual(false);
     }
   }, [showCreate, profile?.id]);
@@ -249,18 +246,10 @@ export default function SchedulePage() {
   }, [filtered]);
 
   const checkAvailability = async () => {
-    if (!form.owner_id || !form.date) return toast.error("Meeting owner and date are required");
+    if (!form.arranged_by || !form.date) return toast.error("Meeting arranged by and date are required");
     if (!calendar?.configured || !calendar?.master_calendar_configured) return toast.error("Google Calendar is not fully connected yet");
-    const selectedManagerIds = Array.isArray(form.manager_ids) ? form.manager_ids.filter(Boolean) : [];
-    const directorIds = rule?.participant_rule?.director ? (form.director_id ? [form.director_id] : directors.slice(0, 1).map(p => p.id)) : [];
-    let combos;
-    if (rule?.participant_rule?.manager === "any") {
-      const managerCombos = selectedManagerIds.length ? [selectedManagerIds] : managers.map(m => [m.id]);
-      if (!managerCombos.length) return toast.error("No manager is configured");
-      combos = managerCombos.map(ids => [form.owner_id, ...ids, ...directorIds].filter(Boolean));
-    } else {
-      combos = [[form.owner_id, ...selectedManagerIds, ...directorIds].filter(Boolean)];
-    }
+    const coMemberIds = [...new Set((form.comember_ids || []).filter(Boolean))];
+    const combos = [coMemberIds];
     setChecking(true); setSlots([]);
     try {
       const dayStart = slotIso(form.date, 9, 0), dayEnd = slotIso(form.date, 20, 0);
@@ -275,7 +264,7 @@ export default function SchedulePage() {
         if (!(r.data?.busy || []).some(b => overlaps(b.start, b.end, safeStart, safeEnd))) found.push({ start, end, participantIds: r.ids });
       }
       setSlots([...new Map(found.map(s => [s.start + "-" + s.end, s])).values()]);
-      if (!found.length) toast.info("No common free slot found for the selected team");
+      if (!found.length) toast.info("No common free slot found for the selected co-members");
     } catch (e) { toast.error(e.message || "Availability check failed"); }
     finally { setChecking(false); }
   };
@@ -297,7 +286,7 @@ export default function SchedulePage() {
         location_map_url: form.mode === "physical" ? form.location_map_url || null : null,
         location_landmark: form.mode === "physical" ? form.location_landmark || null : null,
         meeting_link: form.mode === "digital" ? form.meeting_link || null : null,
-        description: form.description || null, owner_id: form.owner_id, assigned_by: profile?.id || null,
+        description: form.description || null, owner_id: null, arranged_by: form.arranged_by || profile?.id || null, assigned_by: profile?.id || null,
         customer_email: form.customer_email || null
       }, chosen.participantIds, chosen.participantIds);
       if (calendar?.master_calendar_configured) {
@@ -485,26 +474,26 @@ export default function SchedulePage() {
         </aside>
       </div>
 
-      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} managers={managers} directors={directors} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} canAssignMultipleManagers={canAssignMultipleManagers} setTitleManual={setTitleManual} />}
+      {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
       {selected && <DetailModal selected={selected} files={files} update={update} upload={upload} close={() => setSelected(null)} />}
     </section>
   );
 }
 
 function ScheduleRow({ s, lead, onOpen }) {
-  const owner = s.owner?.full_name || "Unassigned";
+  const owner = s.arranger?.full_name || s.owner?.full_name || "Unassigned";
   const customer = lead?.name || s.title || "Untitled meeting";
   const isToday = sameDay(s.start_at, new Date());
   return <button onClick={() => onOpen(s)} className="w-full text-left p-4 lg:px-5 hover:bg-blue-50/40 transition-colors grid lg:grid-cols-[130px_minmax(250px,1fr)_190px_150px_130px] gap-3 lg:gap-4 items-center">
     <div><div className="text-sm font-bold text-slate-900">{fmtTime(s.start_at)}</div><div className="text-[11px] text-slate-400 mt-0.5">{isToday ? "Today" : fmtDate(s.start_at)}</div></div>
     <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><span className="font-bold text-sm text-slate-900 truncate">{customer}</span>{s.priority && s.priority !== "normal" && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${s.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-orange-100 text-orange-700"}`}>{s.priority}</span>}</div><div className="text-xs text-slate-500 mt-1 truncate">{s.title}{lead?.project_type ? ` · ${lead.project_type}` : ""}</div><div className="flex flex-wrap gap-1.5 mt-2"><span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">{label(s.meeting_type)}</span>{s.location_address && <span className="text-[10px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{s.location_address}</span>}</div></div>
-    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 grid place-items-center text-xs font-bold">{owner.slice(0,1).toUpperCase()}</span><div className="min-w-0"><div className="text-xs font-bold text-slate-700 truncate">{owner}</div><div className="text-[10px] text-slate-400">Meeting owner</div></div></div>
+    <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 grid place-items-center text-xs font-bold">{owner.slice(0,1).toUpperCase()}</span><div className="min-w-0"><div className="text-xs font-bold text-slate-700 truncate">{owner}</div><div className="text-[10px] text-slate-400">Meeting arranged by</div></div></div>
     <div><ModeBadge mode={s.mode} /></div>
     <div className="flex items-center justify-between gap-2"><StatusBadge status={s.status} /><MoreVertical className="w-4 h-4 text-slate-300" /></div>
   </button>;
 }
 
-function CreateModal({ form, setForm, rule, team, managers, directors, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, canAssignMultipleManagers, setTitleManual }) {
+function CreateModal({ form, setForm, rule, team, activeTeam, calendar, slots, setSlots, checking, checkAvailability, save, saving, close, leads, customers, partyType, setPartyType, setTitleManual }) {
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center"><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="text-[10px] uppercase tracking-[0.18em] text-orange-600 font-bold">New Activity</div><h2 className="text-xl font-display font-bold mt-1">Create Schedule</h2><p className="text-xs text-slate-500 mt-1">Choose the team, check availability and confirm the meeting.</p></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500" /></button></div><div className="p-5 grid md:grid-cols-2 gap-4">
     <LeadCustomerPicker
       partyType={partyType}
@@ -520,13 +509,12 @@ function CreateModal({ form, setForm, rule, team, managers, directors, calendar,
       onSelectLead={lead => setForm(f => ({ ...f, lead_id: lead?.id || "", customer_id: "", customer_email: lead?.email || "" }))}
       onSelectCustomer={customer => setForm(f => ({ ...f, lead_id: "", customer_id: customer?.id || "", customer_email: customer?.email || "" }))}
     />
-    <label className="text-xs font-bold text-slate-600">Meeting Owner<select value={form.owner_id} onChange={e=>{setForm({...form,owner_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{team.filter(p=>p.is_active!==false).map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>
+    <label className="text-xs font-bold text-slate-600">Meeting Arranged By / Generated By<select value={form.arranged_by || ""} onChange={e=>{setForm({...form,arranged_by:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Select employee</option>{activeTeam.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email}</option>)}</select></label>
     <label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Title <span className="text-slate-400 font-normal">• auto-generated, editable</span><input value={form.title} onChange={e=>{setTitleManual(true);setForm({...form,title:e.target.value})}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Rahul Kumar — Site Visit" /></label>
     <label className="text-xs font-bold text-slate-600">Meeting Type<select value={form.meeting_type} onChange={e=>{setForm({...form,meeting_type:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm">{TYPES.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label>
     <label className="text-xs font-bold text-slate-600">Mode<select value={form.mode} onChange={e=>{setForm({...form,mode:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="physical">Physical</option><option value="digital">Digital</option></select></label>
     <label className="text-xs font-bold text-slate-600">Meeting Date<input type="date" value={form.date} onChange={e=>{setForm({...form,date:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
-    {(rule?.participant_rule?.manager==="any" || (form.priority==="urgent" && canAssignMultipleManagers))&&<ManagerPicker managers={managers} ids={form.manager_ids||[]} setIds={ids=>{setForm({...form,manager_ids:ids});setSlots([])}} multi={canAssignMultipleManagers} urgent={form.priority==="urgent"}/>}
-    {rule?.participant_rule?.director&&<label className="text-xs font-bold text-slate-600 md:col-span-2">Director / Required Presence<select value={form.director_id} onChange={e=>{setForm({...form,director_id:e.target.value});setSlots([])}} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm">{directors.map(p=><option key={p.id} value={p.id}>{p.full_name} — required</option>)}</select></label>}
+    <CoMemberPicker team={activeTeam} ids={form.comember_ids||[]} setIds={ids=>{setForm({...form,comember_ids:ids});setSlots([])}} />
     {form.mode==="physical"?<div className="md:col-span-2 grid md:grid-cols-3 gap-3"><label className="text-xs font-bold text-slate-600">Google Maps Link<input value={form.location_map_url} onChange={e=>setForm({...form,location_map_url:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Maps link" /></label><label className="text-xs font-bold text-slate-600">Address<input value={form.location_address} onChange={e=>setForm({...form,location_address:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Customer site address" /></label><label className="text-xs font-bold text-slate-600">Landmark<input value={form.location_landmark} onChange={e=>setForm({...form,location_landmark:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Nearby landmark" /></label></div>:<label className="text-xs font-bold text-slate-600 md:col-span-2">Meeting Link <span className="text-slate-400 font-normal">(optional)</span><input value={form.meeting_link} onChange={e=>setForm({...form,meeting_link:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" placeholder="Google Meet can be generated on sync" /></label>}
     <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-bold text-sm text-slate-800">Team Availability</div><div className="text-xs text-slate-500 mt-1">{calendar?.configured&&calendar?.master_calendar_configured?"Connected calendars will be checked together.":"Google Calendar connection is pending."}</div></div><button onClick={checkAvailability} disabled={checking||!calendar?.configured||!calendar?.master_calendar_configured} className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold disabled:opacity-50">{checking?"Checking…":"Check Available Slots"}</button></div>{slots.length>0&&<div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">{slots.map((s,i)=><button key={i} onClick={()=>setSlots(x=>x.map((z,j)=>({...z,selected:j===i})))} className={s.selected?"px-3 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold":"px-3 py-2.5 rounded-xl border bg-white text-xs font-bold hover:border-blue-300"}>{fmtTime(s.start)} – {fmtTime(s.end)}</button>)}</div>}</div>
     <label className="text-xs font-bold text-slate-600">Customer Email <span className="text-slate-400 font-normal">• auto from lead; manual entry updates lead</span><input value={form.customer_email} onChange={e=>setForm({...form,customer_email:e.target.value})} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm" /></label>
@@ -581,6 +569,20 @@ function LeadCustomerPicker({ partyType, setPartyType, leads, customers, selecte
     </div>}
   </div>;
 }
+function CoMemberPicker({ team, ids, setIds }) {
+  const selected = new Set(ids);
+  return <div className="md:col-span-2 text-xs font-bold text-slate-600">
+    Assign Co-Member(s) <span className="text-slate-400 font-normal">• multiple employees can be selected; their calendars will be checked</span>
+    <div className="mt-1.5 border rounded-xl p-2 max-h-40 overflow-auto grid sm:grid-cols-2 gap-1">
+      {team.map(p => <label key={p.id} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium">
+        <input type="checkbox" checked={selected.has(p.id)} onChange={()=>setIds(selected.has(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>
+        <span>{p.full_name || p.email}</span>
+      </label>)}
+      {!team.length && <div className="p-2 text-slate-400">No active employees available.</div>}
+    </div>
+  </div>;
+}
+
 function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   if (!multi) return <label className="text-xs font-bold text-slate-600">Manager<select value={ids[0]||""} onChange={e=>setIds(e.target.value?[e.target.value]:[])} className="mt-1.5 w-full h-10 border rounded-xl px-3 text-sm"><option value="">Any available manager</option>{managers.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>;
   return <div className="text-xs font-bold text-slate-600">Manager(s) <span className="text-slate-400 font-normal">• Admin/Director can assign multiple{urgent ? " • urgent/special case" : ""}</span><div className="mt-1.5 border rounded-xl p-2 max-h-32 overflow-auto space-y-1">{managers.map(p=><label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer font-medium"><input type="checkbox" checked={ids.includes(p.id)} onChange={()=>setIds(ids.includes(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>{p.full_name}</label>)}<button type="button" onClick={()=>setIds([])} className="text-[11px] text-blue-700 font-bold px-2 py-1">Auto assign any available</button></div></div>;

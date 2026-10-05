@@ -15,6 +15,20 @@ const decrypt=async(v:string)=>{const p=v.split(".");const k=await key();const d
 const redirect=()=>Deno.env.get("GOOGLE_DRIVE_OAUTH_REDIRECT_URI")||Deno.env.get("GOOGLE_DRIVE_OAUTH_REDIRECT_URI")||Deno.env.get("SUPABASE_URL")+"/functions/v1/google-drive-oauth/callback";
 async function token(body:any){const r=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(body)});const d=await r.json();if(!r.ok)throw new Error(d?.error_description||d?.error||"Google token exchange failed");return d}
 async function drive(path:string,t:string,init:RequestInit={}){const r=await fetch("https://www.googleapis.com/drive/v3"+path,{...init,headers:{Authorization:"Bearer "+t,"Content-Type":"application/json",...(init.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||"Google Drive request failed");return d}
+async function refreshAccessToken(c:any){
+ const refresh=await decrypt(c.refresh_token_encrypted);
+ const clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),clientSecret=Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
+ const t=await token({refresh_token:refresh,client_id:clientId,client_secret:clientSecret,grant_type:"refresh_token"});
+ const access=t.access_token;
+ await aGlobal.from("google_drive_connections").update({access_token_encrypted:await encrypt(access),token_expires_at:new Date(Date.now()+Number(t.expires_in||3600)*1000).toISOString(),last_synced_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq("id",c.id);
+ return access;
+}
+const aGlobal=admin();
+async function getDriveAccessToken(c:any){
+ const expires=Date.parse(c.token_expires_at||"");
+ if(c.access_token_encrypted && expires && expires>Date.now()+60000) return await decrypt(c.access_token_encrypted);
+ return await refreshAccessToken(c);
+}
 async function createRoot(t:string){const q="name='SANKALP BMS' and mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents";const x=await drive("/files?q="+encodeURIComponent(q)+"&pageSize=10&fields=files(id,name)",t);if(x.files?.[0])return x.files[0].id;const f=await drive("/files?fields=id,name",t,{method:"POST",body:JSON.stringify({name:"SANKALP BMS",mimeType:"application/vnd.google-apps.folder"})});return f.id}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
@@ -43,6 +57,14 @@ Deno.serve(async(req:Request)=>{
   const body=await req.json().catch(()=>({}));const action=String(body.action||"status");
   if(action==="start"){const {data:p}=await a.from("profiles").select("is_admin").eq("id",u.user.id).single();if(!p?.is_admin)return json({error:"Only Admin can connect Google Drive"},403);const clientId=Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");if(!clientId)throw new Error("GOOGLE_OAUTH_CLIENT_ID is not configured");const st=randomText(32),ver=randomText(48);await a.from("google_calendar_oauth_states").insert({state:st,user_id:u.user.id,connection_type:"drive",redirect_path:"/admin/calendar-settings",code_verifier:ver,redirect_uri:redirect(),expires_at:new Date(Date.now()+600000).toISOString()});const q=new URLSearchParams({client_id:clientId,redirect_uri:redirect(),response_type:"code",scope:SCOPES.join(" "),access_type:"offline",prompt:"consent",include_granted_scopes:"true",state:st,code_challenge:await sha256(ver),code_challenge_method:"S256"});return json({authorization_url:"https://accounts.google.com/o/oauth2/v2/auth?"+q.toString()})}
   if(action==="status"){const {data:c}=await a.from("google_drive_connections").select("google_email,root_folder_id,status,scope,connected_at,last_synced_at,last_error").maybeSingle();return json({connected:c?.status==="connected",connection:c||null})}
+  if(action==="quota"){
+   const {data:c,error:ce}=await a.from("google_drive_connections").select("id,access_token_encrypted,refresh_token_encrypted,token_expires_at,status").maybeSingle();
+   if(ce) throw ce;
+   if(!c||c.status!=="connected") return json({storage_quota:null});
+   const access=await getDriveAccessToken(c);
+   const about=await drive("/about?fields=storageQuota",access);
+   return json({storage_quota:about.storageQuota||null});
+  }
   if(action==="disconnect"){const {data:p}=await a.from("profiles").select("is_admin").eq("id",u.user.id).single();if(!p?.is_admin)return json({error:"Only Admin can disconnect Google Drive"},403);await a.from("google_drive_connections").delete().neq("id","00000000-0000-0000-0000-000000000000");return json({success:true})}
   return json({error:"Unsupported action"},400);
  }catch(e){console.error("google-drive-oauth error",e);return json({error:e instanceof Error?e.message:"Google Drive OAuth failed"},500)}

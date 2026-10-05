@@ -19,6 +19,7 @@ import { updateLead, updateLeadStatus } from "@/services/leadService";
 import AssigneeManager from "@/components/leads/AssigneeManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { downloadGoogleDriveFile } from "@/services/googleDriveService";
 import { cn } from "@/lib/utils";
 
 export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome, onLeadUpdated }) {
@@ -483,7 +484,7 @@ function ActivityRow({ a }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap"><div className="text-[10px] tracking-[0.12em] uppercase font-semibold text-stone-600">{labels[a.type] || a.type.replace(/_/g, " ")}</div><div className="text-xs text-stone-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(a.created_at)}</div></div>
         {a.type === "call" && meta.attempt_number && <div className="mt-1.5 inline-flex items-center gap-2 text-[11px] text-stone-500"><span className="font-semibold text-stone-700">Attempt #{meta.attempt_number}</span><span>·</span><span>{meta.outcome === "connected" ? "Connected" : "Not Connected"}</span>{meta.status_changed && <span className="text-emerald-700 font-medium">· First contact</span>}</div>}
-        {a.content && <div className="text-sm text-stone-900 mt-1 whitespace-pre-wrap">{a.content}</div>}
+        {a.content && (a.type === "schedule_file_added" && meta.schedule_file_id ? (\n          <button type="button" onClick={async () => { try { await downloadGoogleDriveFile({ fileId: meta.schedule_file_id, recordId: meta.schedule_file_id }); } catch (e) { toast.error(e.message || "Could not open file"); } }} className="text-left text-sm text-blue-700 hover:text-blue-900 hover:underline mt-1 whitespace-pre-wrap cursor-pointer">\n            {a.content}\n          </button>\n        ) : (\n          <div className="text-sm text-stone-900 mt-1 whitespace-pre-wrap">{a.content}</div>\n        ))}
         {a.type.startsWith("schedule_") && meta.meeting_type && <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] text-stone-500"><span>{String(meta.meeting_type).replace(/_/g, " ")}</span>{meta.mode && <span>· {meta.mode}</span>}{meta.status && <span>· {String(meta.status).replace(/_/g, " ")}</span>}</div>}
         {actor && <div className="text-xs text-stone-500 mt-1 inline-flex items-center gap-1"><UserRound className="w-3 h-3" />{actor}</div>}
       </div>

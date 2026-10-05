@@ -371,7 +371,7 @@ export default function SchedulePage() {
     try{
       if(action==="reschedule" && calendar?.master_calendar_configured){
         const participantIds=[selected.arranged_by,selected.owner_id,...(selected.participants||[]).filter(p=>p.is_required).map(p=>p.user_id)].filter(Boolean);
-        const finalCalendar=await checkCalendarAvailability({start:payload.start_at,end:payload.end_at,userIds:[...new Set(participantIds)]});
+        const finalCalendar=await checkCalendarAvailability({start:payload.start_at,end:payload.end_at,userIds:[...new Set(participantIds)],excludeEventId:selected.google_calendar_event_id||null});
         if((finalCalendar?.busy||[]).length) throw new Error("The new time is no longer free on the selected team calendars.");
       }
       const u=await lifecycleAction(selected.id,action,payload);

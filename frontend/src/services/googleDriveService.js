@@ -37,26 +37,24 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
   }
   if (!data?.session_url) throw new Error("Google Drive upload session was not created");
 
-  let response;
+  // The mobile browser may report a failed/empty response even after Google Drive
+  // has accepted the bytes. Never treat that response alone as the source of truth.
+  // We always ask the authenticated storage service to finalize/query the session.
+  let transferError = null;
   try {
-    response = await fetch(data.session_url, {
+    const response = await fetch(data.session_url, {
       method: "PUT",
       headers: { "Content-Length": String(file.size) },
       body: file,
     });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      transferError = new Error(body || ("Google Drive upload returned " + response.status));
+    }
   } catch (e) {
-    throw new Error(e?.message || "Google Drive file transfer failed");
+    transferError = new Error(e?.message || "Google Drive file transfer was interrupted");
   }
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(body || ("Google Drive upload failed (" + response.status + ")"));
-  }
-
-  // Google Drive normally returns the created file resource here. We deliberately
-  // finalize through our authenticated storage function as well: this makes the
-  // metadata handoff reliable on mobile browsers even when the direct PUT response
-  // body is empty/unreadable after the file has already been created.
   const finalizeBody = {
     action: "finalize_upload",
     module,
@@ -75,9 +73,9 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
   if (finalizeError) {
     let message = finalizeError.message;
     try { const details = await finalizeError.context?.json?.(); message = details?.error || message; } catch (_) {}
-    throw new Error(message || "Google Drive upload could not be finalized");
+    throw new Error(message || transferError?.message || "Google Drive upload could not be finalized");
   }
-  if (!finalized?.drive_file_id) throw new Error("Google Drive upload completed but file metadata was not returned");
+  if (!finalized?.drive_file_id) throw new Error(transferError?.message || "Google Drive upload completed but file metadata was not returned");
 
   onProgress?.(100);
   return {

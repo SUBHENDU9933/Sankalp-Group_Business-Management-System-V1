@@ -45,7 +45,7 @@ const startDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const overlaps = (a, b, s, e) => new Date(a).getTime() < new Date(e).getTime() && new Date(b).getTime() > new Date(s).getTime();
 const whatsappNumber = value => {
-  const digits = String(value || "").replace(/\\D/g, "");
+  const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "";
   if (digits.length === 10) return "91" + digits;
   if (digits.length === 11 && digits.startsWith("0")) return "91" + digits.slice(1);
@@ -189,7 +189,7 @@ export default function SchedulePage() {
     return rows.filter(s => {
       const d = new Date(s.start_at);
       if (dateTab === "today") return sameDay(d, today);
-      if (dateTab === "scheduled") return d >= today && !["completed", "cancelled", "customer_cancelled", "no_show"].includes(s.status);
+      if (dateTab === "scheduled") return d >= today && !["completed", "cancelled", "customer_cancelled", "team_cancelled", "customer_no_show", "no_show"].includes(s.status);
       if (dateTab === "next3") return d >= today && d < next3;
       if (dateTab === "next7") return d >= today && d < next7;
       if (dateTab === "previous") return d < today;
@@ -229,7 +229,7 @@ export default function SchedulePage() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const active = rows.filter(s => !["cancelled", "customer_cancelled"].includes(s.status));
+    const active = rows.filter(s => !["cancelled", "customer_cancelled", "team_cancelled", "customer_no_show"].includes(s.status));
     return {
       today: rows.filter(s => sameDay(s.start_at, now)).length,
       upcoming: active.filter(s => new Date(s.start_at) >= now).length,

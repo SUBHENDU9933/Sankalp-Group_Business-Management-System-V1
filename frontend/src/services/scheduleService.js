@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { uploadToGoogleDrive, deleteGoogleDriveFile } from "@/services/googleDriveService";
+import { uploadToGoogleDrive } from "@/services/googleDriveService";
 
 export const fetchSchedules = async ({ from, to, status, ownerId } = {}) => {
   let q = supabase.from("schedules").select("*, arranger:profiles!schedules_arranged_by_fkey(id,full_name,email,phone), owner:profiles!schedules_owner_id_fkey(id,full_name,email,phone), creator:profiles!schedules_created_by_fkey(id,full_name), next_owner:profiles!schedules_next_action_owner_id_fkey(id,full_name), participants:schedule_participants(user_id,participant_role,is_required,profile:profiles!schedule_participants_user_id_fkey(id,full_name,email,phone,role,is_admin))").is("deleted_at", null).order("start_at", { ascending: true });

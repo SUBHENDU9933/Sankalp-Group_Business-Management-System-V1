@@ -111,7 +111,7 @@ export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
   const response = await fetch(base + "/functions/v1/google-drive-storage", {
     method: "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "download", module: "schedule", record_id: recordId }),
+    body: JSON.stringify({ action: "download", module: "schedule", record_id: recordId, file_id: fileId }),
   });
   if (!response.ok) {
     let message = "Could not download file";

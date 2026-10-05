@@ -163,12 +163,6 @@ export default function SchedulePage() {
     if (form.title !== nextTitle) setForm(f => ({ ...f, title: nextTitle }));
   }, [showCreate, titleManual, form.lead_id, form.customer_id, form.meeting_type, form.mode, form.date, slots, leadMap, customerMap]);
 
-  useEffect(() => {
-    if (showCreate && rule?.participant_rule?.director && !form.director_id && directors[0]) {
-      setForm(f => ({ ...f, director_id: directors[0].id }));
-    }
-  }, [showCreate, rule, directors]);
-
   const resetFilters = () => setFilters({ owner: "", assignedBy: "", manager: "", status: "", type: "", mode: "", priority: "", lead: "", calendar: "", from: "", to: "" });
 
   const dateFiltered = useMemo(() => {
@@ -393,7 +387,7 @@ export default function SchedulePage() {
               <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Active filters</span>
               {Object.entries(filters).filter(([,v]) => v).map(([key,value]) => {
                 const names = { owner:"Owner", assignedBy:"Assigned By", manager:"Manager", status:"Status", type:"Meeting Type", mode:"Mode", priority:"Priority", lead:"Lead / Customer", calendar:"Calendar", from:"From", to:"To" };
-                const collections = { owner:team, assignedBy:team, manager:managers, lead:leads };
+                const collections = { owner:team, assignedBy:team, manager:activeTeam, lead:leads };
                 const item = collections[key]?.find(x => x.id === value);
                 const display = item ? (item.full_name || item.name) : (key === "calendar" ? label(value) : value);
                 return <button key={key} onClick={() => setFilters(x => ({...x,[key]:""}))} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold hover:bg-blue-100">{names[key] || key}: {display}<X className="w-3 h-3" /></button>;
@@ -417,7 +411,7 @@ export default function SchedulePage() {
               {[
                 ["Owner", "owner", team.filter(p => p.is_active !== false), "id", "full_name"],
                 ["Assigned By", "assignedBy", team.filter(p => p.is_active !== false), "id", "full_name"],
-                ["Manager", "manager", managers, "id", "full_name"],
+                ["Co-Member", "manager", activeTeam, "id", "full_name"],
                 ["Status", "status", Object.keys(statusMeta).map(k => ({ id: k, full_name: statusMeta[k].label })), "id", "full_name"],
                 ["Meeting Type", "type", TYPES.map(([id, full_name]) => ({ id, full_name })), "id", "full_name"],
                 ["Mode", "mode", [{ id: "physical", full_name: "Physical" }, { id: "digital", full_name: "Digital" }], "id", "full_name"],

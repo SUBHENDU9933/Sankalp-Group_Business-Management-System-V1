@@ -18,11 +18,15 @@ export const syncScheduleToCalendar=async(scheduleId)=>{const {data,error}=await
 export const fetchCalendarMappings=async()=>{const {data,error}=await supabase.from("schedule_calendar_mappings").select("*, profile:profiles!schedule_calendar_mappings_user_id_fkey(id,full_name,email,role,is_admin)").order("user_id");if(error)throw error;return data||[];};
 export const upsertCalendarMapping=async(payload)=>{const {data,error}=await supabase.from("schedule_calendar_mappings").upsert(payload,{onConflict:"provider,calendar_id,user_id"}).select("*").single();if(error)throw error;return data;};
 export const createSchedule=async(payload,participantIds=[],requiredParticipantIds=[])=>{
-  const {data:authData,error:authError}=await supabase.auth.getUser(); if(authError||!authData?.user?.id)throw authError||new Error("Login session expired");
-  const createdBy=authData.user.id;
-  const {data,error}=await supabase.from("schedules").insert([{...payload,created_by:createdBy,owner_id:null}]).select("*").single(); if(error)throw error;
   const ids=[...new Set((participantIds||[]).filter(Boolean))];
-  if(ids.length){const requiredSet=new Set(requiredParticipantIds||[]);const {error:e}=await supabase.from("schedule_participants").insert(ids.map(user_id=>({schedule_id:data.id,user_id,participant_role:"participant",is_required:requiredSet.has(user_id),added_by:createdBy})));if(e)throw e;}
+  const requiredIds=[...new Set((requiredParticipantIds||[]).filter(Boolean))];
+  const {data:id,error}=await supabase.rpc("create_schedule_with_participants",{
+    p_payload:{...payload,owner_id:null},
+    p_participant_ids:ids,
+    p_required_participant_ids:requiredIds
+  });
+  if(error)throw error;
+  if(!id)throw new Error("Schedule ID was not returned");
 
   const meetingStages = ["site_visit","customer_home","office_meeting","measurement_visit","project_review","material_discussion","video_meeting","design_presentation"];
   if (payload.lead_id && meetingStages.includes(payload.meeting_type)) {
@@ -31,7 +35,7 @@ export const createSchedule=async(payload,participantIds=[],requiredParticipantI
       await supabase.from("leads").update({status:"floor_plan_site_info"}).eq("id",lead.id);
     }
   }
-  return fetchScheduleById(data.id);
+  return fetchScheduleById(id);
 };
 export const updateSchedule=async(id,payload)=>{
   const {data:authData}=await supabase.auth.getUser();

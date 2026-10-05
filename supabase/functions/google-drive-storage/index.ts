@@ -26,7 +26,10 @@ Deno.serve(async(req:Request)=>{if(req.method==="OPTIONS")return new Response("o
   let scheduleFile:any=null;
   if(moduleName==="schedule"){
     const {data:inserted,error:ie}=await a.from("schedule_files").insert([{schedule_id:recordId,lead_id:leadId,file_name:d.name||fileName,file_type:d.mimeType||mimeType,file_size:Number(d.size||size),source,category,storage_provider:"google_drive",storage_path:null,file_url:d.webViewLink||("https://drive.google.com/open?id="+d.id),drive_file_id:d.id,drive_url:d.webViewLink||("https://drive.google.com/open?id="+d.id),drive_parent_id:(d.parents||[])[0]||null,uploaded_by:u.user.id}]).select("*").single();
-    if(ie)throw new Error("Drive upload succeeded, but BMS metadata save failed: "+ie.message);
+    if(ie){
+      try{await fetch("https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(d.id),{method:"DELETE",headers:{Authorization:"Bearer "+t}})}catch(_){}
+      throw new Error("Drive upload succeeded, but BMS metadata save failed: "+ie.message);
+    }
     scheduleFile=inserted;
   }
   return json({provider:"google_drive",drive_file_id:d.id,drive_url:d.webViewLink||("https://drive.google.com/open?id="+d.id),drive_parent_id:(d.parents||[])[0]||null,name:d.name||fileName,type:d.mimeType||mimeType,size:Number(d.size||size),schedule_file:scheduleFile})}

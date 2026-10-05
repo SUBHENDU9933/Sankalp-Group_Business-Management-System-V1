@@ -149,7 +149,7 @@ export default function AdminCalendarSettingsPage() {
     <div data-testid="admin-calendar-settings-page">
       <PageHeader subtitle="Admin" title="Google & System Settings" />
       <PageBody>
-        <div className="max-w-6xl">
+        <div className="w-full">
           <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-blue-50/60 p-6 shadow-sm lg:p-7 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div>

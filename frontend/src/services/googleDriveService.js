@@ -41,3 +41,41 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onP
   onProgress?.(100);
   return { provider: "google_drive", driveFileId: uploaded.id, driveUrl: uploaded.webViewLink || ("https://drive.google.com/open?id=" + uploaded.id), driveParentId: data.parent_folder_id, name: uploaded.name || file.name, type: uploaded.mimeType || file.type, size: Number(uploaded.size || file.size) };
 };
+
+export const deleteGoogleDriveFile = async ({ driveFileId, module = "misc", recordId } = {}) => {
+  if (!driveFileId) return;
+  const form = new FormData();
+  form.set("action", "delete");
+  form.set("module", module);
+  if (recordId) form.set("record_id", recordId);
+  form.set("drive_file_id", driveFileId);
+  const { data, error } = await supabase.functions.invoke("google-drive-storage", { body: form });
+  if (error) throw error;
+  return data;
+};
+
+export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
+  if (!fileId || !recordId) throw new Error("File reference is missing");
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error("Authentication required");
+  const base = String(process.env.REACT_APP_SUPABASE_URL || "").replace(/\/$/, "");
+  const response = await fetch(base + "/functions/v1/google-drive-storage", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "download", module: "schedule", record_id: recordId }),
+  });
+  if (!response.ok) {
+    let message = "Could not download file";
+    try { const body = await response.json(); message = body?.error || message; } catch (_) {}
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const name = match?.[1] || "download";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};

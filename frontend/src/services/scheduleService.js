@@ -46,6 +46,8 @@ export const updateSchedule=async(id,payload)=>{
   if(error)throw error;
   return data;
 };
+export const lifecycleAction=async(id,action,payload={})=>{const {data,error}=await supabase.rpc("schedule_lifecycle_action",{p_schedule_id:id,p_action:action,p_payload:payload});if(error)throw error;return data;};
+export const fetchScheduleHistory=async(scheduleId)=>{const {data,error}=await supabase.from("schedule_history").select("*").eq("schedule_id",scheduleId).order("created_at",{ascending:false});if(error)throw error;return data||[];};
 export const completeSchedule=async(id,payload={})=>lifecycleAction(id,"complete",payload);
 export const fetchScheduleFiles=async(scheduleId)=>{const {data,error}=await supabase.from("schedule_files").select("*").eq("schedule_id",scheduleId).is("deleted_at",null).order("uploaded_at",{ascending:false});if(error)throw error;return data||[];};
 export const uploadScheduleFile=async(scheduleId,leadId,file,{source="employee",category="other"}={})=>{const res=await uploadFile(file,`schedule-files/${scheduleId}`);const {data:a}=await supabase.auth.getUser();const {data,error}=await supabase.from("schedule_files").insert([{schedule_id:scheduleId,lead_id:leadId||null,file_name:res.name,file_type:res.type,file_size:res.size,source,category,storage_provider:"supabase",storage_path:res.path,file_url:res.url,uploaded_by:a?.user?.id}]).select("*").single();if(error)throw error;return data;};

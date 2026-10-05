@@ -19,7 +19,7 @@ export const disconnectGoogleDrive = async () => {
   return data;
 };
 
-export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onProgress } = {}) => {
+export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, leadId, source = "employee", category = "other", onProgress } = {}) => {
   if (!file) throw new Error("No file selected");
   const form = new FormData();
   form.set("action", "start_upload");
@@ -61,6 +61,9 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onP
     action: "finalize_upload",
     module,
     record_id: recordId || "",
+    lead_id: leadId || "",
+    source,
+    category,
     session_url: data.session_url,
     file_name: file.name,
     mime_type: file.type || "application/octet-stream",
@@ -85,6 +88,7 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, onP
     name: finalized.name || file.name,
     type: finalized.type || file.type,
     size: Number(finalized.size || file.size),
+    scheduleFile: finalized.schedule_file || null,
   };
 };
 

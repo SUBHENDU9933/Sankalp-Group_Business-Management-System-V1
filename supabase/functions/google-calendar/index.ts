@@ -162,7 +162,34 @@ if(action==="create_event"){
    if(s.google_calendar_status==="synced"&&s.google_calendar_event_id)return json({success:true,already_synced:true,event_id:s.google_calendar_event_id,event_url:s.google_calendar_url,meeting_link:s.meeting_link});
    const ids=await requiredUsers(admin,scheduleId),participants=await connectedUserCalendars(admin,ids),master=await masterInfo(admin);
    const start=String(s.start_at),end=String(s.end_at||"");if(!end)return json({error:"Schedule end time is required"},400);
-   const conflicts:any[]=[];for(const c of [{...master,user_id:null},...participants.filter((x:any)=>x.connected!==false)]){const fb=await freeBusy(c,start,end);for(const b of fb.calendars?.[c.calendar_id]?.busy||[])if(overlaps(b,start,end))conflicts.push({...b,user_id:c.user_id,calendar_email:c.calendar_email})}
+   // Final booking validation uses the same participant-aware rule as slot search.
+   const conflicts:any[]=[];
+   for(const c of participants.filter((x:any)=>x.connected!==false)){
+     const fb=await freeBusy(c,start,end);
+     for(const b of fb.calendars?.[c.calendar_id]?.busy||[])if(overlaps(b,start,end))conflicts.push({...b,user_id:c.user_id,calendar_email:c.calendar_email});
+   }
+   const {data:otherSchedules}=await admin.from("schedules")
+     .select("id,title,start_at,end_at,status,owner_id,arranged_by,deleted_at")
+     .lt("start_at",end).gt("end_at",start)
+     .neq("id",scheduleId);
+   const activeStatuses=["scheduled","confirmed","in_progress","pending_confirmation"];
+   const activeOther=(otherSchedules||[]).filter((x:any)=>!x.deleted_at&&activeStatuses.includes(String(x.status)));
+   const otherIds=activeOther.map((x:any)=>x.id);
+   const {data:otherParticipants}=otherIds.length
+     ? await admin.from("schedule_participants").select("schedule_id,user_id").in("schedule_id",otherIds)
+     : {data:[]};
+   const selectedSet=new Set(ids);
+   const addBmsConflict=(userId:string,s:any)=>{if(userId&&selectedSet.has(userId))conflicts.push({start:s.start_at,end:s.end_at,user_id:userId,calendar_email:null,title:s.title,source:"bms"})};
+   for(const p of otherParticipants||[]){
+     const s2=activeOther.find((x:any)=>x.id===p.schedule_id);
+     if(s2)addBmsConflict(p.user_id,s2);
+   }
+   for(const s2 of activeOther){
+     if(s2.owner_id&&!((otherParticipants||[]).some((p:any)=>p.schedule_id===s2.id&&p.user_id===s2.owner_id)))addBmsConflict(s2.owner_id,s2);
+     if(s2.arranged_by&&!((otherParticipants||[]).some((p:any)=>p.schedule_id===s2.id&&p.user_id===s2.arranged_by)) )addBmsConflict(s2.arranged_by,s2);
+   }
+   const masterBusy=await listBusy(master,start,end,null);
+   for(const b of masterBusy)if(!b.schedule_id)conflicts.push({...b,user_id:null,calendar_email:master.calendar_email,title:"Company Calendar",source:"master"});
    if(conflicts.length){await admin.from("schedules").update({google_calendar_status:"failed"}).eq("id",scheduleId);return json({error:"Selected time is no longer available",code:"SLOT_CONFLICT",blocking:conflicts},409)}
    const attendees=participants.filter(c=>c.connected!==false&&c.calendar_email&&c.calendar_email!==master.calendar_email).map(c=>({email:c.calendar_email}));
    const body:any={id:("sankalp"+scheduleId.replaceAll("-","")).slice(0,1024),summary:s.title,description:[s.description||"",s.lead_id?"Sankalp Lead: "+s.lead_id:""].filter(Boolean).join("\n"),location:s.location_address||"",start:{dateTime:start,timeZone:s.timezone||"Asia/Kolkata"},end:{dateTime:end,timeZone:s.timezone||"Asia/Kolkata"},attendees,reminders:{useDefault:true},extendedProperties:{private:{sankalp_schedule_id:scheduleId,sankalp_lead_id:s.lead_id||""}}};

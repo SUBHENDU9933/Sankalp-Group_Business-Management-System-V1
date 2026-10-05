@@ -256,7 +256,7 @@ export default function LeadSegmentPage({ segment = "active" }) {
                   <div className="pointer-events-none absolute -right-6 -bottom-8 h-24 w-24 rounded-full bg-white/50 blur-2xl transition-transform duration-500 group-hover:scale-125" />
                   <div className="relative flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className={`text-[10px] font-extrabold uppercase tracking-[.15em] text-slate-500/80 transition-colors duration-300 group-hover:${style.accent.replace("text-","text-")}`}>{label}</p>
+                      <p className={`text-[10px] font-extrabold uppercase tracking-[.15em] text-slate-500/80`}>{label}</p>
                       <div className="mt-2 truncate text-[25px] font-black leading-none tracking-[-.045em] text-slate-900">{displayValue}</div>
                       <p className="mt-2 truncate text-[11px] font-medium text-slate-500">{sub}</p>
                     </div>

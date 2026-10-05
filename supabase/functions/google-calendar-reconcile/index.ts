@@ -177,13 +177,6 @@ Deno.serve(async(req:Request)=>{
     }
     return json({success:true,processed:(schedules||[]).length+(items||[]).length,synced,failed,skipped,ran_at:new Date().toISOString()});
   } catch(e) {
-        const message=e instanceof Error?e.message:"Calendar reconciliation failed";
-        await failItem(admin,item,message);
-        failed++;
-      }
-    }
-    return json({success:true,processed:(items||[]).length,synced,failed,skipped,ran_at:new Date().toISOString()});
-  } catch(e) {
     console.error("google-calendar-reconcile error",e);
     return json({error:e instanceof Error?e.message:"Background reconciliation failed"},500);
   }

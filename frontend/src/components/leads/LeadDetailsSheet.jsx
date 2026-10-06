@@ -554,8 +554,9 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
               <div className="border border-stone-200 bg-white overflow-hidden">
                 <div className="w-full overflow-hidden">
                   <div className="w-full min-w-0">
-                    <div className="grid grid-cols-[minmax(145px,1.8fr)_72px_55px_100px_55px_64px] gap-1.5 px-2.5 py-2.5 bg-stone-50 border-b border-stone-200 text-[9px] tracking-[0.06em] uppercase font-semibold text-stone-500">
-                      <span>File Name</span><span>Category</span><span>Source</span><span>Uploaded / Date</span><span>Size</span><span className="text-right">Actions</span>
+                    <div className="grid grid-cols-[20px_minmax(135px,1fr)_82px_58px_70px_76px_64px] gap-1.5 px-2 py-2 bg-stone-50 border-b border-stone-200 text-[8px] tracking-[0.05em] uppercase font-semibold text-stone-500">
+                      <span className="flex items-center justify-center"><span className="w-3 h-3 border border-stone-300 bg-white" /></span>
+                      <span>File Name</span><span>Category</span><span>Source</span><span>Uploaded By</span><span>Uploaded Date</span><span className="text-right">Actions</span>
                     </div>
                     {loadingLeadFiles ? (
                       <div className="min-h-[220px] flex items-center justify-center text-sm text-stone-500">Loading files…</div>
@@ -572,22 +573,24 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                         const isImage = String(file.file_type || "").startsWith("image/");
                         const size = Number(file.file_size || 0);
                         const sizeLabel = size >= 1024 * 1024 ? (size / 1024 / 1024).toFixed(1) + " MB" : Math.max(1, Math.round(size / 1024)) + " KB";
+                        const categoryClass = file.category === "room_photo" ? "bg-orange-50 text-orange-700 border-orange-200" : file.category === "floor_plan" ? "bg-violet-50 text-violet-700 border-violet-200" : file.category === "drawing" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : file.category === "reference_image" ? "bg-rose-50 text-rose-700 border-rose-200" : file.category === "quotation" || file.category === "pdf_document" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-sky-50 text-sky-700 border-sky-200";
                         return (
-                          <div key={file.id} className="grid grid-cols-[minmax(260px,2.2fr)_110px_90px_150px_80px_96px] gap-3 px-3 py-2.5 border-b border-stone-100 last:border-0 items-center hover:bg-stone-50/70">
-                            <div className="min-w-0 flex items-center gap-2.5">
-                              <div className="w-10 h-10 rounded border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
-                                {isImage && leadFileThumbs[file.id] ? <img src={leadFileThumbs[file.id]} alt="" className="w-full h-full object-cover" /> : isImage ? <FileImage className="w-5 h-5 text-blue-500" /> : <FileDocument className="w-5 h-5 text-red-500" />}
+                          <div key={file.id} className="grid grid-cols-[20px_minmax(135px,1fr)_82px_58px_70px_76px_64px] gap-1.5 px-2 py-2 border-b border-stone-100 last:border-0 items-center hover:bg-stone-50/70">
+                            <span className="w-3 h-3 border border-stone-300 bg-white" />
+                            <div className="min-w-0 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
+                                {isImage && leadFileThumbs[file.id] ? <img src={leadFileThumbs[file.id]} alt="" className="w-full h-full object-cover" /> : isImage ? <FileImage className="w-4 h-4 text-blue-500" /> : <FileDocument className="w-4 h-4 text-red-500" />}
                               </div>
-                              <span className="text-sm text-stone-800 truncate" title={file.file_name}>{file.file_name}</span>
+                              <span className="text-[10px] font-medium text-stone-800 truncate" title={file.file_name}>{file.file_name}</span>
                             </div>
-                            <span className="inline-flex w-fit items-center rounded px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">{category?.label || file.category || "Other"}</span>
-                            <span className="inline-flex w-fit items-center rounded px-2 py-0.5 text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">{file.source || "lead"}</span>
-                            <div className="text-xs text-stone-600 min-w-0"><div className="truncate">{uploadedBy}</div><div className="text-stone-400 mt-0.5">{formatDateTime(file.uploaded_at)}</div></div>
-                            <span className="text-xs text-stone-500">{sizeLabel}</span>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-stone-500 hover:text-blue-700" title="Preview" onClick={async () => { try { await downloadLeadFile({ fileId: file.id, preview: true }); } catch (e) { toast.error(e.message || "Could not preview file"); } }}><Eye className="w-4 h-4" /></Button>
-                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-stone-500 hover:text-blue-700" title="Download" onClick={async () => { try { await downloadLeadFile({ fileId: file.id }); } catch (e) { toast.error(e.message || "Could not download file"); } }}><Download className="w-4 h-4" /></Button>
-                              {isAdmin && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700" title="Delete" onClick={() => handleLeadFileDelete(file.id)}><MoreVertical className="w-4 h-4" /></Button>}
+                            <span className={cn("inline-flex w-fit max-w-full items-center rounded px-1.5 py-0.5 text-[8px] leading-tight font-semibold border truncate", categoryClass)}>{category?.label || file.category || "Other"}</span>
+                            <span className="inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[8px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">{file.source === "schedule" ? "Schedule" : "Lead"}</span>
+                            <span className="text-[9px] text-stone-600 truncate" title={uploadedBy}>{uploadedBy}</span>
+                            <span className="text-[8px] leading-tight text-stone-500">{formatDateTime(file.uploaded_at)}</span>
+                            <div className="flex items-center justify-end gap-0.5">
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Preview" onClick={async () => { try { await downloadLeadFile({ fileId: file.id, preview: true }); } catch (e) { toast.error(e.message || "Could not preview file"); } }}><Eye className="w-3.5 h-3.5" /></Button>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-stone-500 hover:text-blue-700 hover:bg-blue-50" title="Download" onClick={async () => { try { await downloadLeadFile({ fileId: file.id }); } catch (e) { toast.error(e.message || "Could not download file"); } }}><Download className="w-3.5 h-3.5" /></Button>
+                              {isAdmin && <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-stone-500 hover:text-rose-700 hover:bg-rose-50" title="Delete" onClick={() => handleLeadFileDelete(file.id)}><MoreVertical className="w-3.5 h-3.5" /></Button>}
                             </div>
                           </div>
                         );

@@ -157,13 +157,24 @@ Deno.serve(async(req:Request)=>{
     if(action==="download"||action==="preview"){
       if(!fileId) return json({error:"File reference is missing"},400);
       let sf:any=null;
-      const {data:lf}=await userDb(bearer).from("lead_files").select("id,file_name,file_type,drive_file_id").eq("id",fileId).is("deleted_at",null).maybeSingle();
+      const {data:lf}=await userDb(bearer)
+        .from("lead_files")
+        .select("id,lead_id,schedule_id,file_name,file_type,drive_file_id")
+        .eq("id",fileId)
+        .is("deleted_at",null)
+        .maybeSingle();
       if(lf?.drive_file_id) sf=lf;
       else {
-        const {data:s}=await userDb(bearer).from("schedule_files").select("id,file_name,file_type,drive_file_id").eq("id",fileId).is("deleted_at",null).maybeSingle();
+        const {data:s}=await userDb(bearer)
+          .from("schedule_files")
+          .select("id,lead_id,schedule_id,file_name,file_type,drive_file_id")
+          .eq("id",fileId)
+          .is("deleted_at",null)
+          .maybeSingle();
         sf=s;
       }
       if(!sf?.drive_file_id) return json({error:"File not found or access denied"},404);
+      if(leadId && sf.lead_id && sf.lead_id!==leadId) return json({error:"File does not belong to this Lead"},403);
       const r=await fetch("https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(sf.drive_file_id)+"?alt=media",{headers:{Authorization:"Bearer "+t}});
       if(!r.ok) throw new Error(await r.text());
       const safeName=String(sf.file_name||"download").replaceAll('"',"");

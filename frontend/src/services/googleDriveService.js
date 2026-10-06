@@ -206,32 +206,43 @@ export const uploadLeadFile = async ({ file, leadId, category, onProgress } = {}
   });
   if (!started?.session_url) throw new Error("Google Drive upload session was not created");
 
-  const response = await fetch(started.session_url, {
-    method: "PUT",
-    headers: { "Content-Length": String(file.size), "Content-Range": "bytes 0-" + (file.size - 1) + "/" + file.size },
-    body: file,
-  });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(body || ("Google Drive upload returned " + response.status));
+  // Google Drive can successfully accept the bytes while the browser reports
+  // a CORS/network failure on the resumable PUT response. Never use that
+  // browser response as the source of truth for Lead Files.
+  let transferError = null;
+  try {
+    const response = await fetch(started.session_url, {
+      method: "PUT",
+      headers: { "Content-Length": String(file.size) },
+      body: file,
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      transferError = new Error(body || ("Google Drive upload returned " + response.status));
+    }
+  } catch (e) {
+    transferError = new Error(e?.message || "Google Drive file transfer was interrupted");
   }
-  const driveMeta = await response.json().catch(() => null);
-  if (!driveMeta?.id) throw new Error("Google Drive upload completed without a file ID");
 
-  const registered = await invokeStorage({
-    action: "register",
+  // Finalize/query the same resumable session server-side. This both handles
+  // the browser CORS case and registers the BMS row atomically on success.
+  const finalized = await invokeStorage({
+    action: "finalize_upload",
     lead_id: leadId,
     category,
+    session_url: started.session_url,
     file_name: file.name,
     mime_type: file.type || "application/octet-stream",
     size: String(file.size),
-    drive_file_id: driveMeta.id,
-    drive_url: driveMeta.webViewLink || ("https://drive.google.com/open?id=" + driveMeta.id),
-    drive_parent_id: driveMeta.parents?.[0] || started.parent_folder_id || null,
+  }).catch((e) => {
+    throw new Error(e?.message || transferError?.message || "Google Drive upload could not be finalized");
   });
-  if (!registered?.bms_file_id) throw new Error("Google Drive upload completed but BMS registration failed");
+
+  if (!finalized?.bms_file_id) {
+    throw new Error(transferError?.message || "Google Drive upload completed but BMS registration failed");
+  }
   onProgress?.(100);
-  return registered;
+  return finalized;
 };
 
 export const deleteLeadFile = async (fileId) => {

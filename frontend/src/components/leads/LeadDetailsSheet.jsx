@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Phone, MessageCircle, Mail, Pencil, ArrowRightCircle, MapPin, IndianRupee,
   CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History, Calculator,
-  CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle, Upload, Image, Home, Map, Ruler, FileType, Quote, FolderOpen, FileSpreadsheet, X,
+  CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle, Upload, Image, Home, Map, Ruler, FileType, Quote, FolderOpen, FileSpreadsheet, X, Eye, Download, MoreVertical, FileImage, FileText as FileDocument,
 } from "lucide-react";
 import { LEAD_PRIORITIES, LEAD_STATUSES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity, logLeadCallOutcome } from "@/services/leadActivityService";
@@ -19,7 +19,7 @@ import { updateLead, updateLeadStatus } from "@/services/leadService";
 import AssigneeManager from "@/components/leads/AssigneeManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { fetchLeadFiles, uploadLeadFile, downloadLeadFile, deleteLeadFile } from "@/services/googleDriveService";
+import { fetchLeadFiles, uploadLeadFile, downloadLeadFile, deleteLeadFile, getLeadFileBlob } from "@/services/googleDriveService";
 import { cn } from "@/lib/utils";
 
 export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome, onLeadUpdated }) {
@@ -45,6 +45,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   const [selectedFile, setSelectedFile] = useState(null);
   const [leadFiles, setLeadFiles] = useState([]);
   const [loadingLeadFiles, setLoadingLeadFiles] = useState(false);
+  const [leadFileThumbs, setLeadFileThumbs] = useState({});
   const [uploadingLeadFile, setUploadingLeadFile] = useState(false);
 
   useEffect(() => {
@@ -58,6 +59,33 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   }, [open, lead?.id]);
 
   const isAdmin = user?.role === "admin" || profiles.some((p) => p.id === user?.id && p.role === "admin");
+
+  useEffect(() => {
+    let cancelled = false;
+    const imageFiles = leadFiles.filter((file) => String(file.file_type || "").startsWith("image/"));
+    if (!imageFiles.length) {
+      setLeadFileThumbs({});
+      return () => { cancelled = true; };
+    }
+    Promise.all(imageFiles.map(async (file) => {
+      try {
+        const blob = await getLeadFileBlob(file.id);
+        return [file.id, URL.createObjectURL(blob)];
+      } catch (_) {
+        return [file.id, null];
+      }
+    })).then((entries) => {
+      if (cancelled) {
+        entries.forEach(([, url]) => { if (url) URL.revokeObjectURL(url); });
+        return;
+      }
+      setLeadFileThumbs((prev) => {
+        Object.values(prev).forEach((url) => { if (url) URL.revokeObjectURL(url); });
+        return Object.fromEntries(entries.filter(([, url]) => url));
+      });
+    });
+    return () => { cancelled = true; };
+  }, [leadFiles]);
 
   const loadLeadFiles = async () => {
     if (!lead?.id) return;
@@ -498,137 +526,79 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
             </div>
           </TabsContent>
 
-          {/* FILES — Lead Files backed by Google Drive + BMS registry */}
+          {/* FILES — Lead Files */}
           <TabsContent value="files" className="m-0 p-6">
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="label-uppercase mb-1">Files & Documents</div>
                   <h3 className="font-display text-xl tracking-tight text-stone-900">Lead Files</h3>
                   <p className="text-xs text-stone-500 mt-1">All files related to this lead — photos, plans, drawings, quotations and documents.</p>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => { setSelectedFile(null); setUploadOpen(true); }}
-                  className="rounded-none bg-blue-700 hover:bg-blue-800 text-white h-9 text-xs font-semibold shrink-0"
-                  data-testid="lead-files-upload-btn"
-                >
+                <Button type="button" onClick={() => { setSelectedFile(null); setUploadOpen(true); }} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white h-9 text-xs font-semibold shrink-0">
                   <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload File
                 </Button>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 {LEAD_FILE_CATEGORIES.map((category) => {
-                  const count = category.key === "all"
-                    ? leadFiles.length
-                    : leadFiles.filter((file) => file.category === category.key).length;
+                  const count = category.key === "all" ? leadFiles.length : leadFiles.filter((file) => file.category === category.key).length;
                   return (
-                    <button
-                      key={category.key}
-                      type="button"
-                      onClick={() => setActiveFileCategory(category.key)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold border transition-colors",
-                        activeFileCategory === category.key
-                          ? "bg-blue-50 text-blue-700 border-blue-300"
-                          : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
-                      )}
-                    >
-                      <category.Icon className="w-3 h-3" />
-                      {category.label}
-                      <span className="text-[10px] text-stone-400">{count}</span>
+                    <button key={category.key} type="button" onClick={() => setActiveFileCategory(category.key)}
+                      className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold border transition-colors",
+                        activeFileCategory === category.key ? "bg-blue-50 text-blue-700 border-blue-300" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50")}>
+                      <category.Icon className="w-3 h-3" /> {category.label} <span className="text-[10px] text-stone-400">({count})</span>
                     </button>
                   );
                 })}
               </div>
-
-              <div className="border border-stone-200 bg-white">
-                <div className="grid grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_80px] gap-3 px-4 py-3 bg-stone-50 border-b border-stone-200 text-[10px] tracking-[0.1em] uppercase font-semibold text-stone-500">
-                  <span>File Name</span>
-                  <span>Category</span>
-                  <span>Source</span>
-                  <span>Uploaded By / Date</span>
-                  <span className="text-right">Actions</span>
-                </div>
-
-                {loadingLeadFiles ? (
-                  <div className="min-h-[220px] flex items-center justify-center text-sm text-stone-500">Loading files…</div>
-                ) : (activeFileCategory === "all" ? leadFiles : leadFiles.filter((file) => file.category === activeFileCategory)).length === 0 ? (
-                  <div className="min-h-[260px] flex flex-col items-center justify-center px-8 py-10 text-center">
-                    <div className="w-12 h-12 border border-stone-200 bg-stone-50 flex items-center justify-center mb-4">
-                      <FolderOpen className="w-6 h-6 text-stone-300" />
+              <div className="border border-stone-200 bg-white overflow-hidden">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[760px]">
+                    <div className="grid grid-cols-[minmax(260px,2.2fr)_110px_90px_150px_80px_96px] gap-3 px-3 py-2.5 bg-stone-50 border-b border-stone-200 text-[10px] tracking-[0.08em] uppercase font-semibold text-stone-500">
+                      <span>File Name</span><span>Category</span><span>Source</span><span>Uploaded By / Date</span><span>Size</span><span className="text-right">Actions</span>
                     </div>
-                    <div className="font-display text-lg tracking-tight text-stone-800">No files uploaded yet</div>
-                    <p className="text-sm text-stone-500 mt-1 max-w-md mx-auto">
-                      Upload site photos, room photos, floor plans, drawings, reference images, quotations and other lead documents here.
-                    </p>
+                    {loadingLeadFiles ? (
+                      <div className="min-h-[220px] flex items-center justify-center text-sm text-stone-500">Loading files…</div>
+                    ) : (activeFileCategory === "all" ? leadFiles : leadFiles.filter((file) => file.category === activeFileCategory)).length === 0 ? (
+                      <div className="min-h-[220px] flex flex-col items-center justify-center px-8 py-10 text-center">
+                        <div className="w-12 h-12 border border-stone-200 bg-stone-50 flex items-center justify-center mb-4"><FolderOpen className="w-6 h-6 text-stone-300" /></div>
+                        <div className="font-display text-lg tracking-tight text-stone-800">No files uploaded yet</div>
+                        <p className="text-sm text-stone-500 mt-1 max-w-md mx-auto">Upload site photos, room photos, floor plans, drawings, reference images, quotations and other lead documents here.</p>
+                      </div>
+                    ) : (
+                      (activeFileCategory === "all" ? leadFiles : leadFiles.filter((file) => file.category === activeFileCategory)).map((file) => {
+                        const category = LEAD_FILE_CATEGORIES.find((item) => item.key === file.category);
+                        const uploadedBy = file.uploader?.full_name || file.uploader?.email || "—";
+                        const isImage = String(file.file_type || "").startsWith("image/");
+                        const size = Number(file.file_size || 0);
+                        const sizeLabel = size >= 1024 * 1024 ? (size / 1024 / 1024).toFixed(1) + " MB" : Math.max(1, Math.round(size / 1024)) + " KB";
+                        return (
+                          <div key={file.id} className="grid grid-cols-[minmax(260px,2.2fr)_110px_90px_150px_80px_96px] gap-3 px-3 py-2.5 border-b border-stone-100 last:border-0 items-center hover:bg-stone-50/70">
+                            <div className="min-w-0 flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
+                                {isImage && leadFileThumbs[file.id] ? <img src={leadFileThumbs[file.id]} alt="" className="w-full h-full object-cover" /> : isImage ? <FileImage className="w-5 h-5 text-blue-500" /> : <FileDocument className="w-5 h-5 text-red-500" />}
+                              </div>
+                              <span className="text-sm text-stone-800 truncate" title={file.file_name}>{file.file_name}</span>
+                            </div>
+                            <span className="inline-flex w-fit items-center rounded px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">{category?.label || file.category || "Other"}</span>
+                            <span className="inline-flex w-fit items-center rounded px-2 py-0.5 text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">{file.source || "lead"}</span>
+                            <div className="text-xs text-stone-600 min-w-0"><div className="truncate">{uploadedBy}</div><div className="text-stone-400 mt-0.5">{formatDateTime(file.uploaded_at)}</div></div>
+                            <span className="text-xs text-stone-500">{sizeLabel}</span>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-stone-500 hover:text-blue-700" title="Preview" onClick={async () => { try { await downloadLeadFile({ fileId: file.id, preview: true }); } catch (e) { toast.error(e.message || "Could not preview file"); } }}><Eye className="w-4 h-4" /></Button>
+                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-stone-500 hover:text-blue-700" title="Download" onClick={async () => { try { await downloadLeadFile({ fileId: file.id }); } catch (e) { toast.error(e.message || "Could not download file"); } }}><Download className="w-4 h-4" /></Button>
+                              {isAdmin && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700" title="Delete" onClick={() => handleLeadFileDelete(file.id)}><MoreVertical className="w-4 h-4" /></Button>}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                ) : (
-                  <div>
-                    {(activeFileCategory === "all" ? leadFiles : leadFiles.filter((file) => file.category === activeFileCategory)).map((file) => {
-                      const category = LEAD_FILE_CATEGORIES.find((item) => item.key === file.category);
-                      const uploadedBy = file.uploader?.full_name || file.uploader?.email || "—";
-                      return (
-                        <div key={file.id} className="grid grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_80px] gap-3 px-4 py-3 border-b border-stone-100 last:border-0 items-center">
-                          <div className="min-w-0 flex items-center gap-2">
-                            {String(file.file_type || "").startsWith("image/") ? <Image className="w-4 h-4 text-blue-600 shrink-0" /> : <FileType className="w-4 h-4 text-stone-500 shrink-0" />}
-                            <span className="text-sm text-stone-800 truncate" title={file.file_name}>{file.file_name}</span>
-                          </div>
-                          <span className="text-xs text-stone-600">{category?.label || file.category || "Other"}</span>
-                          <span className="text-xs text-stone-600">{file.source || "lead"}</span>
-                          <div className="text-xs text-stone-600 min-w-0">
-                            <div className="truncate">{uploadedBy}</div>
-                            <div className="text-stone-400 mt-0.5">{formatDateTime(file.uploaded_at)}</div>
-                          </div>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Preview"
-                              onClick={async () => {
-                                try { await downloadLeadFile({ fileId: file.id, preview: true }); }
-                                catch (e) { toast.error(e.message || "Could not preview file"); }
-                              }}
-                            >
-                              <FileText className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Download"
-                              onClick={async () => {
-                                try { await downloadLeadFile({ fileId: file.id }); }
-                                catch (e) { toast.error(e.message || "Could not download file"); }
-                              }}
-                            >
-                              <ArrowRightCircle className="w-4 h-4 rotate-90" />
-                            </Button>
-                            {isAdmin && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-rose-600 hover:text-rose-700"
-                                title="Delete"
-                                onClick={() => handleLeadFileDelete(file.id)}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {uploadOpen && (
+uploadOpen && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
                 <div className="w-full max-w-lg bg-white border border-stone-300 shadow-2xl">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">

@@ -319,7 +319,11 @@ Deno.serve(async (req: Request) => {
 
     if (action === "list") {
       const lead = await getLeadAccess(db, bearer, leadId);
-      const { data, error } = await userDb(bearer)
+      // getLeadAccess() already enforces the authenticated user's lead access.
+      // bms_files has RLS enabled but intentionally has no client-side SELECT
+      // policy, so querying it through userDb() returns an empty list.
+      // Use the service-role DB only after the lead access check above.
+      const { data, error } = await db
         .from("bms_files")
         .select("id,scope_type,lead_id,file_name,file_type,file_size,category,source,storage_provider,drive_file_id,drive_url,drive_parent_id,uploaded_by,uploaded_at,deleted_at")
         .eq("scope_type", "lead")

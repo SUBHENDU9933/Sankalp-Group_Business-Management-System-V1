@@ -60,8 +60,32 @@ async function drive(path: string, token: string, init: RequestInit = {}) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error?.message || "Google Drive request failed");
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || "Google Drive request failed") as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
   return data;
+}
+
+async function driveWithRefresh(
+  db: any,
+  connection: any,
+  path: string,
+  init: RequestInit = {},
+) {
+  let accessToken = await decrypt(connection.access_token_encrypted);
+  try {
+    return { data: await drive(path, accessToken, init), connection, accessToken };
+  } catch (error) {
+    const status = Number((error as Error & { status?: number }).status || 0);
+    const message = error instanceof Error ? error.message : String(error);
+    if (status !== 401 && !/invalid credentials|unauthorized|401/i.test(message)) throw error;
+
+    const refreshed = await refresh(db, connection);
+    accessToken = await decrypt(refreshed.access_token_encrypted);
+    return { data: await drive(path, accessToken, init), connection: refreshed, accessToken };
+  }
 }
 
 async function refresh(connectionDb: any, connection: any) {
@@ -147,23 +171,27 @@ async function getLeadAccess(db: any, token: string, leadId: string) {
   return data;
 }
 
-async function getBmsRoot(db: any, token: string, connection: any) {
+async function getBmsRoot(db: any, connection: any) {
   if (!connection.root_folder_id) throw new Error("Google Drive root folder is not configured");
   const rootQuery =
     "name='SANKALP BMS' and mimeType='application/vnd.google-apps.folder' and trashed=false and '" +
     escapeDriveQuery(connection.root_folder_id) +
     "' in parents";
-  const result = await drive("/files?q=" + encodeURIComponent(rootQuery) + "&pageSize=10&fields=files(id)", token);
-  if (result.files?.[0]?.id) return result.files[0].id;
-  const created = await drive("/files?fields=id", token, {
+  const result = await driveWithRefresh(
+    db,
+    connection,
+    "/files?q=" + encodeURIComponent(rootQuery) + "&pageSize=10&fields=files(id)",
+  );
+  if (result.data.files?.[0]?.id) return result.data.files[0].id;
+  const created = await driveWithRefresh(db, result.connection, "/files?fields=id", {
     method: "POST",
     body: JSON.stringify({
       name: "SANKALP BMS",
       mimeType: "application/vnd.google-apps.folder",
-      parents: [connection.root_folder_id],
+      parents: [result.connection.root_folder_id],
     }),
   });
-  return created.id;
+  return created.data.id;
 }
 
 async function ensureLeadFolder(db: any, token: string, leadId: string, bmsRoot: string) {
@@ -297,17 +325,19 @@ Deno.serve(async (req: Request) => {
 
     if (action === "start_upload") {
       if (!fileName || size < 1) return json({ error: "File metadata is required" }, 400);
-      const connection = await getConnection(db);
-      const accessToken = await decrypt(connection.access_token_encrypted);
-      const bmsRoot = await getBmsRoot(db, bearer, connection);
+      let connection = await getConnection(db);
+      let accessToken = await decrypt(connection.access_token_encrypted);
+      const bmsRoot = await getBmsRoot(db, connection);
+      connection = (await getConnection(db));
+      accessToken = await decrypt(connection.access_token_encrypted);
       const leadFolderId = await ensureLeadFolder(db, accessToken, leadId, bmsRoot);
 
-      const response = await fetch(
+      const createUploadSession = async (token: string) => fetch(
         "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType,size,webViewLink,parents",
         {
           method: "POST",
           headers: {
-            Authorization: "Bearer " + accessToken,
+            Authorization: "Bearer " + token,
             "Content-Type": "application/json; charset=UTF-8",
             "X-Upload-Content-Type": mimeType,
             "X-Upload-Content-Length": String(size),
@@ -315,6 +345,13 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({ name: fileName, mimeType, parents: [leadFolderId] }),
         },
       );
+
+      let response = await createUploadSession(accessToken);
+      if (response.status === 401) {
+        connection = await refresh(db, connection);
+        accessToken = await decrypt(connection.access_token_encrypted);
+        response = await createUploadSession(accessToken);
+      }
       if (!response.ok) throw new Error(await response.text());
       const sessionUrl = response.headers.get("Location");
       if (!sessionUrl) throw new Error("Google Drive did not return an upload session");

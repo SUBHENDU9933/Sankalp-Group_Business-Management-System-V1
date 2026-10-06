@@ -40,6 +40,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   const [nextFollowupDate, setNextFollowupDate] = useState("");
   const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [activeFileCategory, setActiveFileCategory] = useState("all");
   const [uploadCategory, setUploadCategory] = useState("site_photo");
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -463,10 +464,10 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                   <button
                     key={category.key}
                     type="button"
-                    onClick={() => setUploadCategory(category.key)}
+                    onClick={() => setActiveFileCategory(category.key)}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold border transition-colors",
-                      uploadCategory === category.key
+                      activeFileCategory === category.key
                         ? "bg-blue-50 text-blue-700 border-blue-300"
                         : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
                     )}
@@ -486,20 +487,14 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                   <span>Uploaded By / Date</span>
                   <span className="text-right">Actions</span>
                 </div>
-                <div className="p-10 text-center">
-                  <FolderOpen className="w-9 h-9 text-stone-300 mx-auto mb-3" />
+                <div className="min-h-[260px] flex flex-col items-center justify-center px-8 py-10 text-center">
+                  <div className="w-12 h-12 border border-stone-200 bg-stone-50 flex items-center justify-center mb-4">
+                    <FolderOpen className="w-6 h-6 text-stone-300" />
+                  </div>
                   <div className="font-display text-lg tracking-tight text-stone-800">No files uploaded yet</div>
                   <p className="text-sm text-stone-500 mt-1 max-w-md mx-auto">
                     Upload site photos, room photos, floor plans, drawings, reference images, quotations and other lead documents here.
                   </p>
-                  <Button
-                    type="button"
-                    onClick={() => setUploadOpen(true)}
-                    variant="outline"
-                    className="rounded-none border-stone-300 mt-4 h-8 text-xs font-semibold"
-                  >
-                    <Upload className="w-3.5 h-3.5 mr-1.5" /> Choose File
-                  </Button>
                 </div>
               </div>
             </div>

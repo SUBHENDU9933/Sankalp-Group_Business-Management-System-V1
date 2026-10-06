@@ -105,7 +105,7 @@ export const deleteGoogleDriveFile = async ({ driveFileId, module = "misc", reco
   return data;
 };
 
-export const fetchGoogleDriveFileBlob = async ({ fileId, leadId, disposition = "inline" } = {}) => {
+export const fetchGoogleDriveFileBlob = async ({ fileId, recordId, leadId, disposition = "inline" } = {}) => {
   if (!fileId) throw new Error("File reference is missing");
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
@@ -116,7 +116,9 @@ export const fetchGoogleDriveFileBlob = async ({ fileId, leadId, disposition = "
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({
       action: disposition === "inline" ? "preview" : "download",
-      file_id: fileId,
+      // file_id is always the BMS registry row id. recordId is supported
+      // explicitly so callers cannot accidentally pass a parent Schedule/Lead id.
+      file_id: recordId || fileId,
       lead_id: leadId || "",
     }),
   });
@@ -128,7 +130,7 @@ export const fetchGoogleDriveFileBlob = async ({ fileId, leadId, disposition = "
   return response.blob();
 };
 
-export const downloadGoogleDriveFile = async ({ fileId, leadId } = {}) => {
+export const downloadGoogleDriveFile = async ({ fileId, recordId, leadId } = {}) => {
   if (!fileId) throw new Error("File reference is missing");
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
@@ -139,7 +141,8 @@ export const downloadGoogleDriveFile = async ({ fileId, leadId } = {}) => {
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "download",
-      file_id: fileId,
+      // file_id is always the BMS registry row id; recordId is the file row id.
+      file_id: recordId || fileId,
       lead_id: leadId || "",
     }),
   });

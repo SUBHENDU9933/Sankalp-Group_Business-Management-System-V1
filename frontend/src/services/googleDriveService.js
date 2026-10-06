@@ -25,6 +25,9 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
   form.set("action", "start_upload");
   form.set("module", module);
   if (recordId) form.set("record_id", recordId);
+  if (leadId) form.set("lead_id", leadId);
+  form.set("source", source);
+  form.set("category", category);
   form.set("file_name", file.name);
   form.set("mime_type", file.type || "application/octet-stream");
   form.set("size", String(file.size));
@@ -102,7 +105,7 @@ export const deleteGoogleDriveFile = async ({ driveFileId, module = "misc", reco
   return data;
 };
 
-export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
+export const downloadGoogleDriveFile = async ({ fileId, recordId, leadId } = {}) => {
   if (!fileId || !recordId) throw new Error("File reference is missing");
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
@@ -111,7 +114,7 @@ export const downloadGoogleDriveFile = async ({ fileId, recordId } = {}) => {
   const response = await fetch(base + "/functions/v1/google-drive-storage", {
     method: "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "download", module: "schedule", record_id: recordId, file_id: fileId }),
+    body: JSON.stringify({ action: leadId ? "download" : "download", module: leadId ? "lead" : "schedule", record_id: recordId || "", lead_id: leadId || "", file_id: fileId }),
   });
   if (!response.ok) {
     let message = "Could not download file";

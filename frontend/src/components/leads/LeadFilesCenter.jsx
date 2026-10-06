@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -51,6 +51,8 @@ export default function LeadFilesCenter({ lead }) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [thumbnails, setThumbnails] = useState({});
+  const thumbnailsRef = useRef({});
+  useEffect(() => { thumbnailsRef.current = thumbnails; }, [thumbnails]);
 
   const loadFiles = async () => {
     if (!lead?.id) return;
@@ -108,8 +110,8 @@ export default function LeadFilesCenter({ lead }) {
   }, [files, lead?.id]);
 
   useEffect(() => () => {
-    Object.values(thumbnails).forEach((url) => URL.revokeObjectURL(url));
-  }, [thumbnails]);
+    Object.values(thumbnailsRef.current).forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const handleUpload = async (event) => {
     const selected = Array.from(event.target.files || []);

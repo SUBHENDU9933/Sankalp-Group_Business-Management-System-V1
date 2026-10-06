@@ -196,6 +196,20 @@ export const cancelDeleteRequest = async (id) => {
 };
 
 export const adminDeleteLead = async (id, userId) => {
+  // Physical Drive deletion must succeed before the Lead is marked deleted.
+  // This prevents orphaned customer folders and accidental data loss.
+  const { data: driveResult, error: driveError } = await supabase.functions.invoke("google-drive-storage", {
+    body: { action: "delete_lead_folder", lead_id: id },
+  });
+  if (driveError) {
+    let message = driveError.message;
+    try { const details = await driveError.context?.json?.(); message = details?.error || message; } catch (_) {}
+    throw new Error(message || "Google Drive folder could not be deleted. Lead was not deleted.");
+  }
+  if (driveResult?.success !== true) {
+    throw new Error("Google Drive folder deletion was not confirmed. Lead was not deleted.");
+  }
+
   const { error } = await supabase.from("leads")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq("id", id);
@@ -221,6 +235,21 @@ export const convertLeadToCustomer = async (lead, userId) => {
     .update({ status: "converted", is_locked: true })
     .eq("id", lead.id);
   if (lErr) throw lErr;
+
+  // Move the existing physical Drive folder instead of creating/copying a new one.
+  // The same Drive folder and file IDs are retained through Lead → Customer conversion.
+  const { data: moveResult, error: moveError } = await supabase.functions.invoke("google-drive-storage", {
+    body: { action: "move_lead_to_customer", lead_id: lead.id, customer_id: customer.id },
+  });
+  if (moveError) {
+    // Do not silently lose the lifecycle association if Drive migration failed.
+    // The Customer record remains linked; retrying conversion can safely retry the move.
+    let message = moveError.message;
+    try { const details = await moveError.context?.json?.(); message = details?.error || message; } catch (_) {}
+    throw new Error(message || "Customer created, but Google Drive folder could not be moved.");
+  }
+  if (moveResult?.success !== true) throw new Error("Customer created, but Google Drive folder move was not confirmed.");
+
   await supabase.from("receipts").update({ customer_id: customer.id }).eq("lead_id", lead.id).is("customer_id", null);
   return customer;
 };

@@ -310,6 +310,7 @@ Deno.serve(async (req: Request) => {
     const driveFileId = String(get("drive_file_id") || "");
     const driveUrl = String(get("drive_url") || "");
     const driveParentId = String(get("drive_parent_id") || "");
+    const sessionUrl = String(get("session_url") || "");
 
     if (!action) return json({ error: "Action is required" }, 400);
     if (["start_upload", "list", "register"].includes(action) && !leadId) {
@@ -366,6 +367,93 @@ Deno.serve(async (req: Request) => {
         session_url: sessionUrl,
         parent_folder_id: leadFolderId,
         provider: "google_drive",
+      });
+    }
+
+    if (action === "finalize_upload") {
+      if (!sessionUrl || size < 1 || !fileName) {
+        return json({ error: "Upload session and file metadata are required" }, 400);
+      }
+
+      // The browser may report a CORS/network failure even after Google Drive
+      // has accepted the upload. Finalize/query the same resumable session
+      // server-side so the Drive result is the source of truth.
+      const response = await fetch(sessionUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Range": "*/" + size,
+          "Content-Length": "0",
+        },
+      });
+      const bodyText = await response.text().catch(() => "");
+      let fileMeta: any = {};
+      try { fileMeta = bodyText ? JSON.parse(bodyText) : {}; } catch (_) {}
+
+      if (response.status === 308) {
+        return json({
+          error: "Google Drive upload is not complete yet",
+          upload_incomplete: true,
+          range: response.headers.get("Range") || null,
+        }, 409);
+      }
+      if (!response.ok) {
+        throw new Error(
+          fileMeta?.error?.message ||
+          bodyText ||
+          ("Google Drive finalize failed (" + response.status + ")")
+        );
+      }
+      if (!fileMeta?.id) {
+        throw new Error("Google Drive completed the upload but returned no file metadata");
+      }
+
+      const { accessToken, leadFolderId } = await getLeadContext(db, bearer, leadId);
+      const file = await verifyDriveFileForLead(accessToken, fileMeta.id, leadFolderId);
+
+      const { data: existing, error: existingError } = await db
+        .from("bms_files")
+        .select("*")
+        .eq("drive_file_id", fileMeta.id)
+        .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
+      if (existing && existing.deleted_at === null) {
+        return json({ provider: "google_drive", ...existing, bms_file_id: existing.id });
+      }
+
+      const metadata = {
+        scope_type: "lead",
+        lead_id: leadId,
+        file_name: file.name || fileName,
+        file_type: file.mimeType || mimeType,
+        file_size: Number(file.size || size),
+        category,
+        source: "lead",
+        storage_provider: "google_drive",
+        drive_file_id: fileMeta.id,
+        drive_url: file.webViewLink || ("https://drive.google.com/open?id=" + fileMeta.id),
+        drive_parent_id: file.parents?.[0] || driveParentId || leadFolderId,
+        uploaded_by: authUser.user.id,
+      };
+
+      const { data, error } = await db
+        .from("bms_files")
+        .insert([metadata])
+        .select("*")
+        .single();
+      if (error) {
+        throw new Error("Drive upload succeeded, but BMS file registration failed: " + error.message);
+      }
+
+      return json({
+        provider: "google_drive",
+        ...data,
+        bms_file_id: data.id,
+        drive_file_id: fileMeta.id,
+        drive_url: file.webViewLink || ("https://drive.google.com/open?id=" + fileMeta.id),
+        drive_parent_id: file.parents?.[0] || driveParentId || leadFolderId,
+        name: file.name || fileName,
+        type: file.mimeType || mimeType,
+        size: Number(file.size || size),
       });
     }
 

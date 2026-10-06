@@ -65,11 +65,6 @@ async function drive(path: string, token: string, init: RequestInit = {}) {
 }
 
 async function refresh(connectionDb: any, connection: any) {
-  if (
-    connection.token_expires_at &&
-    new Date(connection.token_expires_at).getTime() > Date.now() + 120000
-  ) return connection;
-
   const refreshToken = await decrypt(connection.refresh_token_encrypted);
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",

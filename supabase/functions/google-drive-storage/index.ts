@@ -115,7 +115,29 @@ async function getConnection(db: any) {
   if (!data || data.status !== "connected") {
     throw new Error("Google Drive is not connected. Ask Admin to connect it.");
   }
-  return refresh(db, data);
+
+  // Google can invalidate an access token before the stored expiry timestamp.
+  // Validate the current token once and transparently refresh on a 401.
+  try {
+    const accessToken = await decrypt(data.access_token_encrypted);
+    await drive("/about?fields=user", accessToken);
+    return data;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/invalid credentials|unauthorized|401/i.test(message)) throw error;
+
+    try {
+      return await refresh(db, data);
+    } catch (refreshError) {
+      const refreshMessage = refreshError instanceof Error ? refreshError.message : String(refreshError);
+      await db.from("google_drive_connections").update({
+        status: "error",
+        last_error: refreshMessage,
+        updated_at: new Date().toISOString(),
+      }).eq("id", data.id);
+      throw new Error("Google Drive authorization has expired or was revoked. Admin must reconnect Google Drive.");
+    }
+  }
 }
 
 async function getLeadAccess(db: any, token: string, leadId: string) {

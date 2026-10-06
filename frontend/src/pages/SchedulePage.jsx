@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
-  Copy, ExternalLink, FileUp, Filter, Link2, ListFilter, MapPin, MessageCircle,
+  Copy, ExternalLink, Filter, Link2, ListFilter, MapPin, MessageCircle,
   MessageSquareText, MoreVertical, Plus, RefreshCw, Search, SlidersHorizontal,
   Users, X, XCircle, Video, Phone, Building2, Home, Target, UserRound,
   ArrowUpRight, RotateCcw
@@ -13,11 +13,9 @@ import { fetchProfiles } from "@/services/profileService";
 import { fetchLeadOptions, updateLead } from "@/services/leadService";
 import { fetchCustomers } from "@/services/customerService";
 import {
-  completeSchedule, createSchedule, fetchScheduleFiles, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory,
-  uploadScheduleFile, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
+  completeSchedule, createSchedule, fetchSchedules, updateSchedule, lifecycleAction, fetchScheduleHistory, fetchMeetingRule, fetchCalendarStatus, checkCalendarAvailability,
   syncScheduleToCalendar, updateScheduleCalendar, deleteScheduleCalendar, syncPendingCalendar
 } from "@/services/scheduleService";
-import { downloadGoogleDriveFile } from "@/services/googleDriveService";
 
 const TYPES = [
   ["site_visit", "Site Visit"], ["customer_home", "Customer Home"], ["office_meeting", "Office Meeting"],
@@ -87,7 +85,7 @@ function ModeBadge({ mode }) {
 export default function SchedulePage() {
   const { profile, role, isAdmin } = useAuth();
   const [rows, setRows] = useState([]), [leads, setLeads] = useState([]), [customers, setCustomers] = useState([]), [team, setTeam] = useState([]);
-  const [selected, setSelected] = useState(null), [files, setFiles] = useState([]), [history, setHistory] = useState([]), [lifecycle, setLifecycle] = useState(null);
+  const [selected, setSelected] = useState(null), [history, setHistory] = useState([]), [lifecycle, setLifecycle] = useState(null);
   const [loading, setLoading] = useState(true), [showCreate, setShowCreate] = useState(false), [loadError, setLoadError] = useState("");
   const [calendar, setCalendar] = useState(null), [rule, setRule] = useState(null);
   const [slots, setSlots] = useState([]), [checking, setChecking] = useState(false), [syncing, setSyncing] = useState(false), [availabilityNote, setAvailabilityNote] = useState("");
@@ -367,7 +365,7 @@ export default function SchedulePage() {
 
   const open = async r => {
     setSelected({...r,lead:leadMap.get(r.lead_id)||null,customer:customerMap.get(r.customer_id)||null});
-    try { const [f,h]=await Promise.all([fetchScheduleFiles(r.id),fetchScheduleHistory(r.id)]); setFiles(f); setHistory(h); } catch (_) { setFiles([]); setHistory([]); }
+    try { setHistory(await fetchScheduleHistory(r.id)); } catch (_) { setHistory([]); }
   };
   const update = async p => {
     if (!selected) return;
@@ -394,13 +392,6 @@ export default function SchedulePage() {
       setHistory(await fetchScheduleHistory(selected.id));await load();
       toast.success(action==="reschedule"?"Meeting rescheduled":action==="cancel"?"Meeting cancelled":action==="no_show"?"No-show recorded":"Meeting completed");
     }catch(e){toast.error(e.message||"Could not process meeting");}
-  };
-  const upload = async file => {
-    if (!file || !selected) return;
-    try {
-      const f = await uploadScheduleFile(selected.id, selected.lead_id, file, { source: selected.mode === "physical" ? "field_visit" : "employee" });
-      setFiles(x => [f, ...x]); toast.success("File uploaded");
-    } catch (e) { toast.error(e.message || "Upload failed"); }
   };
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -551,7 +542,7 @@ export default function SchedulePage() {
 
       {lifecycle && selected && <LifecycleModal action={lifecycle} selected={selected} run={runLifecycle} calendar={calendar} />}
       {showCreate && <CreateModal form={form} setForm={setForm} rule={rule} team={team} activeTeam={activeTeam} calendar={calendar} slots={slots} setSlots={setSlots} checking={checking} checkAvailability={checkAvailability} save={save} saving={syncing} close={() => { setShowCreate(false); setSlots([]); setTitleManual(false); }} availabilityNote={availabilityNote} leads={leads} customers={customers} partyType={partyType} setPartyType={setPartyType} setTitleManual={setTitleManual} />}
-      {selected && <DetailModal selected={selected} files={files} history={history} update={update} upload={upload} downloadFile={async(file)=>{try{await downloadGoogleDriveFile({fileId:file.id,recordId:selected.id});}catch(e){toast.error(e.message||"Download failed")}}} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
+      {selected && <DetailModal selected={selected} history={history} update={update} openLifecycle={setLifecycle} close={() => setSelected(null)} syncCalendar={async()=>{try{const result=await syncScheduleToCalendar(selected.id);setSelected(s=>({...s,meeting_link:result?.meeting_link||s.meeting_link,google_calendar_url:result?.event_url||s.google_calendar_url,google_calendar_event_id:result?.event_id||s.google_calendar_event_id,google_calendar_status:"synced"}));toast.success("Google Meet generated and calendar synced");await load();}catch(e){toast.error(e.message||"Calendar sync failed")}}} />}
     </section>
   );
 }
@@ -732,7 +723,7 @@ function ManagerPicker({ managers, ids, setIds, multi, urgent }) {
   return <div className="text-xs font-bold text-slate-600">Manager(s) <span className="text-slate-400 font-normal">• Admin/Director can assign multiple{urgent ? " • urgent/special case" : ""}</span><div className="mt-1.5 border rounded-xl p-2 max-h-32 overflow-auto space-y-1">{managers.map(p=><label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer font-medium"><input type="checkbox" checked={ids.includes(p.id)} onChange={()=>setIds(ids.includes(p.id)?ids.filter(x=>x!==p.id):[...ids,p.id])}/>{p.full_name}</label>)}<button type="button" onClick={()=>setIds([])} className="text-[11px] text-blue-700 font-bold px-2 py-1">Auto assign any available</button></div></div>;
 }
 
-function DetailModal({ selected, files, history, update, upload, downloadFile, openLifecycle, close, syncCalendar }) {
+function DetailModal({ selected, history, update, openLifecycle, close, syncCalendar }) {
   const customer = selected.customer || selected.lead || {};
   const titleCaseName = value => String(value || "").trim().toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
   const customerName = titleCaseName(customer.name || selected.title || "Customer");
@@ -767,7 +758,6 @@ function DetailModal({ selected, files, history, update, upload, downloadFile, o
   };
   return <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={e=>e.target===e.currentTarget&&close()}><div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b p-5 flex justify-between"><div><div className="flex items-center gap-2"><StatusBadge status={selected.status}/><ModeBadge mode={selected.mode}/></div><h2 className="text-xl font-display font-bold mt-2">{selected.title}</h2><div className="text-sm text-slate-500 mt-1">{new Date(selected.start_at).toLocaleString("en-IN")}</div></div><button onClick={close} className="w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center"><X className="w-5 h-5 text-slate-500"/></button></div><div className="p-5 space-y-5">
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2"><button onClick={()=>openLifecycle("complete")} className="p-3 rounded-xl border bg-emerald-50 text-emerald-700 font-bold text-sm"><CheckCircle2 className="w-4 h-4 inline mr-1"/>Complete</button><button onClick={()=>openLifecycle("reschedule")} className="p-3 rounded-xl border bg-orange-50 text-orange-700 font-bold text-sm"><Clock3 className="w-4 h-4 inline mr-1"/>Reschedule</button><button onClick={()=>openLifecycle("cancel")} className="p-3 rounded-xl border bg-rose-50 text-rose-700 font-bold text-sm"><XCircle className="w-4 h-4 inline mr-1"/>Cancel</button><button onClick={()=>openLifecycle("no_show")} className="p-3 rounded-xl border bg-violet-50 text-violet-700 font-bold text-sm">No Show</button><button onClick={()=>openLifecycle("delete")} className="p-3 rounded-xl border bg-slate-100 text-slate-700 font-bold text-sm">Delete</button></div>
-    <div className="border-t pt-4"><div className="flex items-center justify-between mb-2"><div className="font-bold">Files / Site Information</div><label className="px-3 py-2 rounded-xl border text-sm font-bold cursor-pointer flex items-center gap-2"><FileUp className="w-4 h-4"/>Upload<input type="file" className="hidden" onChange={e=>upload(e.target.files?.[0])}/></label></div>{files.length===0?<div className="text-sm text-slate-400 py-4">No files uploaded yet.</div>:<div className="space-y-2">{files.map(f=><button type="button" key={f.id} onClick={()=>downloadFile?.(f)} className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 border text-sm text-left hover:bg-slate-100"><span className="truncate">{f.file_name}</span><span className="text-xs text-blue-700 font-semibold">{f.storage_provider==="google_drive"?"Google Drive":"File"}</span></button>)}</div>}</div>
     <div className="grid md:grid-cols-2 gap-3 text-sm">
       <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><MapPin className="w-4 h-4 inline mr-2"/>{selected.location_address||"Digital meeting"}</div>
       <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><UserRound className="w-4 h-4 inline mr-2"/><span className="font-semibold">Meeting Arranged By:</span> {arranger?.full_name||"Unassigned"}</div>

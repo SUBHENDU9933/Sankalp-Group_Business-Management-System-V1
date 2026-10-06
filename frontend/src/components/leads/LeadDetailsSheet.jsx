@@ -552,10 +552,10 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
                 })}
               </div>
               <div className="border border-stone-200 bg-white overflow-hidden">
-                <div className="overflow-x-auto">
-                  <div className="min-w-[760px]">
-                    <div className="grid grid-cols-[minmax(260px,2.2fr)_110px_90px_150px_80px_96px] gap-3 px-3 py-2.5 bg-stone-50 border-b border-stone-200 text-[10px] tracking-[0.08em] uppercase font-semibold text-stone-500">
-                      <span>File Name</span><span>Category</span><span>Source</span><span>Uploaded By / Date</span><span>Size</span><span className="text-right">Actions</span>
+                <div className="w-full overflow-hidden">
+                  <div className="w-full min-w-0">
+                    <div className="grid grid-cols-[minmax(145px,1.8fr)_72px_55px_100px_55px_64px] gap-1.5 px-2.5 py-2.5 bg-stone-50 border-b border-stone-200 text-[9px] tracking-[0.06em] uppercase font-semibold text-stone-500">
+                      <span>File Name</span><span>Category</span><span>Source</span><span>Uploaded / Date</span><span>Size</span><span className="text-right">Actions</span>
                     </div>
                     {loadingLeadFiles ? (
                       <div className="min-h-[220px] flex items-center justify-center text-sm text-stone-500">Loading files…</div>

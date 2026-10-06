@@ -40,24 +40,18 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
   }
   if (!data?.session_url) throw new Error("Google Drive upload session was not created");
 
-  // The mobile browser may report a failed/empty response even after Google Drive
-  // has accepted the bytes. Never treat that response alone as the source of truth.
-  // We always ask the authenticated storage service to finalize/query the session.
-  let transferError = null;
-  try {
-    const response = await fetch(data.session_url, {
-      method: "PUT",
-      headers: { "Content-Length": String(file.size) },
-      body: file,
-    });
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      transferError = new Error(body || ("Google Drive upload returned " + response.status));
-    }
-  } catch (e) {
-    transferError = new Error(e?.message || "Google Drive file transfer was interrupted");
+  const response = await fetch(data.session_url, {
+    method: "PUT",
+    headers: { "Content-Length": String(file.size), "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || ("Google Drive upload returned " + response.status));
   }
 
+  let uploaded = {};
+  try { uploaded = await response.json(); } catch (_) {}
   const finalizeBody = {
     action: "finalize_upload",
     module,
@@ -66,6 +60,12 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
     source,
     category,
     session_url: data.session_url,
+    drive_file_id: uploaded?.id || "",
+    drive_file_name: uploaded?.name || file.name,
+    drive_mime_type: uploaded?.mimeType || file.type || "application/octet-stream",
+    drive_size: String(uploaded?.size || file.size),
+    drive_web_view_link: uploaded?.webViewLink || "",
+    drive_parent_id: (uploaded?.parents || [])[0] || data.parent_folder_id || "",
     file_name: file.name,
     mime_type: file.type || "application/octet-stream",
     size: String(file.size),
@@ -76,9 +76,9 @@ export const uploadToGoogleDrive = async ({ file, module = "misc", recordId, lea
   if (finalizeError) {
     let message = finalizeError.message;
     try { const details = await finalizeError.context?.json?.(); message = details?.error || message; } catch (_) {}
-    throw new Error(message || transferError?.message || "Google Drive upload could not be finalized");
+    throw new Error(message || "Google Drive upload could not be finalized");
   }
-  if (!finalized?.drive_file_id) throw new Error(transferError?.message || "Google Drive upload completed but file metadata was not returned");
+  if (!finalized?.drive_file_id) throw new Error("Google Drive upload completed but file metadata was not registered");
 
   onProgress?.(100);
   return {

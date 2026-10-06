@@ -105,7 +105,7 @@ export const deleteGoogleDriveFile = async ({ driveFileId, module = "misc", reco
   return data;
 };
 
-export const fetchGoogleDriveFileBlob = async ({ fileId, recordId, leadId } = {}) => {
+export const fetchGoogleDriveFileBlob = async ({ fileId, recordId, leadId, disposition = "inline" } = {}) => {
   if (!fileId || !recordId) throw new Error("File reference is missing");
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
@@ -114,7 +114,7 @@ export const fetchGoogleDriveFileBlob = async ({ fileId, recordId, leadId } = {}
   const response = await fetch(base + "/functions/v1/google-drive-storage", {
     method: "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "download", module: leadId ? "lead" : "schedule", record_id: recordId || "", lead_id: leadId || "", file_id: fileId }),
+    body: JSON.stringify({ action: disposition === "inline" ? "preview" : "download", module: leadId ? "lead" : "schedule", record_id: recordId || "", lead_id: leadId || "", file_id: fileId }),
   });
   if (!response.ok) {
     let message = "Could not download file";

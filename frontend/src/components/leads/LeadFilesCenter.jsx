@@ -46,6 +46,7 @@ const iconFor = (file) => {
 export default function LeadFilesCenter({ lead }) {
   const [files, setFiles] = useState([]);
   const [category, setCategory] = useState("all");
+  const [uploadCategory, setUploadCategory] = useState("other");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -123,7 +124,7 @@ export default function LeadFilesCenter({ lead }) {
           recordId: lead.id,
           leadId: lead.id,
           source: "lead",
-          category: category === "all" ? "other" : category,
+          category: uploadCategory,
         });
         if (!result?.driveFileId) throw new Error("Upload completed without Drive file metadata");
       }
@@ -148,11 +149,23 @@ export default function LeadFilesCenter({ lead }) {
         setPreview({ file, url });
         return;
       }
-      await downloadGoogleDriveFile({
-        fileId: file.drive_file_id,
-        recordId: file.id,
-        leadId: lead.id,
-      });
+      if (/^application\/pdf$/i.test(file.file_type || "") || /\.pdf$/i.test(file.file_name || "")) {
+        const blob = await fetchGoogleDriveFileBlob({
+          fileId: file.drive_file_id,
+          recordId: file.id,
+          leadId: lead.id,
+          disposition: "inline",
+        });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank", "noopener,noreferrer");
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } else {
+        await downloadGoogleDriveFile({
+          fileId: file.drive_file_id,
+          recordId: file.id,
+          leadId: lead.id,
+        });
+      }
     } catch (error) {
       toast.error(error.message || "Could not open file");
     }
@@ -166,14 +179,26 @@ export default function LeadFilesCenter({ lead }) {
             <div className="label-uppercase">Files & Documents</div>
             <div className="text-xs text-stone-500 mt-1">All files for this lead are kept together in the lead's Google Drive folder.</div>
           </div>
-          <label className={cn(
-            "inline-flex items-center gap-2 px-3 h-9 bg-stone-900 hover:bg-stone-800 text-white text-xs tracking-widest uppercase font-semibold cursor-pointer",
-            uploading && "opacity-60 pointer-events-none"
-          )}>
-            {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {uploading ? "Uploading…" : "Upload File"}
-            <input type="file" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={uploadCategory} onValueChange={setUploadCategory} disabled={uploading}>
+              <SelectTrigger className="w-[170px] h-9 bg-white text-xs">
+                <SelectValue placeholder="Upload category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.filter((item) => item.key !== "all").map((item) => (
+                  <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <label className={cn(
+              "inline-flex items-center gap-2 px-3 h-9 bg-stone-900 hover:bg-stone-800 text-white text-xs tracking-widest uppercase font-semibold cursor-pointer",
+              uploading && "opacity-60 pointer-events-none"
+            )}>
+              {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              {uploading ? "Uploading…" : "Upload File"}
+              <input type="file" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+            </label>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5">

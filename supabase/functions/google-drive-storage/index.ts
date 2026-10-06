@@ -498,7 +498,10 @@ Deno.serve(async (req: Request) => {
 
     if (action === "download" || action === "preview") {
       if (!fileId) return json({ error: "BMS file reference is missing" }, 400);
-      const { data: file, error } = await userDb(bearer)
+      // The lead access check is performed below by getLeadContext().
+      // bms_files has RLS enabled without a client SELECT policy, so the
+      // file lookup must use the service-role DB after authentication.
+      const { data: file, error } = await db
         .from("bms_files")
         .select("id,file_name,file_type,drive_file_id,lead_id")
         .eq("id", fileId)
@@ -550,8 +553,8 @@ Deno.serve(async (req: Request) => {
       if (fileError) throw new Error(fileError.message);
       if (!file) return json({ error: "File not found" }, 404);
 
-      const connection = await getConnection(db);
-      const accessToken = await decrypt(connection.access_token_encrypted);
+      // Validate lead access and obtain a refreshed Drive token.
+      const { accessToken } = await getLeadContext(db, bearer, file.lead_id);
       const driveResponse = await fetch(
         "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(file.drive_file_id),
         {

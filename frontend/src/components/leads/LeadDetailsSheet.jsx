@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { downloadGoogleDriveFile } from "@/services/googleDriveService";
 import { cn } from "@/lib/utils";
+import LeadFilesCenter from "@/components/leads/LeadFilesCenter";
 
 export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onConvert, profiles = [], onAssigneesChanged, onCallOutcome, onLeadUpdated }) {
   const { user } = useAuth();
@@ -438,11 +439,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
 
           {/* FILES */}
           <TabsContent value="files" className="m-0 p-6">
-            <div className="bg-stone-50 border border-dashed border-stone-300 p-10 text-center">
-              <FileText className="w-8 h-8 text-stone-400 mx-auto mb-3" />
-              <div className="font-display text-lg tracking-tight text-stone-900">File uploads</div>
-              <p className="text-sm text-stone-500 mt-1">Coming soon — attach floor plans, reference images and quotations to each lead.</p>
-            </div>
+            <LeadFilesCenter lead={lead} />
           </TabsContent>
         </Tabs>
       </SheetContent>

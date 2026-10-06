@@ -260,9 +260,15 @@ async function ensureLeadFolder(db: any, token: string, leadId: string, bmsRoot:
 
 async function getLeadContext(db: any, token: string, leadId: string) {
   const lead = await getLeadAccess(db, token, leadId);
-  const connection = await getConnection(db);
+  let connection = await getConnection(db);
+
+  // getBmsRoot() can transparently refresh an invalid Drive access token.
+  // Re-read the connection afterwards so register/preview/download use the
+  // refreshed token rather than the stale token that was loaded before root lookup.
+  const bmsRoot = await getBmsRoot(db, connection);
+  connection = await getConnection(db);
   const accessToken = await decrypt(connection.access_token_encrypted);
-  const bmsRoot = await getBmsRoot(db, token, connection);
+
   const leadFolderId = await ensureLeadFolder(db, accessToken, leadId, bmsRoot);
   return { lead, connection, accessToken, bmsRoot, leadFolderId };
 }

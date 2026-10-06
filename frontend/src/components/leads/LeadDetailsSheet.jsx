@@ -38,7 +38,10 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   const [customerResponse, setCustomerResponse] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [nextFollowupDate, setNextFollowupDate] = useState("");
-  const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);\n  const [uploadOpen, setUploadOpen] = useState(false);\n  const [uploadCategory, setUploadCategory] = useState("site_photo");\n  const [selectedFile, setSelectedFile] = useState(null);
+  const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState("site_photo");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (!open || !lead?.id) return;

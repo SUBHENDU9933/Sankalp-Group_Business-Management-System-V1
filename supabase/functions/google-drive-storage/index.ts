@@ -337,7 +337,25 @@ Deno.serve(async (req: Request) => {
         .is("deleted_at", null)
         .order("uploaded_at", { ascending: false });
       if (error) throw new Error(error.message);
-      return json({ files: data || [] });
+
+      const files = data || [];
+      const uploaderIds = [...new Set(files.map((file) => file.uploaded_by).filter(Boolean))];
+      let uploaderMap = {};
+      if (uploaderIds.length) {
+        const { data: profiles, error: profilesError } = await db
+          .from("profiles")
+          .select("id,full_name,email")
+          .in("id", uploaderIds);
+        if (profilesError) throw new Error(profilesError.message);
+        uploaderMap = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
+      }
+
+      return json({
+        files: files.map((file) => ({
+          ...file,
+          uploader: file.uploaded_by ? (uploaderMap[file.uploaded_by] || null) : null,
+        })),
+      });
     }
 
     if (action === "start_upload") {

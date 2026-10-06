@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Phone, MessageCircle, Mail, Pencil, ArrowRightCircle, MapPin, IndianRupee,
   CalendarClock, Clock, NotebookPen, FileText, AlertTriangle, History, Calculator,
-  CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle,
+  CalendarDays, RefreshCw, MessageSquareText, Paperclip, UserRound, CheckCircle2, XCircle, Upload, Image, Home, Map, Ruler, FileType, Quote, FolderOpen, FileSpreadsheet, X,
 } from "lucide-react";
 import { LEAD_PRIORITIES, LEAD_STATUSES, formatDate, formatDateTime, formatINR, isOverdue, isToday } from "@/utils/format";
 import { fetchLeadActivities, addLeadActivity, logLeadCallOutcome } from "@/services/leadActivityService";
@@ -38,7 +38,7 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
   const [customerResponse, setCustomerResponse] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [nextFollowupDate, setNextFollowupDate] = useState("");
-  const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);
+  const [noFurtherFollowup, setNoFurtherFollowup] = useState(false);\n  const [uploadOpen, setUploadOpen] = useState(false);\n  const [uploadCategory, setUploadCategory] = useState("site_photo");\n  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (!open || !lead?.id) return;
@@ -436,19 +436,159 @@ export default function LeadDetailsSheet({ open, onOpenChange, lead, onEdit, onC
             </div>
           </TabsContent>
 
-          {/* FILES */}
+          {/* FILES — UI ONLY: upload/storage wiring will be connected separately */}
           <TabsContent value="files" className="m-0 p-6">
-            <div className="bg-stone-50 border border-dashed border-stone-300 p-10 text-center">
-              <FileText className="w-8 h-8 text-stone-400 mx-auto mb-3" />
-              <div className="font-display text-lg tracking-tight text-stone-900">File uploads</div>
-              <p className="text-sm text-stone-500 mt-1">Coming soon — attach floor plans, reference images and quotations to each lead.</p>
+            <div className="space-y-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="label-uppercase mb-1">Files & Documents</div>
+                  <h3 className="font-display text-xl tracking-tight text-stone-900">Lead Files</h3>
+                  <p className="text-xs text-stone-500 mt-1">All files related to this lead — photos, plans, drawings, quotations and documents.</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => setUploadOpen(true)}
+                  className="rounded-none bg-blue-700 hover:bg-blue-800 text-white h-9 text-xs font-semibold shrink-0"
+                  data-testid="lead-files-upload-btn"
+                >
+                  <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload File
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {LEAD_FILE_CATEGORIES.map((category) => (
+                  <button
+                    key={category.key}
+                    type="button"
+                    onClick={() => setUploadCategory(category.key)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold border transition-colors",
+                      uploadCategory === category.key
+                        ? "bg-blue-50 text-blue-700 border-blue-300"
+                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                    )}
+                  >
+                    <category.Icon className="w-3 h-3" />
+                    {category.label}
+                    <span className="text-[10px] text-stone-400">0</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="border border-stone-200 bg-white">
+                <div className="grid grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_80px] gap-3 px-4 py-3 bg-stone-50 border-b border-stone-200 text-[10px] tracking-[0.1em] uppercase font-semibold text-stone-500">
+                  <span>File Name</span>
+                  <span>Category</span>
+                  <span>Source</span>
+                  <span>Uploaded By / Date</span>
+                  <span className="text-right">Actions</span>
+                </div>
+                <div className="p-10 text-center">
+                  <FolderOpen className="w-9 h-9 text-stone-300 mx-auto mb-3" />
+                  <div className="font-display text-lg tracking-tight text-stone-800">No files uploaded yet</div>
+                  <p className="text-sm text-stone-500 mt-1 max-w-md mx-auto">
+                    Upload site photos, room photos, floor plans, drawings, reference images, quotations and other lead documents here.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setUploadOpen(true)}
+                    variant="outline"
+                    className="rounded-none border-stone-300 mt-4 h-8 text-xs font-semibold"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1.5" /> Choose File
+                  </Button>
+                </div>
+              </div>
             </div>
+
+            {uploadOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+                <div className="w-full max-w-lg bg-white border border-stone-300 shadow-2xl">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
+                    <div>
+                      <div className="label-uppercase">Add Lead File</div>
+                      <div className="font-display text-lg tracking-tight text-stone-900 mt-0.5">What are you uploading?</div>
+                    </div>
+                    <button type="button" onClick={() => setUploadOpen(false)} className="p-1.5 text-stone-500 hover:text-stone-900" aria-label="Close">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-5 space-y-5">
+                    <div>
+                      <div className="label-uppercase mb-2">File Category *</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {LEAD_FILE_CATEGORIES.filter((c) => c.key !== "all").map((category) => (
+                          <button
+                            key={category.key}
+                            type="button"
+                            onClick={() => setUploadCategory(category.key)}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2.5 border text-left text-xs font-semibold",
+                              uploadCategory === category.key
+                                ? "border-blue-400 bg-blue-50 text-blue-700"
+                                : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                            )}
+                          >
+                            <category.Icon className="w-3.5 h-3.5 shrink-0" />
+                            {category.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="label-uppercase mb-2">Select File</div>
+                      <label className="block border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 cursor-pointer p-7 text-center">
+                        <input
+                          type="file"
+                          className="sr-only"
+                          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        />
+                        <FileText className="w-7 h-7 text-stone-400 mx-auto mb-2" />
+                        <div className="text-sm font-semibold text-stone-800">
+                          {selectedFile ? selectedFile.name : "Choose a file"}
+                        </div>
+                        <div className="text-xs text-stone-500 mt-1">
+                          {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Images, PDF, drawings, quotations and documents"}
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="text-xs text-stone-500">
+                        Category: <span className="font-semibold text-stone-800">{LEAD_FILE_CATEGORIES.find((c) => c.key === uploadCategory)?.label}</span>
+                      </div>
+                      <Button type="button" disabled className="rounded-none h-9 bg-stone-300 text-stone-600">
+                        <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-stone-400 border-t border-stone-100 pt-3">
+                      Upload processing and Google Drive registration will be connected in the next step. This screen is currently UI-only.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </SheetContent>
     </Sheet>
   );
 }
+
+const LEAD_FILE_CATEGORIES = [
+  { key: "all", label: "All", Icon: FolderOpen },
+  { key: "site_photo", label: "Site Photo", Icon: Image },
+  { key: "room_photo", label: "Room Photo", Icon: Home },
+  { key: "floor_plan", label: "Floor Plan", Icon: Map },
+  { key: "drawing", label: "Drawing", Icon: Ruler },
+  { key: "reference_image", label: "Reference Image", Icon: Image },
+  { key: "pdf_document", label: "PDF / Document", Icon: FileType },
+  { key: "quotation", label: "Quotation", Icon: Quote },
+  { key: "customer_requirement", label: "Customer Requirement", Icon: FileSpreadsheet },
+  { key: "other", label: "Other", Icon: FolderOpen },
+];
 
 function Section({ title, children }) {
   return (

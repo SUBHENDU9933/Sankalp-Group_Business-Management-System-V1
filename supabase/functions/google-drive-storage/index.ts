@@ -142,8 +142,14 @@ async function getConnection(db: any) {
     await drive("/about?fields=user", accessToken);
     return data;
   } catch (error) {
+    const status = Number((error as Error & { status?: number }).status || 0);
     const message = error instanceof Error ? error.message : String(error);
-    if (!/invalid credentials|unauthorized|401/i.test(message)) throw error;
+    // Google commonly returns 401 with the exact message
+    // "invalid authentication credentials", which does not match
+    // the narrower "invalid credentials" text.
+    if (status !== 401 && !/invalid authentication credentials|invalid credentials|unauthorized/i.test(message)) {
+      throw error;
+    }
 
     try {
       return await refresh(db, data);

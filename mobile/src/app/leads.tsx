@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
@@ -44,7 +44,7 @@ export default function LeadsScreen() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
             contentContainerStyle={rows.length ? styles.list : styles.emptyList}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <Pressable style={styles.card} onPress={() => router.push(`/lead/${item.id}` as any)}>
                 <View style={styles.row}>
                   <Text style={styles.name} numberOfLines={1}>{item.name || 'Unnamed lead'}</Text>
                   <Text style={styles.status}>{item.status || '—'}</Text>
@@ -52,7 +52,7 @@ export default function LeadsScreen() {
                 {!!item.phone && <Text style={styles.meta}>{item.phone}</Text>}
                 {!!item.location && <Text style={styles.meta}>{item.location}</Text>}
                 {!!item.project_type && <Text style={styles.meta}>{item.project_type}</Text>}
-              </View>
+              </Pressable>
             )}
             ListEmptyComponent={<Text style={styles.empty}>No visible leads.</Text>}
           />}

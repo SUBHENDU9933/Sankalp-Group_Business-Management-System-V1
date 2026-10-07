@@ -6,6 +6,7 @@ const ITEMS = [
   { label: 'Leads', path: '/leads' },
   { label: 'Schedule', path: '/schedule' },
   { label: 'Customers', path: '/customers' },
+  { label: 'Alerts', path: '/notifications' },
 ];
 
 export function MobileTabBar() {
@@ -31,17 +32,10 @@ export function MobileTabBar() {
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E7ECF2',
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  item: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#C8D0DB', marginBottom: 4 },
-  dotActive: { backgroundColor: '#1261A0' },
-  label: { color: '#718096', fontSize: 10, fontWeight: '700' },
-  labelActive: { color: '#1261A0' },
+  bar:{flexDirection:'row',backgroundColor:'#FFFFFF',borderTopWidth:1,borderTopColor:'#E7ECF2',paddingTop:8,paddingBottom:8},
+  item:{flex:1,alignItems:'center',paddingVertical:4},
+  dot:{width:6,height:6,borderRadius:3,backgroundColor:'#C8D0DB',marginBottom:4},
+  dotActive:{backgroundColor:'#1261A0'},
+  label:{color:'#718096',fontSize:9,fontWeight:'700'},
+  labelActive:{color:'#1261A0'},
 });

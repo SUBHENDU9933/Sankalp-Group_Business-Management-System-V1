@@ -1,10 +1,37 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
-import { fetchLeadById, type Lead } from '@/services/leadService';
-import { fetchLeadActivities, type LeadActivity } from '@/services/leadActivityService';
+import { can } from '@/auth/permissions';
+import { fetchLeadById, updateLeadFollowUp, updateLeadStatus, type Lead } from '@/services/leadService';
+import {
+  fetchLeadActivities,
+  logLeadCallOutcome,
+  type LeadActivity,
+} from '@/services/leadActivityService';
+
+const STATUS_OPTIONS = [
+  'new',
+  'not_contacted',
+  'contacted',
+  'site_visit',
+  'quotation_given',
+  'negotiation',
+  'floor_plan_site_info',
+  'estimate_to_be_created',
+  'need_followup',
+];
 
 export default function LeadDetailScreen() {
   const { profile } = useAuth();
@@ -12,42 +39,154 @@ export default function LeadDetailScreen() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [callNote, setCallNote] = useState('');
+  const [followupDate, setFollowupDate] = useState('');
+  const [followupNote, setFollowupNote] = useState('');
+
+  const editable = can(profile?.role, 'leads', 'edit');
+  const statusLabel = useMemo(
+    () => lead?.status?.replace(/_/g, ' ') || '—',
+    [lead?.status],
+  );
+
+  async function load() {
+    if (!id) return;
+    setError('');
+    try {
+      const [leadData, activityData] = await Promise.all([
+        fetchLeadById(id),
+        fetchLeadActivities(id),
+      ]);
+      setLead(leadData);
+      setActivities(activityData);
+      setFollowupDate(leadData?.next_followup_date || '');
+      setFollowupNote(leadData?.reminder_note || '');
+    } catch (e: any) {
+      setError(e?.message || 'Unable to load lead details.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!profile) { router.replace('/login'); return; }
-    if (!id) return;
-    let mounted = true;
-    (async () => {
-      try {
-        const [leadData, activityData] = await Promise.all([
-          fetchLeadById(id),
-          fetchLeadActivities(id),
-        ]);
-        if (!mounted) return;
-        setLead(leadData);
-        setActivities(activityData);
-      } catch (e: any) {
-        if (mounted) setError(e?.message || 'Unable to load lead details.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
+    if (!profile) {
+      router.replace('/login');
+      return;
+    }
+    load();
   }, [profile, id]);
 
-  if (loading) return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator /></View></SafeAreaView>;
-  if (error || !lead) return <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.error}>{error || 'Lead not found.'}</Text><Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable></View></SafeAreaView>;
+  async function handleCall(outcome: 'connected' | 'not_connected') {
+    if (!id || !profile?.id || !editable) return;
+    setSaving(true);
+    try {
+      await logLeadCallOutcome({ leadId: id, outcome, userId: profile.id, note: callNote });
+      setCallNote('');
+      await load();
+      Alert.alert('Call saved', outcome === 'connected' ? 'Connected call recorded.' : 'Not-connected call recorded.');
+    } catch (e: any) {
+      Alert.alert('Unable to save call', e?.message || 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleStatus(status: string) {
+    if (!id || !editable || status === lead?.status) return;
+    setSaving(true);
+    try {
+      await updateLeadStatus(id, status);
+      await load();
+      Alert.alert('Status updated', `Lead moved to “${status.replace(/_/g, ' ')}”.`);
+    } catch (e: any) {
+      Alert.alert('Unable to update status', e?.message || 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleFollowup() {
+    if (!id || !editable) return;
+    const value = followupDate.trim();
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      Alert.alert('Invalid date', 'Use YYYY-MM-DD format, for example 2026-10-12.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateLeadFollowUp(id, value || null, followupNote);
+      await load();
+      Alert.alert('Follow-up saved', value ? `Next follow-up: ${value}` : 'Follow-up date cleared.');
+    } catch (e: any) {
+      Alert.alert('Unable to save follow-up', e?.message || 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator /></View></SafeAreaView>;
+  }
+
+  if (error || !lead) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.error}>{error || 'Lead not found.'}</Text>
+          <Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back to Leads</Text></Pressable>
+
         <Text style={styles.eyebrow}>LEAD DETAILS</Text>
         <Text style={styles.title}>{lead.name || 'Unnamed lead'}</Text>
-        <View style={styles.badge}><Text style={styles.badgeText}>{lead.status || '—'}</Text></View>
+        <View style={styles.badge}><Text style={styles.badgeText}>{statusLabel}</Text></View>
+
+        {editable && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            {!!lead.phone && (
+              <Pressable
+                disabled={saving}
+                style={styles.primaryAction}
+                onPress={() => Linking.openURL(`tel:${lead.phone}`)}
+              >
+                <Text style={styles.primaryActionText}>Call {lead.phone}</Text>
+              </Pressable>
+            )}
+            <Text style={styles.actionLabel}>Call outcome note</Text>
+            <TextInput
+              value={callNote}
+              onChangeText={setCallNote}
+              placeholder="Optional note"
+              placeholderTextColor="#9AA3AF"
+              style={styles.input}
+            />
+            <View style={styles.row}>
+              <ActionButton
+                label="✓ Connected"
+                disabled={saving}
+                onPress={() => handleCall('connected')}
+              />
+              <ActionButton
+                label="Not Connected"
+                disabled={saving}
+                onPress={() => handleCall('not_connected')}
+              />
+            </View>
+          </View>
+        )}
 
         <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Lead Information</Text>
           {!!lead.phone && <Info label="Phone" value={lead.phone} />}
           {!!lead.email && <Info label="Email" value={lead.email} />}
           {!!lead.location && <Info label="Location" value={lead.location} />}
@@ -55,7 +194,58 @@ export default function LeadDetailScreen() {
           {!!lead.project_type && <Info label="Project" value={lead.project_type} />}
           {!!lead.requirement && <Info label="Requirement" value={lead.requirement} />}
           {!!lead.assigned_profile?.full_name && <Info label="Assigned To" value={lead.assigned_profile.full_name} />}
+          {!!lead.last_contact_date && <Info label="Last Contact" value={lead.last_contact_date} />}
+          <Info label="Next Follow-up" value={lead.next_followup_date || 'Not set'} />
+          {!!lead.reminder_note && <Info label="Reminder Note" value={lead.reminder_note} />}
         </View>
+
+        {editable && (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Update Status</Text>
+              <View style={styles.chips}>
+                {STATUS_OPTIONS.map((status) => (
+                  <Pressable
+                    key={status}
+                    disabled={saving}
+                    onPress={() => handleStatus(status)}
+                    style={[styles.chip, lead.status === status && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, lead.status === status && styles.chipTextActive]}>
+                      {status.replace(/_/g, ' ')}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Next Follow-up</Text>
+              <Text style={styles.helper}>Date format: YYYY-MM-DD</Text>
+              <TextInput
+                value={followupDate}
+                onChangeText={setFollowupDate}
+                placeholder="2026-10-12"
+                placeholderTextColor="#9AA3AF"
+                keyboardType="numbers-and-punctuation"
+                style={styles.input}
+                maxLength={10}
+              />
+              <TextInput
+                value={followupNote}
+                onChangeText={setFollowupNote}
+                placeholder="Reminder note"
+                placeholderTextColor="#9AA3AF"
+                style={[styles.input, styles.multiline]}
+                multiline
+              />
+              <View style={styles.row}>
+                <ActionButton label="Save Follow-up" disabled={saving} onPress={handleFollowup} />
+                <ActionButton label="Clear" disabled={saving} onPress={() => { setFollowupDate(''); setFollowupNote(''); }} />
+              </View>
+            </View>
+          </>
+        )}
 
         <Text style={styles.section}>Activity Timeline</Text>
         <View style={styles.card}>
@@ -73,6 +263,7 @@ export default function LeadDetailScreen() {
           )) : <Text style={styles.empty}>No activity recorded.</Text>}
         </View>
       </ScrollView>
+      {saving && <View style={styles.savingBar}><ActivityIndicator /><Text style={styles.savingText}>Saving…</Text></View>}
     </SafeAreaView>
   );
 }
@@ -81,9 +272,17 @@ function Info({ label, value }: { label: string; value: string }) {
   return <View style={styles.info}><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>;
 }
 
-const styles=StyleSheet.create({
+function ActionButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable disabled={disabled} onPress={onPress} style={[styles.actionButton, disabled && styles.disabled]}>
+      <Text style={styles.actionButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
   safe:{flex:1,backgroundColor:'#F6F8FB'},
-  container:{padding:20,paddingBottom:40},
+  container:{padding:20,paddingBottom:50},
   center:{flex:1,alignItems:'center',justifyContent:'center',padding:24},
   back:{color:'#1261A0',fontWeight:'800',fontSize:12,marginBottom:20},
   eyebrow:{color:'#F28C28',fontWeight:'800',fontSize:11,letterSpacing:1.1},
@@ -91,6 +290,21 @@ const styles=StyleSheet.create({
   badge:{alignSelf:'flex-start',marginTop:9,paddingHorizontal:10,paddingVertical:6,borderRadius:20,backgroundColor:'#EAF3FB'},
   badgeText:{color:'#1261A0',fontSize:10,fontWeight:'800',textTransform:'uppercase'},
   card:{backgroundColor:'#FFFFFF',borderRadius:16,padding:16,marginTop:14,borderWidth:1,borderColor:'#E8EDF3'},
+  sectionTitle:{color:'#132238',fontSize:15,fontWeight:'800',marginBottom:10},
+  actionLabel:{color:'#718096',fontSize:10,fontWeight:'800',textTransform:'uppercase',marginTop:8,marginBottom:5},
+  primaryAction:{backgroundColor:'#1261A0',borderRadius:12,paddingVertical:12,alignItems:'center'},
+  primaryActionText:{color:'#FFFFFF',fontWeight:'800',fontSize:12},
+  input:{borderWidth:1,borderColor:'#DCE3EA',borderRadius:10,paddingHorizontal:11,paddingVertical:10,color:'#132238',fontSize:12,backgroundColor:'#FBFCFD'},
+  multiline:{minHeight:72,textAlignVertical:'top'},
+  row:{flexDirection:'row',gap:8,marginTop:10},
+  actionButton:{flex:1,backgroundColor:'#F28C28',borderRadius:10,paddingVertical:11,alignItems:'center'},
+  actionButtonText:{color:'#FFFFFF',fontSize:11,fontWeight:'800',textAlign:'center'},
+  disabled:{opacity:0.5},
+  chips:{flexDirection:'row',flexWrap:'wrap',gap:7},
+  chip:{borderWidth:1,borderColor:'#DCE3EA',borderRadius:18,paddingHorizontal:10,paddingVertical:8,backgroundColor:'#FFFFFF'},
+  chipActive:{backgroundColor:'#EAF3FB',borderColor:'#1261A0'},
+  chipText:{color:'#4A5568',fontSize:10,fontWeight:'700',textTransform:'capitalize'},
+  chipTextActive:{color:'#1261A0'},
   info:{paddingVertical:8,borderBottomWidth:1,borderBottomColor:'#F0F2F5'},
   infoLabel:{color:'#8A94A3',fontSize:10,fontWeight:'700',textTransform:'uppercase'},
   infoValue:{color:'#132238',fontSize:13,fontWeight:'600',marginTop:3},
@@ -102,5 +316,8 @@ const styles=StyleSheet.create({
   activityText:{color:'#4A5568',fontSize:12,marginTop:3,lineHeight:18},
   activityMeta:{color:'#9AA3AF',fontSize:10,marginTop:4},
   empty:{color:'#718096',fontSize:12},
+  helper:{color:'#8A94A3',fontSize:10,marginBottom:7},
   error:{color:'#B42318',textAlign:'center',marginBottom:12},
+  savingBar:{position:'absolute',left:0,right:0,bottom:0,backgroundColor:'#FFFFFF',borderTopWidth:1,borderTopColor:'#E8EDF3',padding:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
+  savingText:{color:'#4A5568',fontSize:11,fontWeight:'700'},
 });

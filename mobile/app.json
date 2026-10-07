@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "SANKALP BMS",
+    "slug": "sankalp-bms-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "sankalpbms",
+    "android": {
+      "package": "com.sankalgroup.bms",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-local-authentication",
+      "expo-secure-store",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e37b08c0-f03c-49b1-8d68-6b8610997cc6"
+      }
+    },
+    "owner": "subhendu9933s-team"
+  }
+}

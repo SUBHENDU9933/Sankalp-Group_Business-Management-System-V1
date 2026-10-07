@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { useEffect, useState } from 'react';
 import { fetchDashboardData, type DashboardData } from '@/services/dashboardService';
 import { fetchSchedules } from '@/services/scheduleService';
+import { fetchNotifications, type BmsNotification } from '@/services/notificationService';
 import { MobileTabBar } from '@/components/MobileTabBar';
 
 const BLUE = '#1261A0';
@@ -15,12 +16,11 @@ export default function DashboardScreen() {
   const role = String(profile?.role || '').toUpperCase();
   const [data, setData] = useState<DashboardData | null>(null);
   const [todayMeetings, setTodayMeetings] = useState(0);
+  const [notifications, setNotifications] = useState<BmsNotification[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState('');
 
-  useEffect(() => {
-    if (!profile) router.replace('/login');
-  }, [profile]);
+  useEffect(() => { if (!profile) router.replace('/login'); }, [profile]);
 
   useEffect(() => {
     if (!profile) return;
@@ -29,17 +29,17 @@ export default function DashboardScreen() {
       setLoadingData(true);
       setDataError('');
       try {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        const [dashboard, meetings] = await Promise.all([
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const end = new Date(start); end.setDate(end.getDate() + 1);
+        const [dashboard, meetings, alerts] = await Promise.all([
           fetchDashboardData(),
           fetchSchedules({ from: start.toISOString(), to: end.toISOString() }),
+          fetchNotifications(5),
         ]);
         if (!mounted) return;
         setData(dashboard);
         setTodayMeetings(meetings.length);
+        setNotifications(alerts.filter(item => !item.read).slice(0, 3));
       } catch (error: any) {
         if (!mounted) return;
         setDataError(error?.message || 'Unable to load live BMS data.');
@@ -51,10 +51,7 @@ export default function DashboardScreen() {
     return () => { mounted = false; };
   }, [profile]);
 
-  async function logout() {
-    await signOut();
-    router.replace('/login');
-  }
+  async function logout() { await signOut(); router.replace('/login'); }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -79,16 +76,49 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {dataError ? (
-          <View style={styles.errorCard}><Text style={styles.errorTitle}>Live data unavailable</Text><Text style={styles.errorText}>{dataError}</Text></View>
-        ) : null}
+        {dataError ? <View style={styles.errorCard}><Text style={styles.errorTitle}>Live data unavailable</Text><Text style={styles.errorText}>{dataError}</Text></View> : null}
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Today at a glance</Text>
+            <Pressable onPress={() => router.replace('/schedule')}><Text style={styles.link}>Open schedule</Text></Pressable>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Follow-ups & meetings</Text>
+            <Text style={styles.cardText}>
+              {loadingData ? 'Loading today’s activity…' :
+                `${data?.kpis?.followups_today ?? 0} follow-up${Number(data?.kpis?.followups_today ?? 0) === 1 ? '' : 's'} due today • ${todayMeetings} meeting${todayMeetings === 1 ? '' : 's'} scheduled`}
+            </Text>
+            <Pressable style={styles.actionButton} onPress={() => router.replace('/leads')}>
+              <Text style={styles.actionText}>Open active leads</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Unread alerts</Text>
+            <Pressable onPress={() => router.replace('/notifications')}><Text style={styles.link}>View all</Text></Pressable>
+          </View>
+          <View style={styles.card}>
+            {notifications.length ? notifications.map(item => (
+              <Pressable key={item.id} onPress={() => { if (item.link?.startsWith('/lead/')) router.push(item.link as any); else if (item.link?.startsWith('/schedule/')) router.push(item.link as any); else router.replace('/notifications'); }} style={styles.alertRow}>
+                <View style={styles.alertDot} />
+                <View style={styles.alertBody}>
+                  <Text style={styles.alertTitle}>{item.title || item.type || 'BMS Alert'}</Text>
+                  {item.body ? <Text style={styles.alertText} numberOfLines={2}>{item.body}</Text> : null}
+                </View>
+              </Pressable>
+            )) : <Text style={styles.cardText}>No unread alerts right now.</Text>}
+          </View>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mobile BMS</Text>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Authentication connected ✓</Text>
             <Text style={styles.cardText}>Signed in as {profile?.email || 'current BMS user'} • Role: {role || 'unknown'}</Text>
-            <Text style={styles.cardText}>Live dashboard KPIs are now connected to the existing BMS dashboard RPC and schedule data. Leads, Customers and Notifications services are ready for the next mobile screens.</Text>
+            <Text style={styles.cardText}>Live dashboard KPIs are connected to the existing BMS dashboard RPC and schedule data.</Text>
           </View>
         </View>
       </ScrollView>
@@ -111,10 +141,19 @@ kpi:{width:'47%',backgroundColor:'#FFFFFF',borderRadius:17,padding:17,borderLeft
 kpiValue:{color:BLUE,fontSize:27,fontWeight:'800'},
 kpiLabel:{color:'#6B778C',marginTop:5,fontSize:12},
 section:{marginTop:25},
-sectionTitle:{color:'#132238',fontSize:17,fontWeight:'800',marginBottom:10},
+sectionHeader:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:10},
+sectionTitle:{color:'#132238',fontSize:17,fontWeight:'800'},
+link:{color:BLUE,fontSize:11,fontWeight:'800'},
 card:{backgroundColor:'#FFFFFF',borderRadius:16,padding:18},
 cardTitle:{color:'#1E7A4A',fontWeight:'800'},
 cardText:{color:'#7B8798',marginTop:7,lineHeight:18,fontSize:12},
+actionButton:{marginTop:14,backgroundColor:'#F2F7FC',borderRadius:10,padding:11,alignItems:'center'},
+actionText:{color:BLUE,fontWeight:'800',fontSize:12},
+alertRow:{flexDirection:'row',paddingVertical:8,borderBottomWidth:1,borderBottomColor:'#EEF1F5',gap:10},
+alertDot:{width:7,height:7,borderRadius:4,backgroundColor:ORANGE,marginTop:5},
+alertBody:{flex:1},
+alertTitle:{color:'#132238',fontSize:12,fontWeight:'800'},
+alertText:{color:'#718096',fontSize:11,lineHeight:16,marginTop:2},
 errorCard:{backgroundColor:'#FFF5F5',borderRadius:16,padding:16,marginTop:16,borderWidth:1,borderColor:'#F4C7C7'},
 errorTitle:{color:'#B42318',fontWeight:'800'},
 errorText:{color:'#8A4B4B',marginTop:5,lineHeight:18,fontSize:12},

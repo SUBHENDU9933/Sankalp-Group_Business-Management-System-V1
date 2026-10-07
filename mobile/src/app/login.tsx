@@ -33,7 +33,9 @@ export default function LoginScreen() {
       return;
     }
     void rememberMe;
-    router.replace('/dashboard');
+    // Navigation is driven by the AuthProvider session effect above.
+    // Do not navigate here as well: the auth-state update can otherwise
+    // trigger competing replace() calls and cause a navigation update loop.
   }
 
   return (

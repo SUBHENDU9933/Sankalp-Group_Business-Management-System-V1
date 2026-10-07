@@ -10,6 +10,9 @@ export type Lead = {
   project_type?: string | null;
   requirement?: string | null;
   status?: string | null;
+  next_followup_date?: string | null;
+  reminder_note?: string | null;
+  last_contact_date?: string | null;
   created_at?: string | null;
   assigned_to?: string | null;
   assigned_profile?: { id: string; full_name?: string | null; email?: string | null } | null;
@@ -75,6 +78,22 @@ export async function fetchLeadById(id: string) {
     .maybeSingle();
   if (error) throw error;
   return data as Lead | null;
+}
+
+export async function updateLeadStatus(id: string, status: string) {
+  const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateLeadFollowUp(id: string, nextFollowupDate: string | null, reminderNote: string | null) {
+  const { error } = await supabase
+    .from('leads')
+    .update({
+      next_followup_date: nextFollowupDate,
+      reminder_note: reminderNote?.trim() || null,
+    })
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export async function fetchActiveLeadCount() {

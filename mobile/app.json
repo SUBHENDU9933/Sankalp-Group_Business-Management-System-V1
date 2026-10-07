@@ -6,17 +6,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "sankalpbms",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
-    },
     "android": {
       "package": "com.sankalgroup.bms"
     },
     "plugins": [
       "expo-router",
       "expo-local-authentication",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

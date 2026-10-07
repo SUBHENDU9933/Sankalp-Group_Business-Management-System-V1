@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
 import { can } from '@/auth/permissions';
 import { fetchLeadById, updateLeadFollowUp, updateLeadStatus, type Lead } from '@/services/leadService';
+import { createSchedule, fetchActiveEmployees, checkCalendarAvailability, type EmployeeOption } from '@/services/scheduleService';
 import {
   fetchLeadActivities,
   logLeadCallOutcome,
@@ -44,6 +45,13 @@ export default function LeadDetailScreen() {
   const [callNote, setCallNote] = useState('');
   const [followupDate, setFollowupDate] = useState('');
   const [followupNote, setFollowupNote] = useState('');
+  const [meetingDate, setMeetingDate] = useState('');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [meetingType, setMeetingType] = useState('follow_up');
+  const [meetingMode, setMeetingMode] = useState('digital');
+  const [meetingTitle, setMeetingTitle] = useState('');
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
 
   const editable = can(profile?.role, 'leads', 'edit');
   const statusLabel = useMemo(
@@ -76,6 +84,7 @@ export default function LeadDetailScreen() {
       return;
     }
     load();
+    fetchActiveEmployees().then(setEmployees).catch(() => {});
   }, [profile, id]);
 
   async function handleCall(outcome: 'connected' | 'not_connected') {
@@ -150,6 +159,55 @@ export default function LeadDetailScreen() {
         <Text style={styles.title}>{lead.name || 'Unnamed lead'}</Text>
         <View style={styles.badge}><Text style={styles.badgeText}>{statusLabel}</Text></View>
 
+        {editable && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Schedule Meeting</Text>
+            <TextInput value={meetingTitle} onChangeText={setMeetingTitle} placeholder={'Meeting with ' + (lead.name || 'Customer')} placeholderTextColor="#9AA3AF" style={styles.input} />
+            <Text style={styles.helper}>Date: YYYY-MM-DD · Time: HH:mm (India)</Text>
+            <View style={styles.row}>
+              <TextInput value={meetingDate} onChangeText={setMeetingDate} placeholder="2026-10-12" placeholderTextColor="#9AA3AF" style={[styles.input, styles.half]} maxLength={10} />
+              <TextInput value={meetingTime} onChangeText={setMeetingTime} placeholder="10:30" placeholderTextColor="#9AA3AF" style={[styles.input, styles.half]} maxLength={5} />
+            </View>
+            <Text style={styles.actionLabel}>Meeting type</Text>
+            <View style={styles.chips}>{['follow_up','site_visit','office_meeting','customer_home','video_meeting','design_presentation','estimate_discussion'].map((v) => (
+              <Pressable key={v} onPress={() => setMeetingType(v)} style={[styles.chip, meetingType === v && styles.chipActive]}><Text style={[styles.chipText, meetingType === v && styles.chipTextActive]}>{v.replace(/_/g,' ')}</Text></Pressable>
+            ))}</View>
+            <Text style={styles.actionLabel}>Mode</Text>
+            <View style={styles.row}>{['digital','physical'].map((v) => <Pressable key={v} onPress={() => setMeetingMode(v)} style={[styles.modeButton, meetingMode === v && styles.modeButtonActive]}><Text style={styles.modeButtonText}>{v}</Text></Pressable>)}</View>
+            <Text style={styles.actionLabel}>Co-members (optional)</Text>
+            <View style={styles.chips}>{employees.filter((e) => e.id !== profile?.id).map((e) => {
+              const selected = selectedParticipants.includes(e.id);
+              return <Pressable key={e.id} onPress={() => setSelectedParticipants((p) => selected ? p.filter(x => x !== e.id) : [...p, e.id])} style={[styles.chip, selected && styles.chipActive]}><Text style={[styles.chipText, selected && styles.chipTextActive]}>{e.full_name || e.email || 'Team Member'}</Text></Pressable>;
+            })}</View>
+            <ActionButton label="Check & Create Meeting" disabled={saving} onPress={async () => {
+              if (!profile?.id || !id) return;
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(meetingDate) || !/^\d{2}:\d{2}$/.test(meetingTime)) { Alert.alert('Invalid date/time','Use YYYY-MM-DD and HH:mm.'); return; }
+              const start = new Date(meetingDate + 'T' + meetingTime + ':00+05:30');
+              if (Number.isNaN(start.getTime())) { Alert.alert('Invalid date/time','Please enter a valid India date and time.'); return; }
+              const duration = meetingType === 'site_visit' || meetingType === 'customer_home' ? 60 : meetingType === 'estimate_discussion' || meetingType === 'office_meeting' ? 45 : 30;
+              const end = new Date(start.getTime() + duration * 60000);
+              setSaving(true);
+              try {
+                const people = [profile.id, ...selectedParticipants];
+                const availability: any = await checkCalendarAvailability({ start: start.toISOString(), end: end.toISOString(), userIds: people });
+                if (availability?.available === false && Array.isArray(availability?.busy) && availability.busy.length) {
+                  const names = availability.busy.map((b: any) => b.user_name || 'Team Member').filter(Boolean).join(', ');
+                  Alert.alert('Slot conflict', 'Busy: ' + names + '. Choose another slot.'); return;
+                }
+                const result = await createSchedule({
+                  lead_id: id, title: meetingTitle.trim() || ('Meeting with ' + (lead.name || 'Customer')),
+                  meeting_type: meetingType, mode: meetingMode, status: 'scheduled', priority: 'normal',
+                  start_at: start.toISOString(), end_at: end.toISOString(), timezone: 'Asia/Kolkata',
+                  customer_email: lead.email || null, location_address: meetingMode === 'physical' ? (lead.location || null) : null,
+                }, people, [profile.id]);
+                setMeetingTitle(''); setMeetingDate(''); setMeetingTime(''); setSelectedParticipants([]);
+                Alert.alert('Meeting created', result.schedule.meeting_link ? 'Meeting created with Google Meet link.' : 'Meeting created. Calendar sync may still be pending.');
+                await load();
+              } catch (e: any) { Alert.alert('Unable to create meeting', e?.message || 'Please try again.'); }
+              finally { setSaving(false); }
+            }} />
+          </View>
+        )}
         {editable && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -296,6 +354,10 @@ const styles = StyleSheet.create({
   primaryActionText:{color:'#FFFFFF',fontWeight:'800',fontSize:12},
   input:{borderWidth:1,borderColor:'#DCE3EA',borderRadius:10,paddingHorizontal:11,paddingVertical:10,color:'#132238',fontSize:12,backgroundColor:'#FBFCFD'},
   multiline:{minHeight:72,textAlignVertical:'top'},
+  half:{flex:1},
+  modeButton:{flex:1,borderWidth:1,borderColor:'#DCE3EA',borderRadius:10,paddingVertical:10,alignItems:'center'},
+  modeButtonActive:{backgroundColor:'#EAF3FB',borderColor:'#1261A0'},
+  modeButtonText:{color:'#1261A0',fontSize:11,fontWeight:'800',textTransform:'uppercase'},
   row:{flexDirection:'row',gap:8,marginTop:10},
   actionButton:{flex:1,backgroundColor:'#F28C28',borderRadius:10,paddingVertical:11,alignItems:'center'},
   actionButtonText:{color:'#FFFFFF',fontSize:11,fontWeight:'800',textAlign:'center'},

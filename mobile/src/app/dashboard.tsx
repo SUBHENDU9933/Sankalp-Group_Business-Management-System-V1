@@ -2,7 +2,9 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { fetchDashboardData, type DashboardData } from '@/services/dashboardService';
+import { fetchSchedules } from '@/services/scheduleService';
 
 const BLUE = '#1261A0';
 const ORANGE = '#F28C28';
@@ -10,9 +12,42 @@ const ORANGE = '#F28C28';
 export default function DashboardScreen() {
   const { profile, signOut } = useAuth();
   const role = String(profile?.role || '').toUpperCase();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [todayMeetings, setTodayMeetings] = useState(0);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState('');
 
   useEffect(() => {
     if (!profile) router.replace('/login');
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+    let mounted = true;
+    async function loadData() {
+      setLoadingData(true);
+      setDataError('');
+      try {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        const [dashboard, meetings] = await Promise.all([
+          fetchDashboardData(),
+          fetchSchedules({ from: start.toISOString(), to: end.toISOString() }),
+        ]);
+        if (!mounted) return;
+        setData(dashboard);
+        setTodayMeetings(meetings.length);
+      } catch (error: any) {
+        if (!mounted) return;
+        setDataError(error?.message || 'Unable to load live BMS data.');
+      } finally {
+        if (mounted) setLoadingData(false);
+      }
+    }
+    loadData();
+    return () => { mounted = false; };
   }, [profile]);
 
   async function logout() {
@@ -33,17 +68,26 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.grid}>
-          {[['New Leads','—'],['Follow-ups','—'],['Meetings','—'],['Overdue','—']].map(([label,value]) => (
-            <View key={label} style={styles.kpi}><Text style={styles.kpiValue}>{value}</Text><Text style={styles.kpiLabel}>{label}</Text></View>
+          {[
+            ['Active Leads', data?.kpis?.active_leads ?? data?.kpis?.leads ?? '—'],
+            ["Today's Follow-ups", data?.kpis?.followups_today ?? '—'],
+            ["Today's Meetings", todayMeetings || (loadingData ? '—' : 0)],
+            ['Overdue', data?.kpis?.overdue_followups ?? '—'],
+          ].map(([label, value]) => (
+            <View key={label} style={styles.kpi}><Text style={styles.kpiValue}>{loadingData ? '…' : String(value)}</Text><Text style={styles.kpiLabel}>{label}</Text></View>
           ))}
         </View>
+
+        {dataError ? (
+          <View style={styles.errorCard}><Text style={styles.errorTitle}>Live data unavailable</Text><Text style={styles.errorText}>{dataError}</Text></View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mobile BMS</Text>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Authentication connected ✓</Text>
             <Text style={styles.cardText}>Signed in as {profile?.email || 'current BMS user'} • Role: {role || 'unknown'}</Text>
-            <Text style={styles.cardText}>Live Leads, Schedule, Customers and notifications will be connected after the mobile data-service audit.</Text>
+            <Text style={styles.cardText}>Live dashboard KPIs are now connected to the existing BMS dashboard RPC and schedule data. Leads, Customers and Notifications services are ready for the next mobile screens.</Text>
           </View>
         </View>
       </ScrollView>
@@ -69,4 +113,7 @@ sectionTitle:{color:'#132238',fontSize:17,fontWeight:'800',marginBottom:10},
 card:{backgroundColor:'#FFFFFF',borderRadius:16,padding:18},
 cardTitle:{color:'#1E7A4A',fontWeight:'800'},
 cardText:{color:'#7B8798',marginTop:7,lineHeight:18,fontSize:12},
+errorCard:{backgroundColor:'#FFF5F5',borderRadius:16,padding:16,marginTop:16,borderWidth:1,borderColor:'#F4C7C7'},
+errorTitle:{color:'#B42318',fontWeight:'800'},
+errorText:{color:'#8A4B4B',marginTop:5,lineHeight:18,fontSize:12},
 });

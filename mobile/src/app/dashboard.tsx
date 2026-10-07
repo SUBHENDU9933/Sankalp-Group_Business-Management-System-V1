@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { useEffect, useState } from 'react';
 import { fetchDashboardData, type DashboardData } from '@/services/dashboardService';
 import { fetchSchedules } from '@/services/scheduleService';
+import { MobileTabBar } from '@/components/MobileTabBar';
 
 const BLUE = '#1261A0';
 const ORANGE = '#F28C28';
@@ -91,6 +92,7 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
+      <MobileTabBar />
     </SafeAreaView>
   );
 }

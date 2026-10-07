@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
+import { useEffect } from 'react';
 
 const BLUE = '#1261A0';
 const ORANGE = '#F28C28';
@@ -9,6 +10,10 @@ const ORANGE = '#F28C28';
 export default function DashboardScreen() {
   const { profile, signOut } = useAuth();
   const role = String(profile?.role || '').toUpperCase();
+
+  useEffect(() => {
+    if (!profile) router.replace('/login');
+  }, [profile]);
 
   async function logout() {
     await signOut();

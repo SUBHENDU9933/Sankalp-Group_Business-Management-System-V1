@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
 import { can } from '@/auth/permissions';
 import { fetchLeadById, updateLeadFollowUp, updateLeadStatus, type Lead } from '@/services/leadService';
-import { createSchedule, fetchActiveEmployees, checkCalendarAvailability, type EmployeeOption } from '@/services/scheduleService';
+import { createSchedule, fetchActiveEmployees, checkCalendarAvailability, fetchMeetingRule, type EmployeeOption } from '@/services/scheduleService';
 import {
   fetchLeadActivities,
   logLeadCallOutcome,
@@ -184,8 +184,12 @@ export default function LeadDetailScreen() {
               if (!/^\d{4}-\d{2}-\d{2}$/.test(meetingDate) || !/^\d{2}:\d{2}$/.test(meetingTime)) { Alert.alert('Invalid date/time','Use YYYY-MM-DD and HH:mm.'); return; }
               const start = new Date(meetingDate + 'T' + meetingTime + ':00+05:30');
               if (Number.isNaN(start.getTime())) { Alert.alert('Invalid date/time','Please enter a valid India date and time.'); return; }
-              const duration = meetingType === 'site_visit' || meetingType === 'customer_home' ? 60 : meetingType === 'estimate_discussion' || meetingType === 'office_meeting' ? 45 : 30;
-              const end = new Date(start.getTime() + duration * 60000);
+              const rule = await fetchMeetingRule(meetingType, meetingMode);
+                if (!rule?.duration_minutes) {
+                  Alert.alert('Meeting rule unavailable', 'This meeting type/mode is not currently configured in BMS.');
+                  return;
+                }
+                const end = new Date(start.getTime() + Number(rule.duration_minutes) * 60000);
               setSaving(true);
               try {
                 const people = [profile.id, ...selectedParticipants];

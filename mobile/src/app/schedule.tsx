@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
@@ -43,7 +43,7 @@ export default function ScheduleScreen() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
             contentContainerStyle={rows.length ? styles.list : styles.emptyList}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <Pressable style={styles.card} onPress={() => router.push('/schedule/' + item.id)}>
                 <View style={styles.row}>
                   <Text style={styles.name} numberOfLines={2}>{item.title || item.meeting_type || 'Meeting'}</Text>
                   <Text style={styles.mode}>{item.mode || '—'}</Text>
@@ -51,7 +51,7 @@ export default function ScheduleScreen() {
                 <Text style={styles.time}>{new Date(item.start_at).toLocaleString('en-IN')}</Text>
                 {!!item.owner?.full_name && <Text style={styles.meta}>Owner: {item.owner.full_name}</Text>}
                 {!!item.status && <Text style={styles.meta}>Status: {item.status}</Text>}
-              </View>
+              </Pressable>
             )}
             ListEmptyComponent={<Text style={styles.empty}>No upcoming meetings.</Text>}
           />}

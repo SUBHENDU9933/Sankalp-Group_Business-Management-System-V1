@@ -7,7 +7,11 @@
     "userInterfaceStyle": "light",
     "scheme": "sankalpbms",
     "android": {
-      "package": "com.sankalgroup.bms"
+      "package": "com.sankalgroup.bms",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -17,6 +21,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e37b08c0-f03c-49b1-8d68-6b8610997cc6"
+      }
+    },
+    "owner": "subhendu9933s-team"
   }
 }

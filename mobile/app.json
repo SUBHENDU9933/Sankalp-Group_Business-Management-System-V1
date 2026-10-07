@@ -6,17 +6,12 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "sankalpbms",
-    "icon": "./assets/icon.png",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
     "android": {
-      "package": "com.sankalgroup.bms",
-      "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/adaptive-icon.png"
-      }
+      "package": "com.sankalgroup.bms"
     },
     "plugins": [
       "expo-router",

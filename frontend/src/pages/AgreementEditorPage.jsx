@@ -20,6 +20,19 @@ import { fetchAgreementById, createAgreement, updateAgreement, buildMergeDataFro
 import { uploadFile } from "@/services/attachmentService";
 import { formatINR, numberToWords } from "@/utils/format";
 
+const parseEstimateSelection = (value) => {
+  if (!value) return { version: null, id: null };
+  const separator = value.indexOf(":");
+  if (separator < 0) return { version: 1, id: value };
+  return {
+    version: value.slice(0, separator) === "v2" ? 2 : 1,
+    id: value.slice(separator + 1),
+  };
+};
+
+const isV2Estimate = (estimate) =>
+  Number(estimate?.estimator_version || 1) === 2 || estimate?.estimator_module === "estimate_v2";
+
 export default function AgreementEditorPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -51,7 +64,7 @@ export default function AgreementEditorPage() {
   const customerOptions = useMemo(() => customers.map((c) => ({ value: c.id, label: c.name, sublabel: c.phone })), [customers]);
   const leadOptions = useMemo(() => leads.map((l) => ({ value: l.id, label: l.name, sublabel: l.phone })), [leads]);
   const projectOptions = useMemo(() => projects.map((p) => ({ value: p.id, label: p.project_name, sublabel: p.location })), [projects]);
-  const estimateOptions = useMemo(() => estimates.map((e) => ({ value: e.id, label: `${e.estimate_no} · ${e.customer_name || ""}`, sublabel: formatINR(e.final_amount) })), [estimates]);
+  const estimateOptions = useMemo(() => estimates.map((e) => ({ value: `${isV2Estimate(e) ? "v2" : "v1"}:${e.id}`, label: `${e.estimate_no} · ${e.customer_name || ""} · ${isV2Estimate(e) ? "V2" : "V1"}`, sublabel: formatINR(e.final_amount) })), [estimates]);
 
   useEffect(() => {
     (async () => {
@@ -69,7 +82,7 @@ export default function AgreementEditorPage() {
           setCustomerId(ag.customer_id || "");
           setLeadId(ag.lead_id || "");
           setProjectId(ag.project_id || "");
-          setEstimateId(ag.estimate_id || "");
+          setEstimateId(ag.estimate_v2_id ? `v2:${ag.estimate_v2_id}` : ag.estimate_id ? `v1:${ag.estimate_id}` : "");
           setTitle(ag.title || "Interior Work Agreement");
           setMergeData(ag.merge_data || {});
           setEnabledClauseIds(ag.enabled_clause_ids || []);
@@ -108,7 +121,8 @@ export default function AgreementEditorPage() {
   };
   const handlePickEstimate = (val) => {
     setEstimateId(val);
-    const e = estimates.find((x) => x.id === val);
+    const { id: selectedId } = parseEstimateSelection(val);
+    const e = estimates.find((x) => x.id === selectedId);
     if (e) applyAutoFill(buildMergeDataFromSources({ estimate: e }));
   };
 
@@ -147,7 +161,9 @@ export default function AgreementEditorPage() {
     try {
       const c = customers.find((x) => x.id === customerId);
       const p = projects.find((x) => x.id === projectId);
-      const e = estimates.find((x) => x.id === estimateId);
+      const selectedEstimate = parseEstimateSelection(estimateId);
+      const e = estimates.find((x) => x.id === selectedEstimate.id);
+      const estimateVersion = e ? (isV2Estimate(e) ? 2 : 1) : selectedEstimate.version;
       const finalMergeData = { ...mergeData, contract_value_words: numberToWords(mergeData.contract_value) };
       const payload = {
         template_id: templateId,
@@ -157,7 +173,8 @@ export default function AgreementEditorPage() {
         lead_id: leadId || null,
         project_id: projectId || null,
         project_name: p?.project_name || "",
-        estimate_id: estimateId || null,
+        estimate_id: estimateVersion === 1 ? selectedEstimate.id : null,
+        estimate_v2_id: estimateVersion === 2 ? selectedEstimate.id : null,
         estimate_no: e?.estimate_no || mergeData.estimate_no || "",
         title,
         merge_data: finalMergeData,
